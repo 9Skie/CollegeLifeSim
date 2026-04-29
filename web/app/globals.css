@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0e1014;
+  --foreground: #f4ead5;
+  --paper: #f4ead5;
+  --ink: #1a1d23;
+  --accent: #d94f4f;
+  --accent-soft: #f0a868;
+  --muted: #8a8579;
+  --card: #181b21;
+  --card-border: #2a2e36;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(217, 79, 79, 0.08), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(240, 168, 104, 0.06), transparent 40%);
+  background-attachment: fixed;
+}
+
+/* subtle paper grain — applied via ::before on body */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+  z-index: 0;
+}
+
+/* keep content above the grain */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes wobble {
+  0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+  50% { transform: translateY(-3px) rotate(0.5deg); }
+}
+
+.title-wobble {
+  animation: wobble 6s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* room code input — monospace, large */
+.code-input {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 2rem;
+  letter-spacing: 0.5rem;
+  text-align: center;
+  text-transform: uppercase;
+}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>College Life Simulator</title>
+    <link rel="stylesheet" href="./styles.css?v=20260421-9" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Semester Simulation Harness</p>
+          <h1>College Life Simulator</h1>
+          <p class="hero-copy">
+            A first-pass playable systems prototype focused on testing the
+            economy, action pacing, relationship loop, and variance model.
+          </p>
+        </div>
+        <div class="hero-card">
+          <p class="hero-stat-label">Current focus</p>
+          <p class="hero-stat-value">Run semesters, inspect logs, and compare timelines</p>
+          <p class="hero-footnote">
+            This build keeps the simulation readable first, with compact UI
+            surfaces that make semester shifts easy to inspect.
+          </p>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel controls-panel">
+          <div class="panel-heading">
+            <h2>Simulation Controls</h2>
+            <p>Seeded runs produce reproducible semesters.</p>
+          </div>
+
+          <div class="control-grid">
+            <label>
+              <span>Seed</span>
+              <input id="seed-input" type="number" value="41021" />
+            </label>
+            <label>
+              <span>Players</span>
+              <input id="players-input" type="number" min="4" max="10" value="6" />
+            </label>
+            <label>
+              <span>Batch Runs</span>
+              <input id="batch-input" type="number" min="10" max="5000" value="250" />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="simulate-once-btn" class="primary">Simulate Semester</button>
+            <button id="simulate-batch-btn">Run Batch</button>
+            <button id="reroll-btn">Reroll Seed</button>
+          </div>
+
+          <div class="notes-block">
+            <h3>Engine Coverage</h3>
+            <ul>
+              <li>Daily slot planning with simultaneous hidden action resolution</li>
+              <li>Target-based shared social and study actions with relationship growth</li>
+              <li>Outcome-tier variance shaped by wellbeing, spending, and repetition</li>
+              <li>Weekly study quota, decay, exams, and end-state score tuning</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel summary-panel">
+          <div class="panel-heading">
+            <h2>Semester Summary</h2>
+            <p id="summary-subtitle">Run a semester to inspect the outcome.</p>
+          </div>
+
+          <div id="summary-cards" class="summary-cards"></div>
+
+          <div class="split-card">
+            <div>
+              <h3>Player Standings</h3>
+              <div id="standings-table"></div>
+            </div>
+            <div>
+              <h3>Shared Dynamics</h3>
+              <div id="relationship-table"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel batch-panel">
+          <div class="panel-heading">
+            <h2>Batch Diagnostics</h2>
+            <p>Use this to see whether one path is dominating over many semesters.</p>
+          </div>
+          <div id="batch-summary" class="batch-summary empty-state">
+            No batch results yet.
+          </div>
+        </section>
+
+        <section class="panel analytics-panel">
+          <div class="panel-heading">
+            <h2>Player Timelines</h2>
+            <p>
+              Every player gets one semester timeline plus a compact initial-vs-final stat comparison.
+            </p>
+          </div>
+          <div id="player-timelines" class="player-timelines empty-state">
+            Run a semester to inspect player stat history.
+          </div>
+        </section>
+
+        <section class="panel export-panel">
+          <div class="panel-heading">
+            <h2>Run Export</h2>
+            <p>
+              End-of-game timeline data as structured JSON and flattened CSV for
+              tuning outside the app.
+            </p>
+          </div>
+          <div class="button-row export-button-row">
+            <button id="download-json-btn">Download JSON</button>
+            <button id="download-csv-btn">Download CSV</button>
+            <button id="copy-json-btn">Copy JSON</button>
+          </div>
+          <div class="export-grid">
+            <label class="export-block">
+              <span>JSON Export</span>
+              <textarea id="json-export-output" readonly></textarea>
+            </label>
+            <label class="export-block">
+              <span>CSV Export</span>
+              <textarea id="csv-export-output" readonly></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-heading">
+            <h2>Semester Log</h2>
+            <p>Important actions, mismatches, weekly penalties, and exams.</p>
+          </div>
+          <pre id="log-output" class="log-output">No run yet.</pre>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./game.js?v=20260421-9"></script>
+  </body>
+</html>
