@@ -695,7 +695,7 @@ export default function DayView({
                   <button
                     key={p.id}
                     className="flex items-center gap-2 shrink-0 text-left"
-                    onClick={() => setStatsPopupPlayer(p)}
+                    onClick={() => { if (!isMe) setStatsPopupPlayer(p); }}
                   >
                     <div
                       className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white transition ${

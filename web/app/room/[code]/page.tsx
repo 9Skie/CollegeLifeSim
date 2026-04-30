@@ -227,7 +227,7 @@ export default function RoomPage() {
   };
 
   /* ------------------------------------------------------------------ */
-  // Emulate a room with scripted dummy players for solo testing
+  // Add the scripted dummy roster for solo testing
   const emulateGame = async () => {
     const usedNames = new Set(players.map((p) => p.name));
     const namesToAdd = DUMMY_PLAYERS.map((player) => player.name).filter(
@@ -394,7 +394,7 @@ export default function RoomPage() {
                     className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3"
                   >
                     <button
-                      onClick={() => setStatsPopupPlayer(player)}
+                      onClick={() => { if (!isMe) setStatsPopupPlayer(player); }}
                       className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white shrink-0 select-none transition ${
                         isGoner ? "grayscale opacity-50" : "hover:scale-105"
                       }`}
@@ -435,10 +435,10 @@ export default function RoomPage() {
                 onClick={emulateGame}
                 className="text-xs px-3 py-1.5 rounded-md border border-card-border text-muted hover:text-paper hover:border-muted transition"
               >
-                Emulate Game
-              </button>
-            </div>
-          )}
+                  Add Dummies
+                </button>
+              </div>
+            )}
         </div>
 
         {/* Player Stats Popup */}

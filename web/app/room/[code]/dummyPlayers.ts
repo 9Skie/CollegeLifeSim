@@ -24,7 +24,7 @@ export const DUMMY_PLAYERS: readonly DummyPlayerDefinition[] = [
   { name: "Quinn", behavior: "wildcardRestSleep" },
   { name: "Riley", behavior: "randomEachSlot" },
   {
-    name: "Goner Greg",
+    name: "Greg",
     behavior: "goner",
     state: { eliminated: true, wellbeing: 0 },
   },

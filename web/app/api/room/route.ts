@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { DUMMY_PLAYERS, getDummyState } from "@/app/room/[code]/dummyPlayers";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const DEBUG_ROOM_CODE = process.env.CLS_DEBUG_ROOM_CODE?.trim().toUpperCase() ?? "";
@@ -82,33 +81,6 @@ export async function POST(request: Request) {
 
     // Set host_id on room
     await supabase.from("rooms").update({ host_id: player.id }).eq("code", code);
-
-    if (fixedDebugRoomCode) {
-      const dummyPlayers = DUMMY_PLAYERS.filter((dummy) => dummy.name !== name).map(
-        (dummy) => {
-          const state = getDummyState(dummy.name);
-          return {
-            room_code: code,
-            name: dummy.name,
-            eliminated: state?.eliminated ?? false,
-            wellbeing: state?.wellbeing ?? 5,
-          };
-        }
-      );
-
-      if (dummyPlayers.length > 0) {
-        const { error: dummyError } = await supabase
-          .from("players")
-          .insert(dummyPlayers);
-
-        if (dummyError) {
-          return NextResponse.json(
-            { error: "Failed to create debug dummy players" },
-            { status: 500 }
-          );
-        }
-      }
-    }
 
     return NextResponse.json({ room, player }, { status: 201 });
   } catch (err) {
