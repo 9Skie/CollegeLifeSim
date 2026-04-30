@@ -548,38 +548,23 @@ export default function DayView({
           <div className="space-y-2.5">
             {(
               [
-                ["Academics", "academics", { warnAt: 1, emoji: "😰", word: "Anxiety" }],
-                ["Social", "social", { warnAt: 1, emoji: "🌧️", word: "Depression" }],
-                ["Money", "money", { warnAt: 0, emoji: "🍽️", word: "Starvation" }],
-                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨", word: "Critical" }],
+                ["Academics", "academics"],
+                ["Social", "social"],
+                ["Money", "money"],
+                ["Wellbeing", "wellbeing"],
               ] as const
-            ).map(([label, key, warn]) => {
+            ).map(([label, key]) => {
               const value = stats[key as keyof typeof stats];
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
               const netGain = gain + decay;
               const projected = value + netGain;
               const barMax = 10;
-              const isWarned = value <= warn.warnAt;
 
               return (
                 <div key={label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-paper font-medium">{label}</span>
-                      {isWarned && (
-                        <span
-                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border"
-                          style={{
-                            color: "#d94f4f",
-                            backgroundColor: "#d94f4f12",
-                            borderColor: "#d94f4f30",
-                          }}
-                        >
-                          {warn.emoji} {warn.word}
-                        </span>
-                      )}
-                    </span>
+                    <span className="text-paper font-medium">{label}</span>
                     <span className="text-muted">
                       {value.toFixed(2)}
                       <span className="text-red-900/40 ml-1.5">
@@ -626,6 +611,35 @@ export default function DayView({
               );
             })}
           </div>
+
+          {/* Warnings — full tags, only when needed */}
+          {(() => {
+            const warns: { emoji: string; word: string }[] = [];
+            if (stats.academics <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
+            if (stats.social <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
+            if (stats.money <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
+            if (stats.wellbeing <= 1) warns.push({ emoji: "🚨", word: "Critical" });
+            if (warns.length === 0) return null;
+            return (
+              <div className="mt-3 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-widest text-accent">Warnings</p>
+                {warns.map((w) => (
+                  <div
+                    key={w.word}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded border mr-1.5"
+                    style={{
+                      color: "#d94f4f",
+                      backgroundColor: "#d94f4f12",
+                      borderColor: "#d94f4f30",
+                    }}
+                  >
+                    <span>{w.emoji}</span>
+                    <span>{w.word}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </section>
 
         {/* Calendar + trackers */}
