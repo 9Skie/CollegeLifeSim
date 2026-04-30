@@ -5,8 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
-import { Selection } from "./ActionPicker";
 import { DUMMY_PLAYERS, getDummyState } from "./dummyPlayers";
+import {
+  createEmptySelectionRecord,
+  type SelectionRecord,
+} from "@/utils/day-actions";
+import type { RoomDayState } from "@/utils/room-day-state";
 
 type Player = {
   id: string;
@@ -59,9 +63,13 @@ export default function RoomPage() {
 
   const [phase, setPhase] = useState<GamePhase>("lobby");
   const [players, setPlayers] = useState<Player[]>([]);
-  const [daySelections, setDaySelections] = useState<Record<string, Selection | null>>({});
+  const [daySelections, setDaySelections] = useState<SelectionRecord>(
+    createEmptySelectionRecord()
+  );
+  const [dayState, setDayState] = useState<RoomDayState | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [hostId, setHostId] = useState<string | null>(null);
+  const [currentDay, setCurrentDay] = useState(1);
   const [roomStatus, setRoomStatus] = useState<string>("lobby");
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
@@ -79,7 +87,11 @@ export default function RoomPage() {
 
     const fetchRoom = async () => {
       try {
-        const res = await fetch(`/api/room/${code}`);
+        const activePlayerId = localStorage.getItem("cls.playerId") || storedId;
+        const query = activePlayerId
+          ? `?playerId=${encodeURIComponent(activePlayerId)}`
+          : "";
+        const res = await fetch(`/api/room/${code}${query}`);
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || "Room not found");
@@ -88,13 +100,28 @@ export default function RoomPage() {
         }
         setPlayers(data.players || []);
         setHostId(data.room.host_id);
+        const incomingDay = data.room.current_day || 1;
+        if (incomingDay !== currentDay) {
+          setDaySelections(data.dayState?.mySelections || createEmptySelectionRecord());
+        }
+        setCurrentDay(incomingDay);
         setRoomStatus(data.room.status);
+        setDayState(data.dayState || null);
         if (data.room.current_phase) {
           setPhase((prev) =>
-            prev === "lobby" || (prev === "setup" && data.room.current_phase === "day")
+            prev === "lobby" ||
+            (prev === "setup" && ["day", "resolution"].includes(data.room.current_phase)) ||
+            (prev === "day" && data.room.current_phase === "resolution") ||
+            (prev === "resolution" && data.room.current_phase === "day")
               ? (data.room.current_phase as GamePhase)
               : prev
           );
+        }
+        if (
+          data.dayState?.myStatus &&
+          ["done", "goner"].includes(data.dayState.myStatus)
+        ) {
+          setDaySelections(data.dayState.mySelections);
         }
         if (data.room.current_phase === "day") {
           setSetupReady(false);
@@ -110,7 +137,7 @@ export default function RoomPage() {
     fetchRoom();
     const interval = setInterval(fetchRoom, 3000);
     return () => clearInterval(interval);
-  }, [code]);
+  }, [code, currentDay]);
 
   /* ------------------------------------------------------------------ */
   const isHost = myId === hostId;
@@ -118,6 +145,63 @@ export default function RoomPage() {
   const currentPlayer = myId
     ? players.find((player) => player.id === myId) ?? null
     : null;
+
+  const submitDaySelections = async (
+    selections: SelectionRecord
+  ) => {
+    if (!myId) {
+      throw new Error("Missing player identity");
+    }
+
+    const res = await fetch(`/api/room/${code}/day-actions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId: myId, selections }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to submit day actions");
+    }
+
+    setDaySelections(selections);
+    setDayState(data.dayState || null);
+    if (data.room) {
+      setCurrentDay(data.room.current_day || currentDay);
+      setRoomStatus(data.room.status);
+      if (data.room.current_phase === "resolution") {
+        setPhase("resolution");
+      }
+    }
+  };
+
+  const startNextDay = async () => {
+    if (!myId) {
+      throw new Error("Missing player identity");
+    }
+
+    const res = await fetch(`/api/room/${code}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playerId: myId,
+        currentPhase: "day",
+        status: "day",
+        currentDay: currentDay + 1,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to start next day");
+    }
+
+    setCurrentDay(data.room.current_day || currentDay + 1);
+    setRoomStatus(data.room.status);
+    setDaySelections(createEmptySelectionRecord());
+    setDayState(null);
+    setPhase("day");
+  };
 
   const copyCode = async () => {
     try {
@@ -313,12 +397,12 @@ export default function RoomPage() {
       <div className="flex-1 flex overflow-hidden">
         <DayView
           roomCode={code}
+          currentDay={currentDay}
           players={players}
           currentPlayer={currentPlayer}
-          onSubmit={(sel) => {
-            setDaySelections(sel);
-            setPhase("resolution");
-          }}
+          dayState={dayState}
+          initialSelections={daySelections}
+          onSubmit={submitDaySelections}
         />
       </div>
     );
@@ -329,10 +413,12 @@ export default function RoomPage() {
       <div className="flex-1 flex overflow-hidden">
         <ResolutionView
           roomCode={code}
+          currentDay={currentDay}
           selections={daySelections}
           players={players}
           currentPlayer={currentPlayer}
-          onNextDay={() => setPhase("day")}
+          isHost={isHost}
+          onNextDay={startNextDay}
         />
       </div>
     );

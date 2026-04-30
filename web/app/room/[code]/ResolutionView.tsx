@@ -46,7 +46,7 @@ function hashString(str: string): number {
 
 function getActionLabel(id: string): string {
   const map: Record<string, string> = {
-    class: "Class", study: "Study", studyTogether: "Study Together",
+    class: "Class", study: "Study",
     work: "Work", exercise: "Exercise", socialize: "Socialize",
     rest: "Rest", sleep: "Sleep", wildcard: "Wildcard",
   };
@@ -55,7 +55,7 @@ function getActionLabel(id: string): string {
 
 function getActionIcon(id: string): string {
   const map: Record<string, string> = {
-    class: "🎓", study: "📚", studyTogether: "👥",
+    class: "🎓", study: "📚",
     work: "💼", exercise: "🏃", socialize: "💬",
     rest: "🛋️", sleep: "😴", wildcard: "🃏",
   };
@@ -66,7 +66,6 @@ function getActionEffect(id: string, spend?: number): string {
   switch (id) {
     case "class": return "Academics +0.75, Social +0.25";
     case "study": return "Academics +1";
-    case "studyTogether": return "Academics +0.75, Social +0.5";
     case "work": return "Money +1";
     case "exercise": return "Wellbeing +1";
     case "socialize":
@@ -94,10 +93,6 @@ function calculateSlotGain(
       break;
     case "study":
       gain.academics += 1;
-      break;
-    case "studyTogether":
-      gain.academics += 0.75;
-      gain.social += 0.5;
       break;
     case "work":
       gain.money += 1;
@@ -141,21 +136,27 @@ function applyMultiplier(
 
 export default function ResolutionView({
   roomCode,
+  currentDay,
   selections,
   players,
   currentPlayer,
+  isHost,
   onNextDay,
 }: {
   roomCode: string;
+  currentDay: number;
   selections: Record<string, Selection | null>;
   players: Player[];
   currentPlayer: CurrentPlayer;
-  onNextDay: () => void;
+  isHost: boolean;
+  onNextDay: () => Promise<void>;
 }) {
   const myName = currentPlayer?.name ||
     (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
 
-  const seed = hashString(roomCode + "day1");
+  const seed = hashString(`${roomCode}:day:${currentDay}`);
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceError, setAdvanceError] = useState<string | null>(null);
   const classSchedule = useMemo(() => {
     if (Array.isArray(currentPlayer?.class_schedule) && currentPlayer.class_schedule.length > 0) {
       return currentPlayer.class_schedule;
@@ -176,8 +177,13 @@ export default function ResolutionView({
     return out;
   }, [currentPlayer?.class_schedule, seed]);
 
-  const hasClassMorning = classSchedule.some((c) => c.day === 0 && c.slot === "morning");
-  const hasClassAfternoon = classSchedule.some((c) => c.day === 0 && c.slot === "afternoon");
+  const currentDayIndex = (currentDay - 1) % 7;
+  const hasClassMorning = classSchedule.some(
+    (c) => c.day === currentDayIndex && c.slot === "morning"
+  );
+  const hasClassAfternoon = classSchedule.some(
+    (c) => c.day === currentDayIndex && c.slot === "afternoon"
+  );
 
   const fallbackAllocated = useMemo(() => {
     try {
@@ -201,9 +207,9 @@ export default function ResolutionView({
   };
 
   /* ---- outcomes: 20% bad, 60% normal, 20% good --------------------- */
-  const morningOutcomeIdx = hashString(myName + roomCode + "morning") % 100;
-  const afternoonOutcomeIdx = hashString(myName + roomCode + "afternoon") % 100;
-  const nightOutcomeIdx = hashString(myName + roomCode + "night") % 100;
+  const morningOutcomeIdx = hashString(`${myName}:${roomCode}:day:${currentDay}:morning`) % 100;
+  const afternoonOutcomeIdx = hashString(`${myName}:${roomCode}:day:${currentDay}:afternoon`) % 100;
+  const nightOutcomeIdx = hashString(`${myName}:${roomCode}:day:${currentDay}:night`) % 100;
 
   const toOutcomeIndex = (n: number) => {
     if (n < 20) return 0;
@@ -248,12 +254,13 @@ export default function ResolutionView({
 
   const wildcardEvent = useMemo(() => {
     if (!wildcardSlot) return null;
-    const idx = hashString(myName + roomCode + "wildcard") % PRIVATE_EVENT_POOL.length;
+    const idx = hashString(`${myName}:${roomCode}:day:${currentDay}:wildcard`) % PRIVATE_EVENT_POOL.length;
     return PRIVATE_EVENT_POOL[idx];
-  }, [wildcardSlot, myName, roomCode]);
+  }, [currentDay, wildcardSlot, myName, roomCode]);
 
   /* ---- sequential fade-in + landing states ------------------------- */
   const [showSlots, setShowSlots] = useState(false);
+  const [rouletteShows, setRouletteShows] = useState([false, false, false]);
   const [slotsLanded, setSlotsLanded] = useState(false);
   const [showWildcard, setShowWildcard] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -262,14 +269,17 @@ export default function ResolutionView({
 
   useEffect(() => {
     const t1 = setTimeout(() => setShowSlots(true), 200);
-    const t1b = setTimeout(() => setSlotsLanded(true), 2000);
+    const r1 = setTimeout(() => setRouletteShows((p) => [true, p[1], p[2]]), 200);
+    const r2 = setTimeout(() => setRouletteShows((p) => [p[0], true, p[2]]), 700);
+    const r3 = setTimeout(() => setRouletteShows((p) => [p[0], p[1], true]), 1200);
+    const t1b = setTimeout(() => setSlotsLanded(true), 3200);
     const t2 = setTimeout(() => {
       if (wildcardSlot) setShowWildcard(true);
       else setShowStats(true);
-    }, 2400);
-    const t3 = setTimeout(() => setShowStats(true), wildcardSlot ? 3200 : 2400);
-    const t4 = setTimeout(() => setShowHighlights(true), wildcardSlot ? 4000 : 3200);
-    return () => [t1, t1b, t2, t3, t4].forEach(clearTimeout);
+    }, 3600);
+    const t3 = setTimeout(() => setShowStats(true), wildcardSlot ? 4400 : 3600);
+    const t4 = setTimeout(() => setShowHighlights(true), wildcardSlot ? 5200 : 4400);
+    return () => [t1, r1, r2, r3, t1b, t2, t3, t4].forEach(clearTimeout);
   }, [wildcardSlot]);
 
   /* ---- daily highlights (dummy) ---------------------------------- */
@@ -313,211 +323,278 @@ export default function ResolutionView({
   }, [showHighlights, highlights.length]);
 
   return (
-    <div className="flex-1 flex flex-col items-center p-6 overflow-auto">
-      <div className="w-full max-w-xl space-y-5 pb-8">
-        {/* Header */}
-        <div className="text-center pt-4">
-          <p className="text-muted text-sm uppercase tracking-widest mb-2">
-            Day 1 Resolved
-          </p>
-          <h1 className="text-3xl font-bold text-paper">How did it go?</h1>
+    <div className="flex-1 overflow-auto p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-[1fr_42rem_1fr] gap-16 items-start">
+        {/* Left floating bubbles */}
+        <div className="flex flex-col items-end gap-20 pt-40">
+          {[0, 2, 4].map((idx) => {
+            const h = highlights[idx];
+            if (!h) return null;
+            const pads = ["pt-0", "pt-14", "pt-10"];
+            const angle = ((hashString(h.text + idx + "L") % 91) - 45) / 2; // -22.5 to +22.5
+            return (
+              <div
+                key={idx}
+                className={`${pads[idx / 2 | 0]}`}
+                style={{ transform: `rotate(${angle}deg)` }}
+              >
+                <div
+                  className={`max-w-[280px] rounded-2xl px-5 py-3.5 border text-sm transition-all duration-500 ${
+                    visibleHighlights.includes(idx)
+                      ? "opacity-100 scale-100 translate-y-0"
+                      : "opacity-0 scale-85 translate-y-4"
+                  }`}
+                  style={{
+                    backgroundColor: h.color + "12",
+                    borderColor: h.color + "28",
+                    animation: visibleHighlights.includes(idx)
+                      ? `messagePop 0.5s ease-out ${idx * 120}ms both`
+                      : "none",
+                  }}
+                >
+                  <p className="leading-relaxed" style={{ color: h.color }}>
+                    <span className="mr-1.5 text-base">{h.icon}</span>
+                    {h.text}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Slot sections — fade in one at a time */}
-        {slotData.map((s) => {
-          const targetName = s.sel?.targetId
-            ? players.find((p) => p.id === s.sel?.targetId)?.name
-            : null;
-          const outcome = OUTCOMES[s.oi];
-          const meEliminated = players.find((p) => p.name === myName)?.eliminated;
-          return (
-            <div
-              key={s.key}
-              className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
-                showSlots ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-              }`}
-            >
-              {/* Slot header */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">{s.icon}</span>
-                <span className="font-bold text-paper">{s.label}</span>
-              </div>
+        {/* Center column — main content */}
+        <div className="w-full space-y-5 pb-8">
+          {/* Header */}
+          <div className="text-center pt-4">
+            <p className="text-muted text-sm uppercase tracking-widest mb-2">
+              Day 1 Resolved
+            </p>
+            <h1 className="text-3xl font-bold text-paper">How did it go?</h1>
+          </div>
 
-              {/* Action card + roulette row, matched height */}
-              <div className="flex gap-3 items-stretch">
-                {/* Action card with result badge inside */}
-                <div className="flex-1 min-w-0">
-                  {meEliminated ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
-                      <span className="text-2xl shrink-0 grayscale opacity-50">
-                        {s.sel ? getActionIcon(s.sel.actionId) : "❓"}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-muted line-through">
-                          {s.sel ? getActionLabel(s.sel.actionId) : "No action"}
-                        </p>
-                        <p className="text-xs text-muted">Eliminated</p>
+          {/* Slot sections — fade in one at a time */}
+          {slotData.map((s, i) => {
+            const targetName = s.sel?.targetId
+              ? players.find((p) => p.id === s.sel?.targetId)?.name
+              : null;
+            const outcome = OUTCOMES[s.oi];
+            const meEliminated = players.find((p) => p.name === myName)?.eliminated;
+            return (
+              <div
+                key={s.key}
+                className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
+                  showSlots ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                }`}
+                style={{ transitionDelay: showSlots ? `${i * 350}ms` : "0ms" }}
+              >
+                {/* Slot header */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{s.icon}</span>
+                  <span className="font-bold text-paper">{s.label}</span>
+                </div>
+
+                {/* Action card + roulette row, matched height */}
+                <div className="flex gap-3 items-stretch">
+                  {/* Action card with result badge inside */}
+                  <div className="flex-1 min-w-0">
+                    {meEliminated ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
+                        <span className="text-2xl shrink-0 grayscale opacity-50">
+                          {s.sel ? getActionIcon(s.sel.actionId) : "❓"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-muted line-through">
+                            {s.sel ? getActionLabel(s.sel.actionId) : "No action"}
+                          </p>
+                          <p className="text-xs text-muted">Eliminated</p>
+                        </div>
                       </div>
-                    </div>
-                  ) : s.sel ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
-                      <span className="text-2xl shrink-0">{getActionIcon(s.sel.actionId)}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-paper">
-                          {getActionLabel(s.sel.actionId)}
-                          {s.sel.spend === 1 && " · Coffee"}
-                          {s.sel.spend === 2 && " · Dinner"}
-                        </p>
-                        <p className="text-xs text-muted">
-                          {getActionEffect(s.sel.actionId, s.sel.spend)}
-                        </p>
-                        {targetName && (
-                          <p className="text-xs text-muted">with {targetName}</p>
+                    ) : s.sel ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
+                        <span className="text-2xl shrink-0">{getActionIcon(s.sel.actionId)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-paper">
+                            {getActionLabel(s.sel.actionId)}
+                            {s.sel.spend === 1 && " · Coffee"}
+                            {s.sel.spend === 2 && " · Dinner"}
+                          </p>
+                          <p className="text-xs text-muted">
+                            {getActionEffect(s.sel.actionId, s.sel.spend)}
+                          </p>
+                          {targetName && (
+                            <p className="text-xs text-muted">with {targetName}</p>
+                          )}
+                        </div>
+
+                        {/* Result badge — inside card, right side */}
+                        {slotsLanded && (
+                          <div className="shrink-0 flex flex-col items-end gap-0.5">
+                            <span
+                              className="text-xs font-bold"
+                              style={{ color: outcome.color }}
+                            >
+                              {outcome.icon} {outcome.label}
+                            </span>
+                            <span className="text-[10px] text-muted">
+                              ×{outcome.mult}
+                            </span>
+                          </div>
                         )}
                       </div>
+                    ) : (
+                      <p className="text-sm text-muted min-h-[66px] flex items-center">
+                        No action selected
+                      </p>
+                    )}
+                  </div>
 
-                      {/* Result badge — inside card, right side */}
-                      {slotsLanded && (
-                        <div className="shrink-0 flex flex-col items-end gap-0.5">
-                          <span
-                            className="text-xs font-bold"
-                            style={{ color: outcome.color }}
-                          >
-                            {outcome.icon} {outcome.label}
-                          </span>
-                          <span className="text-[10px] text-muted">
-                            ×{outcome.mult}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted min-h-[66px] flex items-center">
-                      No action selected
-                    </p>
-                  )}
-                </div>
-
-                {/* Roulette — stretches to match action card height */}
-                <div className="shrink-0 w-28 h-full">
-                  <SlotRoulette outcomeIndex={s.oi} show={showSlots} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Wildcard */}
-        {wildcardSlot && wildcardEvent && (
-          <div
-            className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
-              showWildcard ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">🃏</span>
-              <span className="font-bold text-paper">Wildcard</span>
-            </div>
-            <div className="flex justify-center">
-              <CardFlip event={wildcardEvent} show={showWildcard} />
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div
-          className={`rounded-2xl border border-card-border bg-card p-6 space-y-4 transition-all duration-500 ${
-            showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-        >
-          <p className="text-sm text-muted uppercase tracking-widest text-center">
-            Updated Stats
-          </p>
-          {(
-            [
-              ["Academics", "academics"] as const,
-              ["Social", "social"] as const,
-              ["Wellbeing", "wellbeing"] as const,
-              ["Money", "money"] as const,
-            ] as const
-          ).map(([label, key]) => {
-            const start = startStats[key];
-            const end = endStats[key];
-            const change = end - start;
-            const barMax = 10;
-            return (
-              <div key={key}>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-paper font-medium">{label}</span>
-                  <span>
-                    <span className="text-muted">{start.toFixed(2)}</span>
-                    <span className="text-muted ml-1.5">
-                      ({change >= 0 ? "+" : ""}
-                      {change.toFixed(2)})
-                    </span>
-                    <span className="text-paper font-bold ml-1.5">
-                      → {end.toFixed(2)}
-                    </span>
-                  </span>
-                </div>
-                <div className="h-2.5 bg-background rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent transition-all duration-700 ease-out"
-                    style={{
-                      width: showStats
-                        ? `${Math.min((end / barMax) * 100, 100)}%`
-                        : `${Math.min((start / barMax) * 100, 100)}%`,
-                    }}
-                  />
+                  {/* Roulette — stretches to match action card height */}
+                  <div className="shrink-0 w-28 h-full">
+                    <SlotRoulette outcomeIndex={s.oi} show={rouletteShows[i]} />
+                  </div>
                 </div>
               </div>
             );
           })}
 
-        </div>
-
-        {/* Daily Highlights — Word Around Campus */}
-        <div
-          className={`space-y-3 transition-all duration-500 ${
-            showHighlights ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-        >
-          <div className="flex items-center gap-2 justify-center pt-2">
-            <span className="text-sm uppercase tracking-widest text-muted font-semibold">
-              Word Around Campus
-            </span>
-          </div>
-          {highlights.map((h, i) => (
+          {/* Wildcard */}
+          {wildcardSlot && wildcardEvent && (
             <div
-              key={i}
-              className={`rounded-xl border border-card-border bg-card p-4 flex items-start gap-3 transition-all duration-500 ${
-                visibleHighlights.includes(i)
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 -translate-x-4"
+              className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
+                showWildcard ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
-              style={{
-                borderLeftWidth: "3px",
-                borderLeftColor: h.color,
-              }}
             >
-              <span className="text-lg shrink-0 mt-0.5">{h.icon}</span>
-              <p className="text-sm text-paper/80 leading-relaxed">{h.text}</p>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">🃏</span>
+                <span className="font-bold text-paper">Wildcard</span>
+              </div>
+              <div className="flex justify-center">
+                <CardFlip event={wildcardEvent} show={showWildcard} />
+              </div>
             </div>
-          ))}
+          )}
+
+          {/* Stats */}
+          <div
+            className={`rounded-2xl border border-card-border bg-card p-6 space-y-4 transition-all duration-500 ${
+              showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+            }`}
+          >
+            <p className="text-sm text-muted uppercase tracking-widest text-center">
+              Updated Stats
+            </p>
+            {(
+              [
+                ["Academics", "academics"] as const,
+                ["Social", "social"] as const,
+                ["Wellbeing", "wellbeing"] as const,
+                ["Money", "money"] as const,
+              ] as const
+            ).map(([label, key]) => {
+              const start = startStats[key];
+              const end = endStats[key];
+              const change = end - start;
+              const barMax = 10;
+              return (
+                <div key={key}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-paper font-medium">{label}</span>
+                    <span>
+                      <span className="text-muted">{start.toFixed(2)}</span>
+                      <span className="text-muted ml-1.5">
+                        ({change >= 0 ? "+" : ""}
+                        {change.toFixed(2)})
+                      </span>
+                      <span className="text-paper font-bold ml-1.5">
+                        → {end.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-2.5 bg-background rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all duration-700 ease-out"
+                      style={{
+                        width: showStats
+                          ? `${Math.min((end / barMax) * 100, 100)}%`
+                          : `${Math.min((start / barMax) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Next Day button — directly under stats */}
+            <div className="pt-3 text-center border-t border-card-border">
+              {advanceError && (
+                <p className="mb-3 text-sm text-accent">{advanceError}</p>
+              )}
+              {isHost ? (
+                <button
+                  onClick={async () => {
+                    setAdvanceError(null);
+                    setAdvancing(true);
+                    try {
+                      await onNextDay();
+                    } catch (err) {
+                      setAdvanceError(
+                        err instanceof Error ? err.message : "Failed to start next day"
+                      );
+                    } finally {
+                      setAdvancing(false);
+                    }
+                  }}
+                  disabled={advancing}
+                  className={`px-8 py-3 rounded-xl font-semibold transition active:translate-y-0.5 shadow-lg shadow-accent/20 ${
+                    advancing
+                      ? "bg-card-border text-muted cursor-not-allowed shadow-none"
+                      : "bg-accent text-paper hover:bg-accent/90"
+                  }`}
+                >
+                  {advancing ? "Starting Next Day..." : "Next Day →"}
+                </button>
+              ) : (
+                <p className="text-sm text-muted">Waiting for the host to start the next day.</p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Next Day button */}
-        <div
-          className={`text-center pt-2 pb-4 transition-all duration-500 ${
-            showHighlights ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-        >
-          <button
-            onClick={onNextDay}
-            className="px-8 py-3 rounded-xl font-semibold bg-accent text-paper hover:bg-accent/90 transition active:translate-y-0.5 shadow-lg shadow-accent/20"
-          >
-            Next Day →
-          </button>
+        {/* Right floating bubbles */}
+        <div className="flex flex-col items-start gap-20 pt-52">
+          {[1, 3, 5].map((idx) => {
+            const h = highlights[idx];
+            if (!h) return null;
+            const pads = ["pt-0", "pt-16", "pt-8"];
+            const angle = ((hashString(h.text + idx + "R") % 91) - 45) / 2; // -22.5 to +22.5
+            return (
+              <div
+                key={idx}
+                className={`${pads[(idx - 1) / 2 | 0]}`}
+                style={{ transform: `rotate(${angle}deg)` }}
+              >
+                <div
+                  className={`max-w-[280px] rounded-2xl px-5 py-3.5 border text-sm transition-all duration-500 ${
+                    visibleHighlights.includes(idx)
+                      ? "opacity-100 scale-100 translate-y-0"
+                      : "opacity-0 scale-85 translate-y-4"
+                  }`}
+                  style={{
+                    backgroundColor: h.color + "12",
+                    borderColor: h.color + "28",
+                    animation: visibleHighlights.includes(idx)
+                      ? `messagePop 0.5s ease-out ${idx * 120}ms both`
+                      : "none",
+                  }}
+                >
+                  <p className="leading-relaxed" style={{ color: h.color }}>
+                    <span className="mr-1.5 text-base">{h.icon}</span>
+                    {h.text}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -554,7 +631,7 @@ function generateDailyHighlights({
       ? others[hashString(myName + "rand") % others.length].name
       : "someone";
 
-  // Slot highlights — only Bad / Good are interesting
+  // Slot highlights — Bad (red) / Good (green)
   const slotInfo = [
     { label: "morning", sel: selections.morning, oi: morningOI, icon: "☀️" },
     { label: "afternoon", sel: selections.afternoon, oi: afternoonOI, icon: "🌤" },
@@ -564,25 +641,18 @@ function generateDailyHighlights({
   for (const s of slotInfo) {
     if (!s.sel) continue;
     const action = getActionLabel(s.sel.actionId);
-    const outcome = OUTCOMES[s.oi];
     const targetName = s.sel.targetId
       ? players.find((p) => p.id === s.sel?.targetId)?.name
       : null;
 
     if (s.oi === 0) {
-      // Bad
       const lines = [
         `${myName} tried to ${action.toLowerCase()}, but the universe had other plans.`,
         `${myName}'s ${action.toLowerCase()} session went off the rails.`,
         `Nothing about ${myName}'s ${action.toLowerCase()} went right today.`,
       ];
-      out.push({
-        text: lines[hashString(myName + s.label) % lines.length],
-        icon: s.icon,
-        color: outcome.color,
-      });
+      out.push({ text: lines[hashString(myName + s.label) % lines.length], icon: s.icon, color: "#d94f4f" });
     } else if (s.oi === 2) {
-      // Good
       const lines = targetName
         ? [
             `${myName} and ${targetName} absolutely crushed their ${action.toLowerCase()}.`,
@@ -594,35 +664,33 @@ function generateDailyHighlights({
             `${myName} absolutely crushed it during ${action.toLowerCase()}.`,
             `${myName}'s ${action.toLowerCase()} was the highlight of the day.`,
           ];
-      out.push({
-        text: lines[hashString(myName + s.label) % lines.length],
-        icon: s.icon,
-        color: outcome.color,
-      });
+      out.push({ text: lines[hashString(myName + s.label) % lines.length], icon: s.icon, color: "#5b8c5a" });
     }
   }
 
-  // Wildcard highlight
+  // Wildcard highlight — neutral (vanilla)
   if (wildcardEvent) {
     out.push({
       text: `${myName} stumbled into ${wildcardEvent.name.toLowerCase()}.`,
       icon: wildcardEvent.icon,
-      color: wildcardEvent.color,
+      color: "#F3E5AB",
     });
   }
 
-  // Generic campus events — fill to 5
+  // Generic campus events — mixed sentiment colors
   const generic: Highlight[] = [
-    { text: `${randOther()} was spotted crying in the library at 2am.`, icon: "😢", color: "#8a8579" },
-    { text: `The dining hall ran out of pizza. Again.`, icon: "🍕", color: "#8a8579" },
-    { text: `A squirrel stole ${randOther()}'s bagel. No one intervened.`, icon: "🐿️", color: "#8a8579" },
-    { text: `The STEM building elevator got stuck for 20 minutes.`, icon: "🏗️", color: "#8a8579" },
-    { text: `${randOther()} showed up to class in pajamas. Respect.`, icon: "😴", color: "#8a8579" },
-    { text: `Someone started a rumor that the final got cancelled. It didn't.`, icon: "📢", color: "#8a8579" },
-    { text: `The campus Wi-Fi went down during registration. Chaos ensued.`, icon: "📶", color: "#8a8579" },
-    { text: `${randOther()} lost their ID card for the third time this week.`, icon: "🪪", color: "#8a8579" },
-    { text: `A stray cat has taken up residence in the humanities building.`, icon: "🐈", color: "#8a8579" },
-    { text: `${randOther()} accidentally replied-all to a department email.`, icon: "📧", color: "#8a8579" },
+    { text: `${randOther()} was spotted crying in the library at 2am.`, icon: "😢", color: "#d94f4f" },
+    { text: `The dining hall ran out of pizza. Again.`, icon: "🍕", color: "#F3E5AB" },
+    { text: `A squirrel stole ${randOther()}'s bagel. No one intervened.`, icon: "🐿️", color: "#F3E5AB" },
+    { text: `The STEM building elevator got stuck for 20 minutes.`, icon: "🏗️", color: "#F3E5AB" },
+    { text: `${randOther()} showed up to class in pajamas. Respect.`, icon: "😴", color: "#5b8c5a" },
+    { text: `Someone started a rumor that the final got cancelled. It didn't.`, icon: "📢", color: "#d94f4f" },
+    { text: `The campus Wi-Fi went down during registration. Chaos ensued.`, icon: "📶", color: "#d94f4f" },
+    { text: `${randOther()} lost their ID card for the third time this week.`, icon: "🪪", color: "#d94f4f" },
+    { text: `A stray cat has taken up residence in the humanities building.`, icon: "🐈", color: "#5b8c5a" },
+    { text: `${randOther()} accidentally replied-all to a department email.`, icon: "📧", color: "#F3E5AB" },
+    { text: `Free donuts appeared in the student lounge. No questions asked.`, icon: "🍩", color: "#5b8c5a" },
+    { text: `The coffee shop started accepting dining dollars again.`, icon: "☕", color: "#5b8c5a" },
   ];
 
   // Shuffle generics deterministically
@@ -631,14 +699,14 @@ function generateDailyHighlights({
     .sort((a, b) => a.sortKey - b.sortKey)
     .map(({ sortKey: _, ...rest }) => rest);
 
-  while (out.length < 5 && shuffled.length > 0) {
+  while (out.length < 6 && shuffled.length > 0) {
     const next = shuffled.shift()!;
     if (!out.some((o) => o.text === next.text)) {
       out.push(next);
     }
   }
 
-  return out.slice(0, 5);
+  return out.slice(0, 6);
 }
 
 /* ------------------------------------------------------------------ */

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ActionPicker, { Selection } from "./ActionPicker";
-import { getDummyBehavior } from "./dummyPlayers";
 import {
   MAJORS,
   MAJOR_DATA,
@@ -11,6 +10,13 @@ import {
   NEGATIVE_TRAITS,
   NEGATIVE_TRAIT_DATA,
 } from "@/data/game";
+import {
+  DAY_SLOTS,
+  createEmptySelectionRecord,
+  type DaySlot,
+  type SelectionRecord,
+} from "@/utils/day-actions";
+import type { RoomDayState } from "@/utils/room-day-state";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -215,10 +221,6 @@ function calculateDayGains(
       case "study":
         gain.academics += 1;
         break;
-      case "studyTogether":
-        gain.academics += 0.75;
-        gain.social += 0.5;
-        break;
       case "work":
         gain.money += 1;
         break;
@@ -265,16 +267,22 @@ function calculateDayGains(
 
 export default function DayView({
   roomCode,
+  currentDay,
   players,
   currentPlayer,
+  dayState,
+  initialSelections,
   onSubmit,
 }: {
   roomCode: string;
+  currentDay: number;
   players: Player[];
   currentPlayer: Player | null;
-  onSubmit: (selections: Record<string, Selection | null>) => void;
+  dayState: RoomDayState | null;
+  initialSelections: SelectionRecord;
+  onSubmit: (selections: SelectionRecord) => Promise<void>;
 }) {
-  const seed = hashString(roomCode + "day1");
+  const seed = hashString(`${roomCode}:day:${currentDay}`);
 
   const myName = currentPlayer?.name ||
     (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
@@ -338,32 +346,41 @@ export default function DayView({
   }, [players, roomCode]);
 
   /* ---- state ------------------------------------------------------- */
-  const [selections, setSelections] = useState<Record<string, Selection | null>>({
-    morning: null,
-    afternoon: null,
-    night: null,
-  });
-  const [pickingSlot, setPickingSlot] = useState<string | null>(null);
+  const [selections, setSelections] = useState<SelectionRecord>(initialSelections);
+  const [pickingSlot, setPickingSlot] = useState<DaySlot | null>(null);
   const [timer, setTimer] = useState(60);
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [statsPopup, setStatsPopup] = useState<{ player: Player; rect: DOMRect } | null>(null);
   // relationships always show top 3, no toggle needed
   const [infoPopup, setInfoPopup] = useState<
-    | { type: "major"; name: string }
-    | { type: "pos"; name: string }
-    | { type: "neg"; name: string }
-    | null
+    | { type: "major"; name: string; rect: DOMRect }
+    | { type: "pos"; name: string; rect: DOMRect }
+    | { type: "neg"; name: string; rect: DOMRect }
+      | null
   >(null);
 
+  const currentPlayerStatus =
+    dayState?.myStatus ?? (currentPlayer?.eliminated ? "goner" : null);
+  const isCurrentPlayerGoner = currentPlayerStatus === "goner";
+  const hasSubmitted = currentPlayerStatus === "done";
+  const submissionLocked = hasSubmitted || isCurrentPlayerGoner || isSubmitting;
+
   useEffect(() => {
-    if (submitted || timer <= 0) return;
+    if (submissionLocked || timer <= 0) return;
     const t = setInterval(() => setTimer((v) => v - 1), 1000);
     return () => clearInterval(t);
-  }, [submitted, timer]);
+  }, [submissionLocked, timer]);
+
+  useEffect(() => {
+    if (hasSubmitted || isCurrentPlayerGoner) {
+      setSelections(initialSelections);
+    }
+  }, [hasSubmitted, initialSelections, isCurrentPlayerGoner]);
 
   /* ---- derived ----------------------------------------------------- */
-  const currentWeek = 1;
-  const currentDayIndex = 0;
+  const currentWeek = Math.floor((currentDay - 1) / 7) + 1;
+  const currentDayIndex = (currentDay - 1) % 7;
   const currentDayName = DAY_NAMES[currentDayIndex];
   const dayLabel = `Week ${currentWeek} · ${currentDayName}`;
 
@@ -425,7 +442,7 @@ export default function DayView({
     money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
   };
   const baseStats = { academics: 1, social: 1, wellbeing: 5, money: 2 };
-  const allFilled = selections.morning && selections.afternoon && selections.night;
+  const allFilled = DAY_SLOTS.every((slot) => !!selections[slot]);
 
   const dayGains = useMemo(
     () => calculateDayGains(selections, hasClassMorning, hasClassAfternoon),
@@ -439,33 +456,39 @@ export default function DayView({
     : false;
 
   const playerStatuses = useMemo(
-    () =>
-      players.map((p) => {
-        if (p.eliminated) {
-          return { ...p, status: "goner" as const };
-        }
-        const isMe = p.name === myName;
-        if (isMe) {
-          return { ...p, status: submitted ? ("done" as const) : ("thinking" as const) };
-        }
-        if (getDummyBehavior(p.name)) {
-          return { ...p, status: "done" as const };
-        }
+    () => {
+      const statusMap = new Map(
+        (dayState?.playerStatuses || []).map((player) => [player.playerId, player.status])
+      );
 
-        // Deterministic mock status for non-dummy players
-        const done = hashString(p.name + roomCode + "status") % 3 !== 0;
-        return { ...p, status: done ? ("done" as const) : ("thinking" as const) };
-      }),
-    [players, myName, submitted, roomCode]
+      return players.map((player) => ({
+        ...player,
+        status:
+          statusMap.get(player.id) ??
+          (player.eliminated ? ("goner" as const) : ("thinking" as const)),
+      }));
+    },
+    [dayState?.playerStatuses, players]
   );
 
   /* ---- handlers ---------------------------------------------------- */
-  const openPicker = (slot: string) => setPickingSlot(slot);
+  const openPicker = (slot: DaySlot) => {
+    if (submissionLocked) return;
+    setPickingSlot(slot);
+  };
   const closePicker = () => setPickingSlot(null);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => onSubmit(selections), 800);
+  const handleSubmit = async () => {
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(selections);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to submit day");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // always top 3
@@ -482,8 +505,8 @@ export default function DayView({
           </p>
           <div className="space-y-2">
             <button
-              onClick={() =>
-                setInfoPopup({ type: "major", name: character.major })
+              onClick={(e) =>
+                setInfoPopup({ type: "major", name: character.major, rect: e.currentTarget.getBoundingClientRect() })
               }
               className="w-full text-left rounded-lg border border-[#F3E5AB]/20 bg-[#F3E5AB]/5 px-3 py-2.5 hover:border-[#F3E5AB]/40 transition"
             >
@@ -493,8 +516,8 @@ export default function DayView({
               </p>
             </button>
             <button
-              onClick={() =>
-                setInfoPopup({ type: "pos", name: character.posTrait })
+              onClick={(e) =>
+                setInfoPopup({ type: "pos", name: character.posTrait, rect: e.currentTarget.getBoundingClientRect() })
               }
               className="w-full text-left rounded-lg border border-green-400/20 bg-green-400/5 px-3 py-2.5 hover:border-green-400/40 transition"
             >
@@ -504,8 +527,8 @@ export default function DayView({
               </p>
             </button>
             <button
-              onClick={() =>
-                setInfoPopup({ type: "neg", name: character.negTrait })
+              onClick={(e) =>
+                setInfoPopup({ type: "neg", name: character.negTrait, rect: e.currentTarget.getBoundingClientRect() })
               }
               className="w-full text-left rounded-lg border border-accent/20 bg-accent/5 px-3 py-2.5 hover:border-accent/40 transition"
             >
@@ -596,6 +619,36 @@ export default function DayView({
               );
             })}
           </div>
+
+          {/* Critical Warnings */}
+          {(() => {
+            const warnings: { label: string; emoji: string; color: string }[] = [];
+            if (stats.academics <= 0) warnings.push({ label: "Anxiety", emoji: "😰", color: "#d94f4f" });
+            if (stats.social <= 0) warnings.push({ label: "Depression", emoji: "🌧️", color: "#d94f4f" });
+            if (stats.money <= 0) warnings.push({ label: "Starvation", emoji: "🍽️", color: "#d94f4f" });
+            if (stats.wellbeing <= 1) warnings.push({ label: "Critical", emoji: "🚨", color: "#d94f4f" });
+            if (warnings.length === 0) return null;
+            return (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs uppercase tracking-widest text-accent mb-2">Warnings</p>
+                {warnings.map((w) => (
+                  <div
+                    key={w.label}
+                    className="flex items-center gap-2 rounded-lg border px-3 py-2"
+                    style={{
+                      backgroundColor: w.color + "12",
+                      borderColor: w.color + "30",
+                    }}
+                  >
+                    <span className="text-lg">{w.emoji}</span>
+                    <span className="text-sm font-bold" style={{ color: w.color }}>
+                      {w.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </section>
 
         {/* Calendar + trackers */}
@@ -793,6 +846,9 @@ export default function DayView({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Semester Progress */}
+          <SemesterProgress currentWeek={currentWeek} currentDayIndex={currentDayIndex} />
+
           {/* Event Banners — side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {publicEvent ? (
@@ -842,27 +898,42 @@ export default function DayView({
 
           {/* Submit */}
           <div className="pt-2">
+            {submitError && (
+              <p className="mb-3 text-sm text-accent">{submitError}</p>
+            )}
             <button
               onClick={handleSubmit}
-              disabled={!allFilled || submitted}
+              disabled={!allFilled || submissionLocked}
               className={`w-full py-3 rounded-xl font-semibold transition active:translate-y-0.5 ${
-                allFilled && !submitted
+                allFilled && !submissionLocked
                   ? "bg-accent text-paper hover:bg-accent/90 shadow-lg shadow-accent/20"
                   : "bg-card-border text-muted cursor-not-allowed"
               }`}
             >
-              {submitted
-                ? "Submitted"
+              {isCurrentPlayerGoner
+                ? "You're Out"
+                : isSubmitting
+                ? "Submitting..."
+                : hasSubmitted
+                ? dayState?.allActivePlayersSubmitted
+                  ? "Submitted"
+                  : "Waiting for Others..."
                 : allFilled
                 ? "Submit Day →"
                 : "Fill all 3 slots"}
             </button>
+            {hasSubmitted && !dayState?.allActivePlayersSubmitted && (
+              <p className="mt-2 text-center text-xs text-muted">
+                {dayState?.submittedPlayerCount ?? 0} / {dayState?.activePlayerCount ?? 0} active
+                players submitted
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Action Picker */}
-      {pickingSlot && (
+      {pickingSlot && !submissionLocked && (
         <ActionPicker
           slot={pickingSlot}
           hasClass={
@@ -895,6 +966,14 @@ export default function DayView({
       {infoPopup && (
         <InfoPopup popup={infoPopup} onClose={() => setInfoPopup(null)} />
       )}
+
+      {/* Inline keyframe for tooltip — no external CSS needed */}
+      <style jsx global>{`
+        @keyframes tooltipPop {
+          from { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(-4px); }
+          to   { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+        }
+      `}</style>
 
       {/* Player Stats Popup */}
       {statsPopup && (
@@ -1007,13 +1086,100 @@ function PlayerStatsPopup({
 }
 
 /* ------------------------------------------------------------------ */
+// Semester Progress
+
+function SemesterProgress({
+  currentWeek,
+  currentDayIndex,
+}: {
+  currentWeek: number;
+  currentDayIndex: number;
+}) {
+  const DAYS_PER_WEEK = 7;
+  const WEEKS = 4;
+  const totalDaysElapsed = (currentWeek - 1) * DAYS_PER_WEEK + currentDayIndex; // 0-indexed
+
+  const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted">Semester Progress</span>
+        <span className="text-[10px] text-paper/60">
+          Week {currentWeek} · {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][currentDayIndex]}
+        </span>
+      </div>
+
+      {/* 4 week blocks side by side */}
+      <div className="flex gap-2">
+        {Array.from({ length: WEEKS }, (_, w) => {
+          const weekNum = w + 1;
+          const weekStartDay = w * DAYS_PER_WEEK; // 0, 7, 14, 21
+          const isMidtermWeek = weekNum === 2;
+          const isFinalsWeek = weekNum === 4;
+
+          return (
+            <div key={weekNum} className="flex-1 flex flex-col gap-1">
+              {/* 7 day cells */}
+              <div className="flex gap-0.5">
+                {Array.from({ length: DAYS_PER_WEEK }, (_, d) => {
+                  const dayIndex = weekStartDay + d; // 0..27
+                  const isPast = dayIndex < totalDaysElapsed;
+                  const isCurrent = dayIndex === totalDaysElapsed;
+
+                  // Exam day = Friday = index 4 within the week
+                  const isExamDay = d === 4 && (isMidtermWeek || isFinalsWeek);
+
+                  return (
+                    <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
+                      <div
+                        className={`w-full h-5 rounded-sm border transition-all duration-500 ${
+                          isPast
+                            ? "bg-[#F3E5AB] border-[#F3E5AB]/40"
+                            : isCurrent
+                              ? "bg-[#F3E5AB]/5 border-[#F3E5AB]/20"
+                              : "bg-card border-card-border"
+                        }`}
+                        title={`${dayNames[d]}${isExamDay ? isMidtermWeek ? " — Midterm" : " — Finals" : ""}`}
+                      >
+                        {/* Exam sparkle on Friday of week 2 / week 4 */}
+                        {isExamDay && (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-[8px] leading-none">
+                              {isMidtermWeek ? "📝" : "🏁"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Label under each day */}
+                      <span className="text-[9px] text-muted text-center leading-none">
+                        {d === 0 && `Week ${weekNum}`}
+                        {isExamDay && (
+                          <span className="text-accent font-semibold">
+                            {isMidtermWeek ? "Midterm" : "Finals"}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 // Info Popup
 
 function InfoPopup({
   popup,
   onClose,
 }: {
-  popup: { type: "major" | "pos" | "neg"; name: string };
+  popup: { type: "major" | "pos" | "neg"; name: string; rect: DOMRect };
   onClose: () => void;
 }) {
   const isMajor = popup.type === "major";
@@ -1049,15 +1215,22 @@ function InfoPopup({
     badgeText = "Negative Trait";
   }
 
+  const left = popup.rect.left + popup.rect.width / 2;
+  const top = popup.rect.bottom + 8;
+
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className="absolute left-80 mt-16 w-64 rounded-xl border border-card-border bg-card p-4 shadow-xl"
+        className="absolute w-64 rounded-xl border border-card-border bg-card p-4 shadow-xl"
+        style={{
+          left,
+          top,
+          transform: "translateX(-50%)",
+          animation: "tooltipPop 0.15s ease-out",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="absolute -top-1.5 left-8 w-3 h-3 bg-card border-l border-t border-card-border rotate-45"
-        />
+        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-l border-t border-card-border rotate-45" />
 
         <div className="flex items-center gap-2 mb-3">
           <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${badgeColor}`}>
@@ -1098,27 +1271,17 @@ function EventBanner({
 }) {
   const isPublic = type === "public";
 
-  const border = isPublic
-    ? "border-[#f0a868]/20"
-    : "border-[#4f8cd9]/20";
-  const bg = isPublic
-    ? "bg-gradient-to-br from-[#f0a868]/10 via-[#d94f4f]/5 to-transparent"
-    : "bg-gradient-to-br from-[#4fd9c9]/10 via-[#4f8cd9]/5 to-transparent";
-  const label = isPublic ? "text-[#f0a868]" : "text-[#7ab8e8]";
-  const effect = isPublic ? "text-[#f0a868]" : "text-[#a8d5f0]";
+  const border = "border-[#F3E5AB]/20";
+  const bg = "bg-gradient-to-br from-[#F3E5AB]/10 via-[#F3E5AB]/5 to-transparent";
+  const label = "text-[#F3E5AB]";
+  const effect = "text-[#F3E5AB]/80";
 
   return (
     <div
       className={`relative rounded-xl overflow-hidden border ${border} ${bg} p-4`}
     >
       {/* gradient top strip */}
-      <div
-        className={`absolute top-0 left-0 w-full h-0.5 ${
-          isPublic
-            ? "bg-gradient-to-r from-[#f0a868]/60 via-[#d94f4f]/40 to-[#d94f4f]/30"
-            : "bg-gradient-to-r from-[#4fd9c9]/60 via-[#4f8cd9]/40 to-[#4f8cd9]/30"
-        }`}
-      />
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#F3E5AB]/60 via-[#F3E5AB]/40 to-[#F3E5AB]/30" />
 
       <div className="flex items-start gap-3">
         <span className="text-2xl shrink-0 mt-0.5">
@@ -1163,8 +1326,6 @@ function getActionEffect(
       return "Academics +0.75, Social +0.25";
     case "study":
       return "Academics +1";
-    case "studyTogether":
-      return "Academics +0.75, Social +0.5";
     case "work":
       return "Money +1";
     case "exercise":
@@ -1236,7 +1397,7 @@ function SlotCard({
           skippingClass ? (
             <span className="text-xs text-accent font-medium">⚠️ Skip</span>
           ) : (
-            <span className="text-xs text-green-400 font-medium">Set</span>
+            <span className="text-xs font-medium" style={{ color: "#F3E5AB" }}>Set</span>
           )
         ) : (
           <span className="text-xs text-muted">Choose…</span>
@@ -1248,7 +1409,6 @@ function SlotCard({
           <span className="text-2xl shrink-0">
             {selection.actionId === "class" && "🎓"}
             {selection.actionId === "study" && "📚"}
-            {selection.actionId === "studyTogether" && "👥"}
             {selection.actionId === "work" && "💼"}
             {selection.actionId === "exercise" && "🏃"}
             {selection.actionId === "socialize" && "💬"}

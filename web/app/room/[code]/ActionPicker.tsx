@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { Selection } from "@/utils/day-actions";
 
-export type Selection = {
-  actionId: string;
-  targetId?: string;
-  spend?: 0 | 1 | 2;
-  code?: string;
-};
+export type { Selection } from "@/utils/day-actions";
 
 type ActionDef = {
   id: string;
@@ -46,13 +42,6 @@ function getActions(
     }
     return [
       { id: "study", label: "Study", icon: "📚", desc: "Academics +1" },
-      {
-        id: "studyTogether",
-        label: "Study Together",
-        icon: "👥",
-        desc: "Academics +0.75, Social +0.5",
-        needsTarget: true,
-      },
       ...base,
       ...(workAvailable ? [{ id: "work", label: "Work", icon: "💼", desc: "Money +1" }] : []),
       { id: "exercise", label: "Exercise", icon: "🏃", desc: "Wellbeing +1" },
@@ -71,13 +60,6 @@ function getActions(
       });
     } else {
       actions.push({ id: "study", label: "Study", icon: "📚", desc: "Academics +1" });
-      actions.push({
-        id: "studyTogether",
-        label: "Study Together",
-        icon: "👥",
-        desc: "Academics +0.75, Social +0.5",
-        needsTarget: true,
-      });
     }
     actions.push(...base);
     actions.push({ id: "exercise", label: "Exercise", icon: "🏃", desc: "Wellbeing +1" });
@@ -91,13 +73,6 @@ function getActions(
   // night
   return [
     { id: "study", label: "Study", icon: "📚", desc: "Academics +1" },
-    {
-      id: "studyTogether",
-      label: "Study Together",
-      icon: "👥",
-      desc: "Academics +0.75, Social +0.5",
-      needsTarget: true,
-    },
     ...base,
     { id: "sleep", label: "Sleep", icon: "😴", desc: "Wellbeing +1" },
   ];
@@ -215,7 +190,7 @@ export default function ActionPicker({
                 onClick={() => !wildcardBlocked && pickAction(action)}
                 className={`rounded-xl border p-4 text-left transition active:translate-y-0.5 ${
                   selected
-                    ? "border-accent bg-accent/5"
+                    ? "border-[#F3E5AB] bg-[#F3E5AB]/5"
                     : wildcardBlocked
                     ? "border-card-border opacity-30 cursor-not-allowed"
                     : "border-card-border hover:border-muted"
@@ -240,41 +215,19 @@ export default function ActionPicker({
         {picked && (
           <div className="space-y-4 mb-6">
             {picked.id === "wildcard" && (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-semibold text-paper mb-2">
-                    Have an event code?
-                  </p>
-                  <input
-                    type="text"
-                    value={draft?.code || ""}
-                    onChange={(e) =>
-                      updateDraft({ code: e.target.value.toUpperCase() })
-                    }
-                    placeholder="Enter code..."
-                    className="w-full rounded-lg bg-background border border-card-border px-3 py-2 text-paper placeholder:text-muted focus:outline-none focus:border-accent text-sm font-mono tracking-wider"
-                  />
-                </div>
-                {heldCodes.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-xs text-muted w-full">
-                      Quick select:
-                    </span>
-                    {heldCodes.map((h) => (
-                      <button
-                        key={h.code}
-                        onClick={() => updateDraft({ code: h.code })}
-                        className={`text-xs px-2 py-1 rounded-md border transition ${
-                          draft?.code === h.code
-                            ? "border-accent bg-accent/10 text-paper"
-                            : "border-card-border text-muted hover:border-muted hover:text-paper"
-                        }`}
-                      >
-                        {h.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div>
+                <p className="text-sm font-semibold text-paper mb-2">
+                  Have an event code?
+                </p>
+                <input
+                  type="text"
+                  value={draft?.code || ""}
+                  onChange={(e) =>
+                    updateDraft({ code: e.target.value.toUpperCase() })
+                  }
+                  placeholder="Enter code..."
+                  className="w-full rounded-lg bg-background border border-card-border px-3 py-2 text-paper placeholder:text-muted focus:outline-none focus:border-[#F3E5AB] text-sm font-mono tracking-wider"
+                />
               </div>
             )}
 
@@ -295,7 +248,7 @@ export default function ActionPicker({
                           onClick={() => updateDraft({ targetId: p.id })}
                           className={`px-3 py-2 rounded-lg text-sm font-medium border transition ${
                             selected
-                              ? "border-accent bg-accent/10 text-paper"
+                              ? "border-[#F3E5AB] bg-[#F3E5AB]/10 text-paper"
                               : "border-card-border text-muted hover:border-muted hover:text-paper"
                           }`}
                         >
@@ -322,7 +275,7 @@ export default function ActionPicker({
                         onClick={() => updateDraft({ spend: tier.value })}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition ${
                           selected
-                            ? "border-accent bg-accent/10 text-paper"
+                            ? "border-[#F3E5AB] bg-[#F3E5AB]/10 text-paper"
                             : "border-card-border text-muted hover:border-muted hover:text-paper"
                         }`}
                       >
@@ -351,7 +304,7 @@ export default function ActionPicker({
             disabled={!canConfirm}
             className={`ml-auto px-6 py-2.5 rounded-xl font-semibold transition active:translate-y-0.5 ${
               canConfirm
-                ? "bg-accent text-paper hover:bg-accent/90"
+                ? "bg-[#F3E5AB] text-background hover:bg-[#F3E5AB]/90"
                 : "bg-card-border text-muted cursor-not-allowed"
             }`}
           >

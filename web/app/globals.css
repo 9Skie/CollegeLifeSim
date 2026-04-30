@@ -80,6 +80,12 @@ body > * {
   to   { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
 }
 
+@keyframes messagePop {
+  0%   { opacity: 0; transform: scale(0.85) translateY(12px); }
+  60%  { transform: scale(1.03) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .title-wobble {
   animation: wobble 6s ease-in-out infinite;
   display: inline-block;

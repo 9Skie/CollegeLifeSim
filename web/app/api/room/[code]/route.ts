@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { loadRoomDayState } from "@/utils/room-day-state";
 
 const ALLOWED_PHASES = new Set([
   "lobby",
@@ -20,11 +21,13 @@ const ALLOWED_STATUSES = new Set([
 ]);
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> }
 ) {
   try {
     const { code } = await params;
+    const url = new URL(request.url);
+    const playerId = url.searchParams.get("playerId");
     const supabase = createAdminClient();
 
     const { data: room, error: roomError } = await supabase
@@ -49,7 +52,15 @@ export async function GET(
       return NextResponse.json({ error: "Failed to load players" }, { status: 500 });
     }
 
-    return NextResponse.json({ room, players: players || [] });
+    const dayState = await loadRoomDayState(
+      supabase,
+      code,
+      room.current_day,
+      players || [],
+      playerId
+    );
+
+    return NextResponse.json({ room, players: players || [], dayState });
   } catch (err) {
     console.error("GET /api/room/[code] error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -62,7 +73,7 @@ export async function PATCH(
 ) {
   try {
     const { code } = await params;
-    const { playerId, currentPhase, status } = await request.json();
+    const { playerId, currentPhase, status, currentDay } = await request.json();
 
     if (!playerId || typeof playerId !== "string") {
       return NextResponse.json({ error: "playerId is required" }, { status: 400 });
@@ -74,6 +85,13 @@ export async function PATCH(
 
     if (status && (!ALLOWED_STATUSES.has(status) || typeof status !== "string")) {
       return NextResponse.json({ error: "Invalid room status" }, { status: 400 });
+    }
+
+    if (
+      currentDay !== undefined &&
+      (typeof currentDay !== "number" || !Number.isInteger(currentDay) || currentDay < 1)
+    ) {
+      return NextResponse.json({ error: "Invalid current day" }, { status: 400 });
     }
 
     const supabase = createAdminClient();
@@ -92,12 +110,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Only the host can update the room" }, { status: 403 });
     }
 
-    const updates: { current_phase: string; status?: string } = {
+    const updates: { current_phase: string; status?: string; current_day?: number } = {
       current_phase: currentPhase,
     };
 
     if (status) {
       updates.status = status;
+    }
+
+    if (currentDay !== undefined) {
+      updates.current_day = currentDay;
     }
 
     const { data: updatedRoom, error: updateError } = await supabase

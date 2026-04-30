@@ -58,7 +58,7 @@ export const POSITIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   Networker: {
     desc: "You don't just make friends - you build alliances. Study sessions feel like parties.",
-    effect: "Study Together: +0.25 extra Social on success",
+    effect: "Study: +0.25 extra Social on success",
   },
   "Trust Fund Kid": {
     desc: "Your parents send a monthly 'living' allowance that most people call a salary.",
@@ -82,7 +82,7 @@ export const POSITIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   "Study Buddy": {
     desc: "Group work isn't a chore for you - it's where you shine. Partners always show up.",
-    effect: "Study Together never rolls Bad",
+    effect: "Study never rolls Bad",
   },
   Optimist: {
     desc: "You see the glass half-full, even when it's clearly empty. It's a skill.",

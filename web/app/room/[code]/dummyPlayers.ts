@@ -2,7 +2,6 @@ import type { Selection } from "./ActionPicker";
 
 export type DummyBehavior =
   | "socializeWithYou"
-  | "studyTogetherWithYou"
   | "wildcardRestSleep"
   | "randomEachSlot"
   | "goner";
@@ -20,7 +19,6 @@ type DummyPlayerDefinition = {
 
 export const DUMMY_PLAYERS: readonly DummyPlayerDefinition[] = [
   { name: "Maya", behavior: "socializeWithYou" },
-  { name: "Jake", behavior: "studyTogetherWithYou" },
   { name: "Quinn", behavior: "wildcardRestSleep" },
   { name: "Riley", behavior: "randomEachSlot" },
   {
@@ -63,12 +61,6 @@ export function getDummySelection(
       : { actionId: slot === "night" ? "sleep" : "rest" };
   }
 
-  if (behavior === "studyTogetherWithYou") {
-    return myPlayerId
-      ? { actionId: "studyTogether", targetId: myPlayerId }
-      : { actionId: "study" };
-  }
-
   if (behavior === "wildcardRestSleep") {
     if (slot === "morning") return { actionId: "wildcard" };
     if (slot === "afternoon") return { actionId: "rest" };
@@ -105,10 +97,7 @@ export function getDummySelection(
       { actionId: "wildcard" },
       { actionId: "sleep" },
       ...(myPlayerId
-        ? [
-            { actionId: "socialize", targetId: myPlayerId, spend: 0 as const },
-            { actionId: "studyTogether", targetId: myPlayerId },
-          ]
+        ? [{ actionId: "socialize", targetId: myPlayerId, spend: 0 as const }]
         : []),
     ],
   };
