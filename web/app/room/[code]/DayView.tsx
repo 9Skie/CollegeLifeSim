@@ -1422,7 +1422,7 @@ function SlotCard({
     : null;
 
   const spendLabel =
-    selection?.spend === 1 ? "· Coffee" : selection?.spend === 2 ? "· Dinner" : "";
+    selection?.spend === 1 ? "· Coffee" : selection?.spend === 2 ? "· Food" : "";
 
   const skippingClass = hasClass && selection?.actionId !== "class";
   const effectText = selection

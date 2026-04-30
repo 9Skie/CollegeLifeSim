@@ -504,7 +504,7 @@ export default function ResolutionView({
                           <p className="text-sm font-semibold text-paper">
                             {getActionLabel(s.sel.actionId)}
                             {s.sel.spend === 1 && " · Coffee"}
-                            {s.sel.spend === 2 && " · Dinner"}
+                            {s.sel.spend === 2 && " · Food"}
                           </p>
                           <p className="text-xs text-muted">
                             {getActionEffect(s.sel.actionId, s.sel.spend)}

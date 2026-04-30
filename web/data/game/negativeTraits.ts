@@ -54,7 +54,7 @@ export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   "Penny-Wise": {
     desc: "You spend money to save money. The math never works, but you do it anyway.",
-    effect: "Coffee/Dinner Socialize give Free-tier effect (money still spent)",
+    effect: "Coffee/Food Socialize give Free-tier effect (money still spent)",
   },
   Loner: {
     desc: "Groups drain you. Even when things go well, you leave feeling half-empty.",

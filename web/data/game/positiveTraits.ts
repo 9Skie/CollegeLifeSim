@@ -109,7 +109,7 @@ export const POSITIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   "Coupon Clipper": {
     desc: "You somehow always know the hidden deal. Your social plans stretch further on the same budget.",
-    effect: "Free Socialize uses Coffee-tier effect; $25 Socialize uses Dinner-tier effect",
+    effect: "Free Socialize uses Coffee-tier effect; $25 Socialize uses Food-tier effect",
   },
   "Calm Sleeper": {
     desc: "When you slow down, you really slow down. Recovery comes naturally to you.",

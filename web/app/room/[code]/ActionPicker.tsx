@@ -82,7 +82,7 @@ function getActions(
 const SPEND_TIERS = [
   { value: 0 as const, label: "Free", cost: "0 Money" },
   { value: 1 as const, label: "Coffee", cost: "0.25 Money" },
-  { value: 2 as const, label: "Dinner", cost: "0.5 Money" },
+  { value: 2 as const, label: "Food", cost: "0.5 Money" },
 ];
 
 export default function ActionPicker({
