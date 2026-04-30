@@ -567,8 +567,9 @@ export default function DayView({
               const value = Math.max(0, Math.min(rawValue, 10));
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
+              const sleepPenalty = key === "wellbeing" && !hadRestOrSleep && allFilled ? 1.5 : 0;
               const netGain = gain + decay;
-              const projected = Math.max(0, Math.min(value + netGain, 10));
+              const projected = Math.max(0, Math.min(value + netGain - sleepPenalty, 10));
               const barMax = 10;
               const isWarned = value <= warn.warnAt;
               const barPct = value <= 0 ? 0 : Math.min((value / barMax) * 100, 100);
