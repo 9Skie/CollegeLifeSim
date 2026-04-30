@@ -856,7 +856,7 @@ export default function DayView({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Semester Progress */}
-          <SemesterProgress currentWeek={currentWeek} currentDayIndex={currentDayIndex} classSchedule={classSchedule} />
+          <SemesterProgress currentWeek={currentWeek} currentDayIndex={currentDayIndex} />
 
           {/* Event Banners — side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1108,11 +1108,9 @@ function PlayerStatsPopup({
 function SemesterProgress({
   currentWeek,
   currentDayIndex,
-  classSchedule,
 }: {
   currentWeek: number;
   currentDayIndex: number;
-  classSchedule: Array<{ day: number; slot: "morning" | "afternoon" }>;
 }) {
   const DAYS_PER_WEEK = 7;
   const WEEKS = 4;
@@ -1148,7 +1146,6 @@ function SemesterProgress({
 
                   // Exam day = Friday = index 4 within the week
                   const isExamDay = d === 4 && (isMidtermWeek || isFinalsWeek);
-                  const hasClass = classSchedule.some((c) => c.day === dayIndex);
 
                   return (
                     <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
@@ -1160,16 +1157,10 @@ function SemesterProgress({
                               ? "bg-[#F3E5AB]/5 border-[#F3E5AB]/20"
                               : "bg-card border-card-border"
                         }`}
-                        title={`${dayNames[d]}${isExamDay ? isMidtermWeek ? " — Midterm" : " — Finals" : ""}${hasClass ? " — Class" : ""}`}
+                        title={`${dayNames[d]}${isExamDay ? isMidtermWeek ? " — Midterm" : " — Finals" : ""}`}
                       >
-                        {/* Class emoji */}
-                        {hasClass && (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-[8px] leading-none">🎓</span>
-                          </div>
-                        )}
                         {/* Exam sparkle on Friday of week 2 / week 4 */}
-                        {!hasClass && isExamDay && (
+                        {isExamDay && (
                           <div className="w-full h-full flex items-center justify-center">
                             <span className="text-[8px] leading-none">
                               {isMidtermWeek ? "📝" : "🏁"}
@@ -1180,10 +1171,7 @@ function SemesterProgress({
                       {/* Label under each day */}
                       <span className="text-[9px] text-muted text-center leading-none">
                         {d === 0 && `Week ${weekNum}`}
-                        {hasClass && (
-                          <span className="text-[#F3E5AB] font-semibold">Class</span>
-                        )}
-                        {!hasClass && isExamDay && (
+                        {isExamDay && (
                           <span className="text-accent font-semibold">
                             {isMidtermWeek ? "Midterm" : "Finals"}
                           </span>
