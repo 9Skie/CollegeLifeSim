@@ -253,17 +253,6 @@ export function resolveDayForRoom({
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
 
-  // Map: target_id -> set of player_ids who socialized with them
-  const socializeTargets = new Map<string, Set<string>>();
-  for (const row of dayActions) {
-    if (row.action === "socialize" && row.target_id) {
-      if (!socializeTargets.has(row.target_id)) {
-        socializeTargets.set(row.target_id, new Set());
-      }
-      socializeTargets.get(row.target_id)!.add(row.player_id);
-    }
-  }
-
   const resolutions: StoredResolution[] = [];
   const resolvedActionRows: Array<{
     room_code: string;
@@ -371,7 +360,13 @@ export function resolveDayForRoom({
       const ditched =
         selection.actionId === "socialize" &&
         typeof selection.targetId === "string" &&
-        !socializeTargets.get(player.id)?.has(selection.targetId);
+        !dayActions.some(
+          (row) =>
+            row.slot === slot &&
+            row.player_id === selection.targetId &&
+            row.target_id === player.id &&
+            row.action === "socialize"
+        );
 
       if (ditched) {
         finalGain = applyMultiplier(finalGain, 0.5);
