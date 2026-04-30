@@ -4,7 +4,7 @@ import {
   MAJORS,
   NEGATIVE_TRAITS,
   POSITIVE_TRAITS,
-} from "@/app/room/[code]/gameData";
+} from "@/data/game";
 
 type AllocatedStats = {
   academics: number;

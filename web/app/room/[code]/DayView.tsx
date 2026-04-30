@@ -10,7 +10,7 @@ import {
   POSITIVE_TRAIT_DATA,
   NEGATIVE_TRAITS,
   NEGATIVE_TRAIT_DATA,
-} from "./gameData";
+} from "@/data/game";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -346,6 +346,7 @@ export default function DayView({
   const [pickingSlot, setPickingSlot] = useState<string | null>(null);
   const [timer, setTimer] = useState(60);
   const [submitted, setSubmitted] = useState(false);
+  const [statsPopupPlayer, setStatsPopupPlayer] = useState<Player | null>(null);
   // relationships always show top 3, no toggle needed
   const [infoPopup, setInfoPopup] = useState<
     | { type: "major"; name: string }
@@ -868,7 +869,6 @@ function PlayerStatsPopup({
   player: Player;
   onClose: () => void;
 }) {
-  // Deterministic mock stats for frontend testing
   const seed = hashString(player.name + "stats");
   const mockStats = {
     academics: 1 + (seed % 50) / 10,
@@ -886,94 +886,62 @@ function PlayerStatsPopup({
   const isGoner = player.eliminated;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className="relative w-full max-w-xs rounded-2xl border border-card-border bg-card p-6 shadow-2xl"
-        style={{ animation: "popIn 0.2s ease-out" }}
+        className="absolute left-1/2 -translate-x-1/2 mt-2 w-56 rounded-xl border border-card-border bg-card p-4 shadow-xl"
+        style={{ top: "4.5rem" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
+        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-l border-t border-card-border rotate-45" />
+
+        <div className="flex items-center gap-2 mb-3">
           <div
-            className={`w-12 h-12 rounded-full border-2 border-background flex items-center justify-center text-sm font-bold text-white shrink-0 ${
+            className={`w-8 h-8 rounded-full border border-background flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${
               isGoner ? "grayscale opacity-50" : ""
             }`}
             style={{ backgroundColor: color }}
           >
-            {isGoner ? "👻" : getInitials(player.name)}
+            {isGoner ? "🫥" : getInitials(player.name)}
           </div>
           <div>
-            <h3 className={`text-lg font-bold ${isGoner ? "text-muted line-through" : "text-paper"}`}>
+            <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
               {player.name}
-            </h3>
-            {isGoner && (
-              <span className="text-xs text-muted font-medium">Eliminated</span>
-            )}
-            {player.major && !isGoner && (
-              <span className="text-xs text-[#F3E5AB]">{player.major}</span>
-            )}
+            </p>
+            {isGoner && <p className="text-[10px] text-muted">Eliminated</p>}
+            {player.major && !isGoner && <p className="text-[10px] text-[#F3E5AB]">{player.major}</p>}
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {(
             [
-              ["Academics", "academics", "#4f8cd9"] as const,
-              ["Social", "social", "#9d4edd"] as const,
-              ["Wellbeing", "wellbeing", "#5b8c5a"] as const,
-              ["Money", "money", "#f0a868"] as const,
+              ["Academics", stats.academics] as const,
+              ["Social", stats.social] as const,
+              ["Wellbeing", stats.wellbeing] as const,
+              ["Money", stats.money] as const,
             ] as const
-          ).map(([label, key, barColor]) => {
-            const val = stats[key];
-            return (
-              <div key={key}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted">{label}</span>
-                  <span className="text-paper font-medium">{val.toFixed(2)}</span>
-                </div>
-                <div className="h-2 bg-background rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min((val / 10) * 100, 100)}%`,
-                      backgroundColor: isGoner ? "#8a8579" : barColor,
-                    }}
-                  />
-                </div>
+          ).map(([label, val]) => (
+            <div key={label}>
+              <div className="flex justify-between text-[10px] mb-0.5">
+                <span className="text-muted">{label}</span>
+                <span className="text-paper font-medium">{val.toFixed(2)}</span>
               </div>
-            );
-          })}
+              <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
+                  style={{ width: `${Math.min((val / 10) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Traits */}
         {(player.pos_trait || player.neg_trait) && !isGoner && (
-          <div className="mt-4 pt-4 border-t border-card-border space-y-2">
-            {player.pos_trait && (
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 text-xs">●</span>
-                <span className="text-xs text-paper">{player.pos_trait}</span>
-              </div>
-            )}
-            {player.neg_trait && (
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-xs">●</span>
-                <span className="text-xs text-paper">{player.neg_trait}</span>
-              </div>
-            )}
+          <div className="mt-2 pt-2 border-t border-card-border space-y-1">
+            {player.pos_trait && <p className="text-[10px] text-green-400">● {player.pos_trait}</p>}
+            {player.neg_trait && <p className="text-[10px] text-accent">● {player.neg_trait}</p>}
           </div>
         )}
-
-        <button
-          onClick={onClose}
-          className="mt-5 w-full py-2 rounded-lg bg-background border border-card-border text-muted hover:text-paper transition"
-        >
-          Close
-        </button>
       </div>
     </div>
   );

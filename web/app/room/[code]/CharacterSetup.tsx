@@ -8,7 +8,7 @@ import {
   POSITIVE_TRAIT_DATA,
   NEGATIVE_TRAITS,
   NEGATIVE_TRAIT_DATA,
-} from "./gameData";
+} from "@/data/game";
 
 const ITEM_HEIGHT = 64;
 const CONTAINER_HEIGHT = 180;

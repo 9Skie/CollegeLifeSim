@@ -23,10 +23,7 @@ export const POSITIVE_TRAITS = [
 
 export type PositiveTraitName = (typeof POSITIVE_TRAITS)[number];
 
-export const POSITIVE_TRAIT_DATA: Record<
-  PositiveTraitName,
-  { desc: string; effect: string }
-> = {
+export const POSITIVE_TRAIT_DATA: Record<string, { desc: string; effect: string }> = {
   "Night Owl": {
     desc: "You thrive after sunset. The later it gets, the sharper you feel.",
     effect: "Night-slot actions: outcome ×1.25",

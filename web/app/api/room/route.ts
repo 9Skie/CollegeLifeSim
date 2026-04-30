@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const DEBUG_ROOM_CODE = process.env.CLS_DEBUG_ROOM_CODE?.trim().toUpperCase() ?? "";
 
 function generateCode(): string {
   let code = "";
@@ -9,6 +10,14 @@ function generateCode(): string {
     code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   }
   return code;
+}
+
+function getFixedDebugRoomCode() {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  return /^[A-Z]{4}$/.test(DEBUG_ROOM_CODE) ? DEBUG_ROOM_CODE : null;
 }
 
 export async function POST(request: Request) {
@@ -20,18 +29,32 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Generate unique code
-    let code = generateCode();
-    let attempts = 0;
-    while (attempts < 10) {
-      const { data: existing } = await supabase
+    const fixedDebugRoomCode = getFixedDebugRoomCode();
+
+    // Generate unique code, or reuse a fixed local debug code.
+    let code = fixedDebugRoomCode || generateCode();
+
+    if (fixedDebugRoomCode) {
+      const { error: deleteError } = await supabase
         .from("rooms")
-        .select("code")
-        .eq("code", code)
-        .single();
-      if (!existing) break;
-      code = generateCode();
-      attempts++;
+        .delete()
+        .eq("code", fixedDebugRoomCode);
+
+      if (deleteError) {
+        return NextResponse.json({ error: "Failed to reset debug room" }, { status: 500 });
+      }
+    } else {
+      let attempts = 0;
+      while (attempts < 10) {
+        const { data: existing } = await supabase
+          .from("rooms")
+          .select("code")
+          .eq("code", code)
+          .single();
+        if (!existing) break;
+        code = generateCode();
+        attempts++;
+      }
     }
 
     // Create room

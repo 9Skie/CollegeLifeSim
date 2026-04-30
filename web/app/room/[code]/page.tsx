@@ -6,7 +6,7 @@ import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
 import { Selection } from "./ActionPicker";
-import { DUMMY_PLAYERS } from "./dummyPlayers";
+import { DUMMY_PLAYERS, getDummyState } from "./dummyPlayers";
 
 type Player = {
   id: string;
@@ -67,6 +67,7 @@ export default function RoomPage() {
   const [starting, setStarting] = useState(false);
   const [setupSubmitting, setSetupSubmitting] = useState(false);
   const [setupReady, setSetupReady] = useState(false);
+  const [statsPopupPlayer, setStatsPopupPlayer] = useState<Player | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -226,7 +227,7 @@ export default function RoomPage() {
   };
 
   /* ------------------------------------------------------------------ */
-  // Emulate a room with four scripted dummy players for solo testing
+  // Emulate a room with scripted dummy players for solo testing
   const emulateGame = async () => {
     const usedNames = new Set(players.map((p) => p.name));
     const namesToAdd = DUMMY_PLAYERS.map((player) => player.name).filter(
@@ -235,10 +236,11 @@ export default function RoomPage() {
 
     for (const name of namesToAdd) {
       try {
+        const debugState = getDummyState(name);
         await fetch(`/api/room/${code}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, ...debugState }),
         });
       } catch {
         // ignore individual failures
@@ -522,19 +524,17 @@ function PlayerStatsPopup({
   const initials = player.name.slice(0, 2).toUpperCase();
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className="relative w-full max-w-xs rounded-2xl border border-card-border bg-card p-6 shadow-2xl"
-        style={{ animation: "popIn 0.2s ease-out" }}
+        className="absolute left-1/2 -translate-x-1/2 mt-2 w-56 rounded-xl border border-card-border bg-card p-4 shadow-xl"
+        style={{ top: "14rem" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 mb-5">
+        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-l border-t border-card-border rotate-45" />
+
+        <div className="flex items-center gap-2 mb-3">
           <div
-            className={`w-12 h-12 rounded-full border-2 border-background flex items-center justify-center text-sm font-bold text-white shrink-0 ${
+            className={`w-8 h-8 rounded-full border border-background flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${
               isGoner ? "grayscale opacity-50" : ""
             }`}
             style={{ backgroundColor: color }}
@@ -542,35 +542,32 @@ function PlayerStatsPopup({
             {isGoner ? "🫥" : initials}
           </div>
           <div>
-            <h3 className={`text-lg font-bold ${isGoner ? "text-muted line-through" : "text-paper"}`}>
+            <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
               {player.name}
-            </h3>
-            {isGoner && <span className="text-xs text-muted font-medium">Eliminated</span>}
-            {player.major && !isGoner && <span className="text-xs text-[#F3E5AB]">{player.major}</span>}
+            </p>
+            {isGoner && <p className="text-[10px] text-muted">Eliminated</p>}
+            {player.major && !isGoner && <p className="text-[10px] text-[#F3E5AB]">{player.major}</p>}
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {(
             [
-              ["Academics", mockStats.academics, "#4f8cd9"] as const,
-              ["Social", mockStats.social, "#9d4edd"] as const,
-              ["Wellbeing", mockStats.wellbeing, "#5b8c5a"] as const,
-              ["Money", mockStats.money, "#f0a868"] as const,
+              ["Academics", mockStats.academics] as const,
+              ["Social", mockStats.social] as const,
+              ["Wellbeing", mockStats.wellbeing] as const,
+              ["Money", mockStats.money] as const,
             ] as const
-          ).map(([label, val, barColor]) => (
+          ).map(([label, val]) => (
             <div key={label}>
-              <div className="flex justify-between text-xs mb-1">
+              <div className="flex justify-between text-[10px] mb-0.5">
                 <span className="text-muted">{label}</span>
                 <span className="text-paper font-medium">{val.toFixed(2)}</span>
               </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
+              <div className="h-1.5 bg-background rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min((val / 10) * 100, 100)}%`,
-                    backgroundColor: isGoner ? "#8a8579" : barColor,
-                  }}
+                  className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
+                  style={{ width: `${Math.min((val / 10) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -578,28 +575,11 @@ function PlayerStatsPopup({
         </div>
 
         {(player.pos_trait || player.neg_trait) && !isGoner && (
-          <div className="mt-4 pt-4 border-t border-card-border space-y-2">
-            {player.pos_trait && (
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 text-xs">●</span>
-                <span className="text-xs text-paper">{player.pos_trait}</span>
-              </div>
-            )}
-            {player.neg_trait && (
-              <div className="flex items-center gap-2">
-                <span className="text-accent text-xs">●</span>
-                <span className="text-xs text-paper">{player.neg_trait}</span>
-              </div>
-            )}
+          <div className="mt-2 pt-2 border-t border-card-border space-y-1">
+            {player.pos_trait && <p className="text-[10px] text-green-400">● {player.pos_trait}</p>}
+            {player.neg_trait && <p className="text-[10px] text-accent">● {player.neg_trait}</p>}
           </div>
         )}
-
-        <button
-          onClick={onClose}
-          className="mt-5 w-full py-2 rounded-lg bg-background border border-card-border text-muted hover:text-paper transition"
-        >
-          Close
-        </button>
       </div>
     </div>
   );

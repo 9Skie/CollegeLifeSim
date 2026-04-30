@@ -23,10 +23,7 @@ export const NEGATIVE_TRAITS = [
 
 export type NegativeTraitName = (typeof NEGATIVE_TRAITS)[number];
 
-export const NEGATIVE_TRAIT_DATA: Record<
-  NegativeTraitName,
-  { desc: string; effect: string }
-> = {
+export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string }> = {
   FOMO: {
     desc: "The fear of missing out gnaws at you. Every party you skip feels personal.",
     effect: "If anyone Socializes and you don't that day: Wellbeing −0.5",

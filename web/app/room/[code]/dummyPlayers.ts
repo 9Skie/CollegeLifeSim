@@ -1,13 +1,34 @@
 import type { Selection } from "./ActionPicker";
 
-export const DUMMY_PLAYERS = [
+export type DummyBehavior =
+  | "socializeWithYou"
+  | "studyTogetherWithYou"
+  | "wildcardRestSleep"
+  | "randomEachSlot"
+  | "goner";
+
+export type DummyPlayerState = {
+  eliminated?: boolean;
+  wellbeing?: number;
+};
+
+type DummyPlayerDefinition = {
+  name: string;
+  behavior: DummyBehavior;
+  state?: DummyPlayerState;
+};
+
+export const DUMMY_PLAYERS: readonly DummyPlayerDefinition[] = [
   { name: "Maya", behavior: "socializeWithYou" },
   { name: "Jake", behavior: "studyTogetherWithYou" },
   { name: "Quinn", behavior: "wildcardRestSleep" },
   { name: "Riley", behavior: "randomEachSlot" },
+  {
+    name: "Goner Greg",
+    behavior: "goner",
+    state: { eliminated: true, wellbeing: 0 },
+  },
 ] as const;
-
-export type DummyBehavior = (typeof DUMMY_PLAYERS)[number]["behavior"];
 
 function hashString(str: string): number {
   let hash = 0;
@@ -19,6 +40,10 @@ function hashString(str: string): number {
 
 export function getDummyBehavior(name: string): DummyBehavior | null {
   return DUMMY_PLAYERS.find((player) => player.name === name)?.behavior ?? null;
+}
+
+export function getDummyState(name: string): DummyPlayerState | null {
+  return DUMMY_PLAYERS.find((player) => player.name === name)?.state ?? null;
 }
 
 export function getDummySelection(
@@ -48,6 +73,10 @@ export function getDummySelection(
     if (slot === "morning") return { actionId: "wildcard" };
     if (slot === "afternoon") return { actionId: "rest" };
     return { actionId: "sleep" };
+  }
+
+  if (behavior === "goner") {
+    return null;
   }
 
   const randomPools: Record<typeof slot, Selection[]> = {

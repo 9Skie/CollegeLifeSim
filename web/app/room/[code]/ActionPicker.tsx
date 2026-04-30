@@ -124,7 +124,7 @@ export default function ActionPicker({
   slot: string;
   hasClass: boolean;
   workAvailable: boolean;
-  players: Array<{ id: string; name: string }>;
+  players: Array<{ id: string; name: string; eliminated?: boolean }>;
   heldCodes: Array<{ code: string; name: string }>;
   usedWildcard: boolean;
   currentSelection: Selection | null;
@@ -137,7 +137,7 @@ export default function ActionPicker({
       ? localStorage.getItem("cls.name") || "You"
       : "You";
 
-  const otherPlayers = players.filter((p) => p.name !== myName);
+  const otherPlayers = players.filter((p) => p.name !== myName && !p.eliminated);
 
   const actions = getActions(slot, hasClass, workAvailable);
 

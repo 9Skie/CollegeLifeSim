@@ -7,7 +7,7 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const { name } = await request.json();
+    const { name, eliminated, wellbeing } = await request.json();
 
     if (!name || typeof name !== "string" || name.length < 1 || name.length > 20) {
       return NextResponse.json({ error: "Name must be 1–20 characters" }, { status: 400 });
@@ -44,10 +44,29 @@ export async function POST(
       return NextResponse.json({ error: "Room is full (max 12 players)" }, { status: 403 });
     }
 
+    const allowDebugState =
+      process.env.NODE_ENV !== "production" && !!process.env.CLS_DEBUG_ROOM_CODE;
+
+    const playerInsert: {
+      room_code: string;
+      name: string;
+      eliminated?: boolean;
+      wellbeing?: number;
+    } = { room_code: code, name };
+
+    if (allowDebugState) {
+      if (typeof eliminated === "boolean") {
+        playerInsert.eliminated = eliminated;
+      }
+      if (typeof wellbeing === "number") {
+        playerInsert.wellbeing = wellbeing;
+      }
+    }
+
     // Create player
     const { data: player, error: playerError } = await supabase
       .from("players")
-      .insert({ room_code: code, name })
+      .insert(playerInsert)
       .select()
       .single();
 

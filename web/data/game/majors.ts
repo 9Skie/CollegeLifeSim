@@ -8,10 +8,7 @@ export const MAJORS = [
 
 export type MajorName = (typeof MAJORS)[number];
 
-export const MAJOR_DATA: Record<
-  MajorName,
-  { focus: string; weights: string }
-> = {
+export const MAJOR_DATA: Record<string, { focus: string; weights: string }> = {
   "Computer Science": {
     focus: "Heavy on Academics and Money. You grind code by day and side-projects by night.",
     weights: "Academics 4 · Social 1 · Wellbeing 2 · Money 3",
