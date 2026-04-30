@@ -444,6 +444,11 @@ export default function DayView({
   };
   const baseStats = { academics: 2, social: 2, wellbeing: 5, money: 2 };
   const allFilled = DAY_SLOTS.every((slot) => !!selections[slot]);
+  const hadRestOrSleep = DAY_SLOTS.some(
+    (slot) =>
+      selections[slot]?.actionId === "rest" ||
+      selections[slot]?.actionId === "sleep"
+  );
 
   const dayGains = useMemo(
     () => calculateDayGains(selections, hasClassMorning, hasClassAfternoon),
@@ -621,17 +626,12 @@ export default function DayView({
 
           {/* Warnings — full tags, only when needed */}
           {(() => {
-            const hadRestOrSleep = DAY_SLOTS.some(
-              (slot) =>
-                selections[slot]?.actionId === "rest" ||
-                selections[slot]?.actionId === "sleep"
-            );
             const warns: { emoji: string; word: string }[] = [];
             if (stats.academics <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
             if (stats.social <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
             if (stats.money <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
             if (stats.wellbeing <= 1) warns.push({ emoji: "🚨", word: "Critical" });
-            if (!hadRestOrSleep && allFilled) warns.push({ emoji: "😵", word: "Sleep Deprivation" });
+            if (!hadRestOrSleep && allFilled) warns.push({ emoji: "😴", word: "Drowsy" });
             if (warns.length === 0) return null;
             return (
               <div className="mt-3 space-y-1.5">
@@ -926,6 +926,11 @@ export default function DayView({
                 ? "Submit Day →"
                 : "Fill all 3 slots"}
             </button>
+            {allFilled && !hadRestOrSleep && !hasSubmitted && (
+              <p className="mt-2 text-center text-xs text-accent">
+                🥱 Are you sure? You have not slept/rested today!
+              </p>
+            )}
             {hasSubmitted && !dayState?.allActivePlayersSubmitted && (
               <p className="mt-2 text-center text-xs text-muted">
                 {dayState?.submittedPlayerCount ?? 0} / {dayState?.activePlayerCount ?? 0} active
