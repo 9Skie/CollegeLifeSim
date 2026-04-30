@@ -96,7 +96,7 @@ function getActionEffect(id: string, spend?: number): string {
       if (spend === 1) return "Social +1.25, Money −0.25";
       if (spend === 2) return "Social +1.5, Money −0.5";
       return "Social +1";
-    case "rest": return "Wellbeing +0.5";
+    case "rest": return "Wellbeing +0.75";
     case "sleep": return "Wellbeing +1";
     case "wildcard": return "Random event card";
     default: return "";
@@ -151,7 +151,7 @@ function calculateSlotGain(
       break;
     }
     case "rest":
-      gain.wellbeing += 0.5;
+      gain.wellbeing += 0.75;
       break;
     case "sleep":
       gain.wellbeing += 1;

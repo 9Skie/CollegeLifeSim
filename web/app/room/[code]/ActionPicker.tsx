@@ -37,7 +37,7 @@ function getActions(
         { id: "class", label: "Class", icon: "🎓", desc: "Academics +0.75, Social +0.25" },
         ...base,
         { id: "exercise", label: "Exercise", icon: "🏃", desc: "Wellbeing +1" },
-        { id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.5" },
+        { id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.75" },
       ];
     }
     return [

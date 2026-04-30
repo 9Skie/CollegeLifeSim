@@ -188,7 +188,7 @@ function calculateSlotGain(
       break;
     }
     case "rest":
-      gain.wellbeing += 0.5;
+      gain.wellbeing += 0.75;
       break;
     case "sleep":
       gain.wellbeing += 1;

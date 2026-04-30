@@ -246,7 +246,7 @@ function calculateDayGains(
         break;
       }
       case "rest":
-        gain.wellbeing += 0.5 * decay;
+        gain.wellbeing += 0.75 * decay;
         break;
       case "sleep":
         gain.wellbeing += 1 * decay;
@@ -882,6 +882,7 @@ export default function DayView({
             label="Morning"
             icon="☀️"
             selection={selections.morning}
+            repeatDecay={getRepeatDecay(selections, "morning")}
             hasClass={hasClassMorning}
             players={players}
             onClick={() => openPicker("morning")}
@@ -891,6 +892,7 @@ export default function DayView({
             label="Afternoon"
             icon="🌤"
             selection={selections.afternoon}
+            repeatDecay={getRepeatDecay(selections, "afternoon")}
             hasClass={hasClassAfternoon}
             players={players}
             onClick={() => openPicker("afternoon")}
@@ -900,6 +902,7 @@ export default function DayView({
             label="Night"
             icon="🌙"
             selection={selections.night}
+            repeatDecay={getRepeatDecay(selections, "night")}
             hasClass={false}
             players={players}
             onClick={() => openPicker("night")}
@@ -1350,7 +1353,7 @@ function getActionEffect(
       return "Social +1";
     }
     case "rest":
-      return "Wellbeing +0.5";
+      return "Wellbeing +0.75";
     case "sleep":
       return "Wellbeing +1";
     case "wildcard":
@@ -1363,11 +1366,30 @@ function getActionEffect(
 /* ------------------------------------------------------------------ */
 // Slot Card
 
+function getRepeatDecay(
+  selections: Record<string, Selection | null>,
+  targetSlot: string
+): number {
+  const order = ["morning", "afternoon", "night"];
+  const counts = new Map<string, number>();
+  for (const slot of order) {
+    const sel = selections[slot];
+    if (!sel) continue;
+    if (slot === targetSlot) {
+      const count = counts.get(sel.actionId) || 0;
+      return count === 0 ? 1 : count === 1 ? 0.5 : 0.25;
+    }
+    counts.set(sel.actionId, (counts.get(sel.actionId) || 0) + 1);
+  }
+  return 1;
+}
+
 function SlotCard({
   slot,
   label,
   icon,
   selection,
+  repeatDecay,
   hasClass,
   players,
   onClick,
@@ -1376,6 +1398,7 @@ function SlotCard({
   label: string;
   icon: string;
   selection: Selection | null;
+  repeatDecay: number;
   hasClass: boolean;
   players: Player[];
   onClick: () => void;
@@ -1407,15 +1430,29 @@ function SlotCard({
             </span>
           )}
         </div>
-        {selection ? (
-          skippingClass ? (
-            <span className="text-xs text-accent font-medium">⚠️ Skip</span>
+        <div className="flex items-center gap-2">
+          {selection && repeatDecay < 1 && (
+            <span
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded border"
+              style={{
+                color: "#d94f4f",
+                backgroundColor: "#d94f4f12",
+                borderColor: "#d94f4f30",
+              }}
+            >
+              ×{repeatDecay}
+            </span>
+          )}
+          {selection ? (
+            skippingClass ? (
+              <span className="text-xs text-accent font-medium">⚠️ Skip</span>
+            ) : (
+              <span className="text-xs font-medium" style={{ color: "#F3E5AB" }}>Set</span>
+            )
           ) : (
-            <span className="text-xs font-medium" style={{ color: "#F3E5AB" }}>Set</span>
-          )
-        ) : (
-          <span className="text-xs text-muted">Choose…</span>
-        )}
+            <span className="text-xs text-muted">Choose…</span>
+          )}
+        </div>
       </div>
 
       {selection ? (
