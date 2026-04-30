@@ -640,7 +640,9 @@ export default function DayView({
             if (warns.length === 0) return null;
             return (
               <div className="mt-3 space-y-1.5">
-                <p className="text-[10px] uppercase tracking-widest text-accent">Warnings</p>
+                <p className="text-[10px] uppercase tracking-widest text-accent">
+                  Warnings −{(warns.length * 1.5).toFixed(1)} Wellbeing
+                </p>
                 {warns.map((w) => (
                   <div
                     key={w.word}
@@ -655,9 +657,6 @@ export default function DayView({
                     <span>{w.word}</span>
                   </div>
                 ))}
-                <p className="text-[10px] text-muted">
-                  Each warning: −1.5 Wellbeing ({warns.length} active = −{(warns.length * 1.5).toFixed(1)})
-                </p>
               </div>
             );
           })()}
