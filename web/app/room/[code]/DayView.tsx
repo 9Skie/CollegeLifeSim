@@ -417,7 +417,7 @@ export default function DayView({
     morning: !hasClassMorning,
     afternoon: !hasClassAfternoon,
   };
-  const classesThisWeek = dayState?.myWeeklyProgress?.classesScheduled ?? classSchedule.length;
+  const classesThisWeek = dayState?.myWeeklyProgress?.classesScheduled || classSchedule.length;
   const classesAttended = dayState?.myWeeklyProgress?.classesAttended ?? 0;
   const studiesThisWeek = dayState?.myWeeklyProgress?.studiesThisWeek ?? 0;
   const studyGoal = dayState?.myWeeklyProgress?.studyGoal ?? 4;
@@ -676,9 +676,9 @@ export default function DayView({
                   {classesAttended} / {classesThisWeek}
                 </span>
               </div>
-              <div className="h-1.5 bg-background rounded-full overflow-hidden">
+              <div className="h-2 bg-background rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-[#4f8cd9]"
+                  className="h-full bg-accent transition-all duration-300"
                   style={{
                     width: `${(classesAttended / Math.max(1, classesThisWeek)) * 100}%`,
                   }}
@@ -692,9 +692,9 @@ export default function DayView({
                   {studiesThisWeek} / {studyGoal}
                 </span>
               </div>
-              <div className="h-1.5 bg-background rounded-full overflow-hidden">
+              <div className="h-2 bg-background rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-accent-soft"
+                  className="h-full bg-accent transition-all duration-300"
                   style={{ width: `${(studiesThisWeek / Math.max(1, studyGoal)) * 100}%` }}
                 />
               </div>
