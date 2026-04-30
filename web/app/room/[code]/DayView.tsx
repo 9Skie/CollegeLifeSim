@@ -1115,7 +1115,7 @@ function SemesterProgress({
   classSchedule: Array<{ day: number; slot: "morning" | "afternoon" }>;
 }) {
   const DAYS_PER_WEEK = 7;
-  const WEEKS = 4;
+  const WEEKS = 3;
   const totalDaysElapsed = (currentWeek - 1) * DAYS_PER_WEEK + currentDayIndex; // 0-indexed
 
   const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
@@ -1129,13 +1129,13 @@ function SemesterProgress({
         </span>
       </div>
 
-      {/* 4 week blocks side by side */}
+      {/* 3 week blocks side by side */}
       <div className="flex gap-2">
         {Array.from({ length: WEEKS }, (_, w) => {
           const weekNum = w + 1;
-          const weekStartDay = w * DAYS_PER_WEEK; // 0, 7, 14, 21
+          const weekStartDay = w * DAYS_PER_WEEK; // 0, 7, 14
           const isMidtermWeek = weekNum === 2;
-          const isFinalsWeek = weekNum === 4;
+          const isFinalsWeek = weekNum === 3;
 
           return (
             <div key={weekNum} className="flex-1 flex flex-col gap-1">
@@ -1150,7 +1150,7 @@ function SemesterProgress({
 
                   // Exam day = Friday = index 4 within the week
                   const isExamDay = d === 4 && (isMidtermWeek || isFinalsWeek);
-                  const hasClass = classSchedule.some((c) => c.day === dayIndex);
+                  const hasClass = classSchedule.some((c) => c.day === d);
 
                   return (
                     <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
