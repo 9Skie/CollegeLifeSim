@@ -703,7 +703,7 @@ export default function DayView({
                       }`}
                       style={{ backgroundColor: color }}
                     >
-                      {isGoner ? "🫥" : getInitials(p.name)}
+                      {getInitials(p.name)}
                       {p.status === "done" && !isGoner && (
                         <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                           <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
@@ -901,7 +901,7 @@ function PlayerStatsPopup({
             }`}
             style={{ backgroundColor: color }}
           >
-            {isGoner ? "🫥" : getInitials(player.name)}
+            {getInitials(player.name)}
           </div>
           <div>
             <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>

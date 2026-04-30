@@ -400,7 +400,7 @@ export default function RoomPage() {
                       }`}
                       style={{ backgroundColor: color }}
                     >
-                      {isGoner ? "🫥" : getInitials(player.name)}
+                      {getInitials(player.name)}
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold truncate ${isGoner ? "text-muted line-through" : "text-paper"}`}>
@@ -539,7 +539,7 @@ function PlayerStatsPopup({
             }`}
             style={{ backgroundColor: color }}
           >
-            {isGoner ? "🫥" : initials}
+            {initials}
           </div>
           <div>
             <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>

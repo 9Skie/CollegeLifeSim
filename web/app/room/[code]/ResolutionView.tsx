@@ -349,7 +349,9 @@ export default function ResolutionView({
                 <div className="flex-1 min-w-0">
                   {meEliminated ? (
                     <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
-                      <span className="text-2xl shrink-0 grayscale opacity-50">🫥</span>
+                      <span className="text-2xl shrink-0 grayscale opacity-50">
+                        {s.sel ? getActionIcon(s.sel.actionId) : "❓"}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-muted line-through">
                           {s.sel ? getActionLabel(s.sel.actionId) : "No action"}
