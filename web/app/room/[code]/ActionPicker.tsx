@@ -75,6 +75,7 @@ function getActions(
     { id: "study", label: "Study", icon: "📚", desc: "Academics +1" },
     ...base,
     { id: "sleep", label: "Sleep", icon: "😴", desc: "Wellbeing +1" },
+    { id: "work", label: "Work", icon: "💼", desc: "Money +1" },
   ];
 }
 

@@ -419,6 +419,7 @@ export default function DayView({
   const workAvailability = {
     morning: !hasClassMorning,
     afternoon: !hasClassAfternoon,
+    night: true,
   };
   const classesThisWeek = dayState?.myWeeklyProgress?.classesScheduled || classSchedule.length;
   const classesAttended = dayState?.myWeeklyProgress?.classesAttended ?? 0;
@@ -634,13 +635,12 @@ export default function DayView({
             if (stats.academics <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
             if (stats.social <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
             if (stats.money <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
-            if (stats.wellbeing <= 1) warns.push({ emoji: "🚨", word: "Critical" });
             if (!hadRestOrSleep && allFilled) warns.push({ emoji: "🥱", word: "Drowsy" });
             if (warns.length === 0) return null;
             return (
               <div className="mt-3 space-y-1.5">
                 <p className="text-[10px] uppercase tracking-widest text-accent">
-                  Warnings −{(warns.length * 1.5).toFixed(1)} Wellbeing
+                  Warnings −{(warns.filter((w) => w.word !== "Critical").length * 1.5).toFixed(1)} Wellbeing
                 </p>
                 {warns.map((w) => (
                   <div
@@ -966,7 +966,7 @@ export default function DayView({
               ? workAvailability.morning
               : pickingSlot === "afternoon"
               ? workAvailability.afternoon
-              : false
+              : workAvailability.night
           }
           players={players}
           heldCodes={privateEvents.map((e) => ({ code: e.code, name: e.name }))}

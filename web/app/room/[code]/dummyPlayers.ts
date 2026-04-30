@@ -96,6 +96,7 @@ export function getDummySelection(
       { actionId: "study" },
       { actionId: "wildcard" },
       { actionId: "sleep" },
+      { actionId: "work" },
       ...(myPlayerId
         ? [{ actionId: "socialize", targetId: myPlayerId, spend: 0 as const }]
         : []),

@@ -647,7 +647,6 @@ export function resolveDayForRoom({
       rawOldStats.academics <= 1,
       rawOldStats.social <= 1,
       rawOldStats.money <= 0,
-      rawOldStats.wellbeing <= 1,
     ].filter(Boolean).length;
     const warningPenalty = activeWarnings * 1.5;
 
