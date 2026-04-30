@@ -63,7 +63,7 @@ function getActions(
     }
     actions.push(...base);
     actions.push({ id: "exercise", label: "Exercise", icon: "🏃", desc: "Wellbeing +1" });
-    actions.push({ id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.5" });
+    actions.push({ id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.75" });
     if (workAvailable) {
       actions.push({ id: "work", label: "Work", icon: "💼", desc: "Money +1" });
     }
