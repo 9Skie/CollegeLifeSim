@@ -192,11 +192,26 @@ export async function POST(
         return NextResponse.json({ error: "Failed to load submitted actions" }, { status: 500 });
       }
 
+      const currentWeek = Math.floor((room.current_day - 1) / 7) + 1;
+      const weekStartDay = (currentWeek - 1) * 7 + 1;
+
+      const { data: weeklyActionHistory, error: weeklyHistoryError } = await supabase
+        .from("day_actions")
+        .select("player_id, action, day, slot")
+        .eq("room_code", code)
+        .gte("day", weekStartDay)
+        .lt("day", room.current_day);
+
+      if (weeklyHistoryError) {
+        return NextResponse.json({ error: "Failed to load weekly action history" }, { status: 500 });
+      }
+
       const resolvedDay = resolveDayForRoom({
         roomCode: code,
         currentDay: room.current_day,
         players: roomPlayers,
         dayActions: resolvedRows,
+        weeklyActionHistory: weeklyActionHistory || [],
       });
 
       const { error: actionResolveError } = await supabase

@@ -30,19 +30,19 @@ export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   Anxious: {
     desc: "Your brain runs worst-case scenarios on loop. Social plans feel like minefields.",
-    effect: "Mismatched shared actions: Wellbeing −0.5",
+    effect: "If your Socialize gets ditched, lose 0.5 Wellbeing",
   },
   "Couch Potato": {
     desc: "The couch has accepted you as one of its own. Exercise feels like betrayal.",
     effect: "Exercise rolls Bad 50% regardless of Wellbeing",
   },
   "Broke Family": {
-    desc: "Your family means well, but the bank account echoes. You start from zero.",
-    effect: "Start with Money 0",
+    desc: "Your family cannot really bail you out, so every paid plan hits harder than it should.",
+    effect: "Paid Socialize costs +0.25 extra Money",
   },
   Sickly: {
     desc: "Your immune system is more suggestion than infrastructure. You catch everything.",
-    effect: "Wellbeing decay −1.5 instead of −1",
+    effect: "Daily Wellbeing decay worsened by 0.5",
   },
   Procrastinator: {
     desc: "You work best under pressure. Unfortunately, pressure starts five minutes before the deadline.",
@@ -58,11 +58,11 @@ export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   Loner: {
     desc: "Groups drain you. Even when things go well, you leave feeling half-empty.",
-    effect: "Successful shared actions: outcome ×0.75",
+    effect: "Matched Socialize gives 0.25 less Social",
   },
   Insomniac: {
     desc: "Sleep is a negotiation you usually lose. Your bed is more battlefield than refuge.",
-    effect: "Sleep: outcome ×0.5",
+    effect: "Sleep gives only half Wellbeing",
   },
   "Hot-Headed": {
     desc: "Your temper arrives before you do. Mismatched plans feel like personal attacks.",
@@ -74,7 +74,7 @@ export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   Spendthrift: {
     desc: "Money burns a hole in your pocket. You buy things you don't need with money you don't have.",
-    effect: "Daily Money decay −1.5 instead of −1",
+    effect: "Daily Money decay worsened by 0.25",
   },
   Pessimist: {
     desc: "You prepare for the worst, and the worst usually shows up. It's a self-fulfilling prophecy.",
@@ -82,7 +82,7 @@ export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string 
   },
   Hypochondriac: {
     desc: "Every sneeze is a symptom. Every headache is something worse. Stress compounds stress.",
-    effect: "At Wellbeing ≤ 4, +10% Bad chance on all actions",
+    effect: "At start-of-day Wellbeing 4 or lower, Bad chance is +10%",
   },
   Heartbreaker: {
     desc: "Connections fray around you. You can get close, but never close enough.",

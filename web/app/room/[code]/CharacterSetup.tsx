@@ -8,6 +8,7 @@ import {
   POSITIVE_TRAIT_DATA,
   NEGATIVE_TRAITS,
   NEGATIVE_TRAIT_DATA,
+  getCompatibleNegativeTraits,
 } from "@/data/game";
 
 const ITEM_HEIGHT = 64;
@@ -88,6 +89,24 @@ function getChoiceIndex(choices: readonly string[], value: string | null) {
   return index >= 0 ? index : Math.floor(Math.random() * choices.length);
 }
 
+function getCompatibleNegativeTrait(
+  posTrait: string,
+  preferredNegTrait: string | null
+) {
+  const compatibleNegativeTraits = getCompatibleNegativeTraits(posTrait, NEGATIVE_TRAITS);
+
+  if (
+    preferredNegTrait &&
+    compatibleNegativeTraits.includes(preferredNegTrait)
+  ) {
+    return preferredNegTrait;
+  }
+
+  return compatibleNegativeTraits[
+    Math.floor(Math.random() * compatibleNegativeTraits.length)
+  ];
+}
+
 function getInitialAllocatedStats(initialSetup: InitialSetup | null | undefined): AllocatedStats {
   if (!initialSetup?.stats) {
     return { academics: 0, social: 0, wellbeing: 0, money: 0 };
@@ -118,8 +137,12 @@ export default function CharacterSetup({
   const [posIndex] = useState(() =>
     getChoiceIndex(POSITIVE_TRAITS, initialSetup?.posTrait ?? null)
   );
+  const posTraitName = POSITIVE_TRAITS[posIndex];
   const [negIndex] = useState(() =>
-    getChoiceIndex(NEGATIVE_TRAITS, initialSetup?.negTrait ?? null)
+    getChoiceIndex(
+      NEGATIVE_TRAITS,
+      getCompatibleNegativeTrait(posTraitName, initialSetup?.negTrait ?? null)
+    )
   );
 
   const majorR = useRoulette([...MAJORS], majorIndex, 2000);
@@ -160,7 +183,7 @@ export default function CharacterSetup({
   };
 
   const majorName = MAJORS[majorIndex];
-  const posName = POSITIVE_TRAITS[posIndex];
+  const posName = posTraitName;
   const negName = NEGATIVE_TRAITS[negIndex];
 
   return (

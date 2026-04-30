@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
+import ExamView from "./ExamView";
 import { DUMMY_PLAYERS, getDummyState } from "./dummyPlayers";
 import {
   createEmptySelectionRecord,
@@ -113,9 +114,10 @@ export default function RoomPage() {
         if (data.room.current_phase) {
           setPhase((prev) =>
             prev === "lobby" ||
-            (prev === "setup" && ["day", "resolution"].includes(data.room.current_phase)) ||
+            (prev === "setup" && ["day", "resolution", "exam"].includes(data.room.current_phase)) ||
             (prev === "day" && data.room.current_phase === "resolution") ||
-            (prev === "resolution" && data.room.current_phase === "day")
+            (prev === "resolution" && ["day", "exam"].includes(data.room.current_phase)) ||
+            (prev === "exam" && ["day", "end"].includes(data.room.current_phase))
               ? (data.room.current_phase as GamePhase)
               : prev
           );
@@ -184,14 +186,18 @@ export default function RoomPage() {
       throw new Error("Missing player identity");
     }
 
+    const nextDay = currentDay + 1;
+    const isExamDay = nextDay === 12 || nextDay === 19;
+    const nextPhase = isExamDay ? "exam" : "day";
+
     const res = await fetch(`/api/room/${code}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         playerId: myId,
-        currentPhase: "day",
-        status: "day",
-        currentDay: currentDay + 1,
+        currentPhase: nextPhase,
+        status: nextPhase,
+        currentDay: nextDay,
       }),
     });
 
@@ -200,12 +206,34 @@ export default function RoomPage() {
       throw new Error(data.error || "Failed to start next day");
     }
 
-    setCurrentDay(data.room.current_day || currentDay + 1);
+    setCurrentDay(data.room.current_day || nextDay);
     setRoomStatus(data.room.status);
     setDaySelections(createEmptySelectionRecord());
     setDayState(null);
     setCurrentResolution(null);
-    setPhase("day");
+    setPhase(data.room.current_phase || nextPhase);
+  };
+
+  const resolveExam = async () => {
+    if (!myId) {
+      throw new Error("Missing player identity");
+    }
+
+    const res = await fetch(`/api/room/${code}/exam`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId: myId }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to resolve exam");
+    }
+
+    setCurrentDay(data.room.current_day || currentDay);
+    setRoomStatus(data.room.status);
+    setPlayers(data.players || []);
+    setPhase(data.room.current_phase || "day");
   };
 
   const copyCode = async () => {
@@ -425,6 +453,20 @@ export default function RoomPage() {
           currentResolution={currentResolution}
           isHost={isHost}
           onNextDay={startNextDay}
+        />
+      </div>
+    );
+  }
+
+  if (phase === "exam") {
+    return (
+      <div className="flex-1 flex overflow-hidden">
+        <ExamView
+          roomCode={code}
+          currentDay={currentDay}
+          players={players}
+          isHost={isHost}
+          onContinue={resolveExam}
         />
       </div>
     );

@@ -4,6 +4,7 @@ import {
   MAJORS,
   NEGATIVE_TRAITS,
   POSITIVE_TRAITS,
+  areTraitsCompatible,
 } from "@/data/game";
 
 type AllocatedStats = {
@@ -89,6 +90,13 @@ export async function PATCH(
 
     if (!isValidChoice(negTrait, NEGATIVE_TRAITS)) {
       return NextResponse.json({ error: "Invalid negative trait" }, { status: 400 });
+    }
+
+    if (!areTraitsCompatible(posTrait, negTrait)) {
+      return NextResponse.json(
+        { error: "Positive and negative traits conflict" },
+        { status: 400 }
+      );
     }
 
     if (!isValidAllocatedStats(allocatedStats)) {

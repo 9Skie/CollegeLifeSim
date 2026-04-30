@@ -103,6 +103,17 @@ function getActionEffect(id: string, spend?: number): string {
   }
 }
 
+function toOutcomeIndexFromWellbeing(seedValue: number, wellbeing: number) {
+  const clampedWellbeing = Math.min(10, Math.max(0, wellbeing));
+  const shift = (clampedWellbeing - 5) * 4;
+  const badChance = Math.max(0, Math.min(40, 20 - shift));
+  const normalChance = 60;
+
+  if (seedValue < badChance) return 0;
+  if (seedValue < badChance + normalChance) return 1;
+  return 2;
+}
+
 function getRepeatDecay(
   selections: Record<string, Selection | null>,
   targetSlot: string
@@ -271,21 +282,15 @@ export default function ResolutionView({
   const afternoonOutcomeIdx = hashString(`${myName}:${roomCode}:day:${currentDay}:afternoon`) % 100;
   const nightOutcomeIdx = hashString(`${myName}:${roomCode}:day:${currentDay}:night`) % 100;
 
-  const toOutcomeIndex = (n: number) => {
-    if (n < 20) return 0;
-    if (n < 80) return 1;
-    return 2;
-  };
-
   const morningOI = resolvedMorning
     ? outcomeTierToIndex(resolvedMorning.outcomeTier)
-    : toOutcomeIndex(morningOutcomeIdx);
+    : toOutcomeIndexFromWellbeing(morningOutcomeIdx, startStats.wellbeing);
   const afternoonOI = resolvedAfternoon
     ? outcomeTierToIndex(resolvedAfternoon.outcomeTier)
-    : toOutcomeIndex(afternoonOutcomeIdx);
+    : toOutcomeIndexFromWellbeing(afternoonOutcomeIdx, startStats.wellbeing);
   const nightOI = resolvedNight
     ? outcomeTierToIndex(resolvedNight.outcomeTier)
-    : toOutcomeIndex(nightOutcomeIdx);
+    : toOutcomeIndexFromWellbeing(nightOutcomeIdx, startStats.wellbeing);
 
   /* ---- gains ------------------------------------------------------- */
   const morningGain = calculateSlotGain(selections.morning, "morning", hasClassMorning, selections);
