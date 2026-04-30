@@ -94,8 +94,8 @@ function getInitialAllocatedStats(initialSetup: InitialSetup | null | undefined)
   }
 
   return {
-    academics: Math.max(0, Math.round(initialSetup.stats.academics - 1)),
-    social: Math.max(0, Math.round(initialSetup.stats.social - 1)),
+    academics: Math.max(0, Math.round(initialSetup.stats.academics - 2)),
+    social: Math.max(0, Math.round(initialSetup.stats.social - 2)),
     wellbeing: Math.max(0, Math.round(initialSetup.stats.wellbeing - 5)),
     money: Math.max(0, Math.round(initialSetup.stats.money - 2)),
   };
@@ -252,7 +252,7 @@ export default function CharacterSetup({
                 ["wellbeing", "Wellbeing"],
               ] as const
             ).map(([key, label]) => {
-              const base = { academics: 1, social: 1, money: 2, wellbeing: 5 }[
+              const base = { academics: 2, social: 2, money: 2, wellbeing: 5 }[
                 key
               ];
               const added = allocated[key];

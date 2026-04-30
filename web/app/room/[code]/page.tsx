@@ -601,8 +601,8 @@ function PlayerStatsPopup({
   onClose: () => void;
 }) {
   const mockStats = {
-    academics: player.academics ?? 1 + ((player.name.charCodeAt(0) * 7) % 50) / 10,
-    social: player.social ?? 1 + ((player.name.charCodeAt(1) * 5) % 50) / 10,
+    academics: player.academics ?? 2 + ((player.name.charCodeAt(0) * 7) % 50) / 10,
+    social: player.social ?? 2 + ((player.name.charCodeAt(1) * 5) % 50) / 10,
     wellbeing: player.wellbeing ?? 3 + ((player.name.charCodeAt(2) * 3) % 50) / 10,
     money: player.money ?? ((player.name.charCodeAt(3) * 2) % 40) / 10,
   };

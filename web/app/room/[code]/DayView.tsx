@@ -436,12 +436,12 @@ export default function DayView({
   }, []);
 
   const stats = {
-    academics: currentPlayer?.academics ?? 1 + (fallbackAllocated.academics || 0),
-    social: currentPlayer?.social ?? 1 + (fallbackAllocated.social || 0),
+    academics: currentPlayer?.academics ?? 2 + (fallbackAllocated.academics || 0),
+    social: currentPlayer?.social ?? 2 + (fallbackAllocated.social || 0),
     wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
     money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
   };
-  const baseStats = { academics: 1, social: 1, wellbeing: 5, money: 2 };
+  const baseStats = { academics: 2, social: 2, wellbeing: 5, money: 2 };
   const allFilled = DAY_SLOTS.every((slot) => !!selections[slot]);
 
   const dayGains = useMemo(
@@ -978,8 +978,8 @@ function PlayerStatsPopup({
 }) {
   const seed = hashString(player.name + "stats");
   const mockStats = {
-    academics: 1 + (seed % 50) / 10,
-    social: 1 + ((seed >> 4) % 50) / 10,
+    academics: 2 + (seed % 50) / 10,
+    social: 2 + ((seed >> 4) % 50) / 10,
     wellbeing: 3 + ((seed >> 8) % 50) / 10,
     money: ((seed >> 12) % 40) / 10,
   };

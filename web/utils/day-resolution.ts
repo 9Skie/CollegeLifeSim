@@ -284,8 +284,8 @@ export function resolveDayForRoom({
     );
 
     const rawOldStats = normalizeStats({
-      academics: toNumber(player.academics, 1),
-      social: toNumber(player.social, 1),
+      academics: toNumber(player.academics, 2),
+      social: toNumber(player.social, 2),
       wellbeing: toNumber(player.wellbeing, 5),
       money: toNumber(player.money, 2),
     });

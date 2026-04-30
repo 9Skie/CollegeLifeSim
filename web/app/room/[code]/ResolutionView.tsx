@@ -237,8 +237,8 @@ export default function ResolutionView({
   }, []);
 
   const startStats = currentResolution?.old_stats || {
-    academics: currentPlayer?.academics ?? 1 + (fallbackAllocated.academics || 0),
-    social: currentPlayer?.social ?? 1 + (fallbackAllocated.social || 0),
+    academics: currentPlayer?.academics ?? 2 + (fallbackAllocated.academics || 0),
+    social: currentPlayer?.social ?? 2 + (fallbackAllocated.social || 0),
     wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
     money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
   };
