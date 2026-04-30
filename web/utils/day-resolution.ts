@@ -137,7 +137,7 @@ function applyMultiplier(gain: Stats, mult: number): Stats {
     academics: gain.academics * mult,
     social: gain.social * mult,
     wellbeing: gain.wellbeing * mult,
-    money: gain.money * mult,
+    money: gain.money,
   });
 }
 
