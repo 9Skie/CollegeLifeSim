@@ -24,16 +24,19 @@ export function computeExamResult(
   const score = academics + wellbeingBonus;
   const maxChange = isFinal ? 3 : 1.5;
 
-  if (score >= 7) {
+  if (score >= 8) {
     return { grade: "A", academicsChange: maxChange, wellbeingChange: 1 };
   }
-  if (score >= 5) {
+  if (score >= 6) {
     return { grade: "B", academicsChange: maxChange / 2, wellbeingChange: 1 };
   }
-  if (score >= 3) {
+  if (score >= 4) {
     return { grade: "C", academicsChange: 0, wellbeingChange: 1 };
   }
-  return { grade: "D", academicsChange: -maxChange, wellbeingChange: 1 };
+  if (score >= 2) {
+    return { grade: "D", academicsChange: -(maxChange / 2), wellbeingChange: 1 };
+  }
+  return { grade: "F", academicsChange: -maxChange, wellbeingChange: 1 };
 }
 
 export function resolveExamForRoom({
