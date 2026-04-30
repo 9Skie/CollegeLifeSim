@@ -22,7 +22,7 @@ function getFixedDebugRoomCode() {
 
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json();
+    const { name, code: clientCode } = await request.json();
     if (!name || typeof name !== "string" || name.length < 1 || name.length > 20) {
       return NextResponse.json({ error: "Name must be 1–20 characters" }, { status: 400 });
     }
@@ -31,17 +31,17 @@ export async function POST(request: Request) {
 
     const fixedDebugRoomCode = getFixedDebugRoomCode();
 
-    // Generate unique code, or reuse a fixed local debug code.
-    let code = fixedDebugRoomCode || generateCode();
+    // Generate unique code, or reuse a fixed local debug code, or use client-provided code.
+    let code = clientCode || fixedDebugRoomCode || generateCode();
 
-    if (fixedDebugRoomCode) {
+    if (clientCode || fixedDebugRoomCode) {
       const { error: deleteError } = await supabase
         .from("rooms")
         .delete()
-        .eq("code", fixedDebugRoomCode);
+        .eq("code", code);
 
       if (deleteError) {
-        return NextResponse.json({ error: "Failed to reset debug room" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to reset room" }, { status: 500 });
       }
     } else {
       let attempts = 0;

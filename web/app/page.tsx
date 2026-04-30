@@ -81,6 +81,50 @@ export default function HomePage() {
     }
   };
 
+  const onDebugBuild = async () => {
+    const trimmed = name.trim() || "You";
+    setError(null);
+
+    try {
+      // 1. Create room with code TEST
+      const createRes = await fetch("/api/room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed, code: "TEST" }),
+      });
+      const createData = await createRes.json();
+      if (!createRes.ok) {
+        return setError(createData.error || "Failed to create room");
+      }
+
+      // 2. Add dummy players
+      const dummies = [
+        { name: "Maya" },
+        { name: "Quinn" },
+        { name: "Riley" },
+        { name: "Greg", eliminated: true, wellbeing: 0 },
+      ];
+      for (const dummy of dummies) {
+        await fetch("/api/room/TEST/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dummy),
+        });
+      }
+
+      // 3. Save and redirect
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cls.name", trimmed);
+        localStorage.setItem("cls.role", "host");
+        localStorage.setItem("cls.playerId", createData.player.id);
+        localStorage.setItem("cls.roomCode", "TEST");
+      }
+      router.push("/room/TEST");
+    } catch {
+      setError("Network error. Try again.");
+    }
+  };
+
   return (
     <main className="flex-1 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
@@ -123,6 +167,18 @@ export default function HomePage() {
               <div className="text-3xl mb-2">→</div>
               <h2 className="text-xl font-bold mb-1 text-paper">Join Game</h2>
               <p className="text-sm text-muted">Enter a 4-letter room code</p>
+            </button>
+          </div>
+        )}
+
+        {/* Debug Build */}
+        {mode === "home" && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={onDebugBuild}
+              className="text-xs text-muted hover:text-paper transition uppercase tracking-widest"
+            >
+              Debug Build
             </button>
           </div>
         )}

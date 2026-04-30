@@ -6,7 +6,7 @@ import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
 import ExamView from "./ExamView";
-import { DUMMY_PLAYERS, getDummyState } from "./dummyPlayers";
+
 import {
   createEmptySelectionRecord,
   type SelectionRecord,
@@ -347,32 +347,6 @@ export default function RoomPage() {
   };
 
   /* ------------------------------------------------------------------ */
-  // Add the scripted dummy roster for solo testing
-  const emulateGame = async () => {
-    const usedNames = new Set(players.map((p) => p.name));
-    const namesToAdd = DUMMY_PLAYERS.map((player) => player.name).filter(
-      (name) => !usedNames.has(name)
-    );
-
-    for (const name of namesToAdd) {
-      try {
-        const debugState = getDummyState(name);
-        await fetch(`/api/room/${code}/join`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, ...debugState }),
-        });
-      } catch {
-        // ignore individual failures
-      }
-    }
-    // Trigger immediate refresh
-    const res = await fetch(`/api/room/${code}`);
-    const data = await res.json();
-    if (res.ok) setPlayers(data.players || []);
-  };
-
-  /* ------------------------------------------------------------------ */
   if (phase === "setup") {
     const initialSetup = currentPlayer
       ? {
@@ -565,18 +539,10 @@ export default function RoomPage() {
           )}
 
           {players.length < 3 && roomStatus === "lobby" && (
-            <div className="mt-4 flex items-center gap-3">
-              <p className="text-sm text-accent">
-                Need at least 3 players to start
-              </p>
-              <button
-                onClick={emulateGame}
-                className="text-xs px-3 py-1.5 rounded-md border border-card-border text-muted hover:text-paper hover:border-muted transition"
-              >
-                  Add Dummies
-                </button>
-              </div>
-            )}
+            <p className="mt-4 text-sm text-accent">
+              Need at least 3 players to start
+            </p>
+          )}
         </div>
 
         {/* Player Stats Popup */}
