@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ActionPicker, { Selection } from "./ActionPicker";
+import { getDummyBehavior } from "./dummyPlayers";
 import {
   MAJORS,
   MAJOR_DATA,
@@ -14,7 +15,19 @@ import {
 /* ------------------------------------------------------------------ */
 // Types
 
-type Player = { id: string; name: string };
+type Player = {
+  id: string;
+  name: string;
+  major?: string | null;
+  pos_trait?: string | null;
+  neg_trait?: string | null;
+  academics?: number;
+  social?: number;
+  wellbeing?: number;
+  money?: number;
+  eliminated?: boolean;
+  class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
+};
 type PublicEvent = { name: string; flavor: string; effect: string };
 type PrivateEvent = {
   id: string;
@@ -251,19 +264,20 @@ function calculateDayGains(
 /* ------------------------------------------------------------------ */
 
 export default function DayView({
+  roomCode,
   players,
+  currentPlayer,
   onSubmit,
 }: {
+  roomCode: string;
   players: Player[];
+  currentPlayer: Player | null;
   onSubmit: (selections: Record<string, Selection | null>) => void;
 }) {
-  const roomCode = "ABCD";
   const seed = hashString(roomCode + "day1");
 
-  const myName =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cls.name") || "You"
-      : "You";
+  const myName = currentPlayer?.name ||
+    (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
 
   // Character data (from localStorage or regenerate from seed)
   const character = useMemo(() => {
@@ -281,20 +295,24 @@ export default function DayView({
         : null;
 
     const major =
-      savedMajor || MAJORS[hashString(myName + roomCode) % MAJORS.length];
+      currentPlayer?.major ||
+      savedMajor ||
+      MAJORS[hashString(myName + roomCode) % MAJORS.length];
     const posTrait =
+      currentPlayer?.pos_trait ||
       savedPos ||
       POSITIVE_TRAITS[
         hashString(myName + roomCode + "pos") % POSITIVE_TRAITS.length
       ];
     const negTrait =
+      currentPlayer?.neg_trait ||
       savedNeg ||
       NEGATIVE_TRAITS[
         hashString(myName + roomCode + "neg") % NEGATIVE_TRAITS.length
       ];
 
     return { major, posTrait, negTrait };
-  }, [myName, roomCode]);
+  }, [currentPlayer?.major, currentPlayer?.neg_trait, currentPlayer?.pos_trait, myName, roomCode]);
 
   const publicEvent = useMemo<PublicEvent | null>(
     () => PUBLIC_EVENT_POOL[seed % PUBLIC_EVENT_POOL.length],
@@ -349,6 +367,10 @@ export default function DayView({
   const dayLabel = `Week ${currentWeek} · ${currentDayName}`;
 
   const classSchedule = useMemo(() => {
+    if (Array.isArray(currentPlayer?.class_schedule) && currentPlayer.class_schedule.length > 0) {
+      return currentPlayer.class_schedule;
+    }
+
     const days = [0, 1, 2, 3];
     const out: { day: number; slot: "morning" | "afternoon" }[] = [];
     let s = seed;
@@ -365,7 +387,7 @@ export default function DayView({
       }
     }
     return out;
-  }, [seed]);
+  }, [currentPlayer?.class_schedule, seed]);
 
   const hasClassMorning = classSchedule.some(
     (c) => c.day === currentDayIndex && c.slot === "morning"
@@ -373,12 +395,15 @@ export default function DayView({
   const hasClassAfternoon = classSchedule.some(
     (c) => c.day === currentDayIndex && c.slot === "afternoon"
   );
+  const workAvailability = {
+    morning: !hasClassMorning,
+    afternoon: !hasClassAfternoon,
+  };
   const classesThisWeek = classSchedule.length;
   const classesAttended = 0; // TODO: track from resolved days
   const studiesThisWeek = 0;
 
-  // Initial stat allocations from character setup
-  const allocated = useMemo(() => {
+  const fallbackAllocated = useMemo(() => {
     try {
       const raw =
         typeof window !== "undefined"
@@ -393,10 +418,10 @@ export default function DayView({
   }, []);
 
   const stats = {
-    academics: 1 + (allocated.academics || 0),
-    social: 1 + (allocated.social || 0),
-    wellbeing: 5 + (allocated.wellbeing || 0),
-    money: 2 + (allocated.money || 0),
+    academics: currentPlayer?.academics ?? 1 + (fallbackAllocated.academics || 0),
+    social: currentPlayer?.social ?? 1 + (fallbackAllocated.social || 0),
+    wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
+    money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
   };
   const baseStats = { academics: 1, social: 1, wellbeing: 5, money: 2 };
   const allFilled = selections.morning && selections.afternoon && selections.night;
@@ -415,11 +440,18 @@ export default function DayView({
   const playerStatuses = useMemo(
     () =>
       players.map((p) => {
+        if (p.eliminated) {
+          return { ...p, status: "goner" as const };
+        }
         const isMe = p.name === myName;
         if (isMe) {
           return { ...p, status: submitted ? ("done" as const) : ("thinking" as const) };
         }
-        // Deterministic mock status for other players
+        if (getDummyBehavior(p.name)) {
+          return { ...p, status: "done" as const };
+        }
+
+        // Deterministic mock status for non-dummy players
         const done = hashString(p.name + roomCode + "status") % 3 !== 0;
         return { ...p, status: done ? ("done" as const) : ("thinking" as const) };
       }),
@@ -657,39 +689,46 @@ export default function DayView({
             <div className="flex items-center gap-4 overflow-x-auto">
               {playerStatuses.map((p) => {
                 const color = getAvatarColor(p.name);
+                const isGoner = p.status === "goner";
                 return (
-                  <div key={p.id} className="flex items-center gap-2 shrink-0">
+                  <button
+                    key={p.id}
+                    className="flex items-center gap-2 shrink-0 text-left"
+                    onClick={() => setStatsPopupPlayer(p)}
+                  >
                     <div
-                      className="relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white"
+                      className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white transition ${
+                        isGoner ? "grayscale opacity-50" : ""
+                      }`}
                       style={{ backgroundColor: color }}
                     >
-                      {getInitials(p.name)}
-                      {p.status === "done" && (
+                      {isGoner ? "🫥" : getInitials(p.name)}
+                      {p.status === "done" && !isGoner && (
                         <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                           <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
                             <path d="M5 13l4 4L19 7" />
                           </svg>
                         </span>
                       )}
-                      {p.status === "thinking" && (
+                      {p.status === "thinking" && !isGoner && (
                         <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-accent-soft border-2 border-background flex items-center justify-center">
                           <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
                         </span>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs text-paper font-medium leading-tight">
+                      <span className={`text-xs font-medium leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
                         {p.name}
                       </span>
                       <span
                         className={`text-[10px] leading-tight font-medium ${
-                          p.status === "thinking" ? "text-accent-soft" : "text-green-400"
+                          isGoner ? "text-muted" : p.status === "thinking" ? "text-accent-soft" : "text-green-400"
                         }`}
                       >
-                        {p.status === "thinking" ? "Thinking…" : "Done"}
+                        {isGoner ? "Goner" : p.status === "thinking" ? "Thinking…" : "Done"}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -789,9 +828,9 @@ export default function DayView({
           }
           workAvailable={
             pickingSlot === "morning"
-              ? !hasClassMorning
+              ? workAvailability.morning
               : pickingSlot === "afternoon"
-              ? hasClassMorning
+              ? workAvailability.afternoon
               : false
           }
           players={players}
@@ -810,6 +849,132 @@ export default function DayView({
       {infoPopup && (
         <InfoPopup popup={infoPopup} onClose={() => setInfoPopup(null)} />
       )}
+
+      {/* Player Stats Popup */}
+      {statsPopupPlayer && (
+        <PlayerStatsPopup player={statsPopupPlayer} onClose={() => setStatsPopupPlayer(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+// Player Stats Popup
+
+function PlayerStatsPopup({
+  player,
+  onClose,
+}: {
+  player: Player;
+  onClose: () => void;
+}) {
+  // Deterministic mock stats for frontend testing
+  const seed = hashString(player.name + "stats");
+  const mockStats = {
+    academics: 1 + (seed % 50) / 10,
+    social: 1 + ((seed >> 4) % 50) / 10,
+    wellbeing: 3 + ((seed >> 8) % 50) / 10,
+    money: ((seed >> 12) % 40) / 10,
+  };
+  const stats = {
+    academics: player.academics ?? mockStats.academics,
+    social: player.social ?? mockStats.social,
+    wellbeing: player.wellbeing ?? mockStats.wellbeing,
+    money: player.money ?? mockStats.money,
+  };
+  const color = getAvatarColor(player.name);
+  const isGoner = player.eliminated;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-xs rounded-2xl border border-card-border bg-card p-6 shadow-2xl"
+        style={{ animation: "popIn 0.2s ease-out" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div
+            className={`w-12 h-12 rounded-full border-2 border-background flex items-center justify-center text-sm font-bold text-white shrink-0 ${
+              isGoner ? "grayscale opacity-50" : ""
+            }`}
+            style={{ backgroundColor: color }}
+          >
+            {isGoner ? "👻" : getInitials(player.name)}
+          </div>
+          <div>
+            <h3 className={`text-lg font-bold ${isGoner ? "text-muted line-through" : "text-paper"}`}>
+              {player.name}
+            </h3>
+            {isGoner && (
+              <span className="text-xs text-muted font-medium">Eliminated</span>
+            )}
+            {player.major && !isGoner && (
+              <span className="text-xs text-[#F3E5AB]">{player.major}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="space-y-3">
+          {(
+            [
+              ["Academics", "academics", "#4f8cd9"] as const,
+              ["Social", "social", "#9d4edd"] as const,
+              ["Wellbeing", "wellbeing", "#5b8c5a"] as const,
+              ["Money", "money", "#f0a868"] as const,
+            ] as const
+          ).map(([label, key, barColor]) => {
+            const val = stats[key];
+            return (
+              <div key={key}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted">{label}</span>
+                  <span className="text-paper font-medium">{val.toFixed(2)}</span>
+                </div>
+                <div className="h-2 bg-background rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min((val / 10) * 100, 100)}%`,
+                      backgroundColor: isGoner ? "#8a8579" : barColor,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Traits */}
+        {(player.pos_trait || player.neg_trait) && !isGoner && (
+          <div className="mt-4 pt-4 border-t border-card-border space-y-2">
+            {player.pos_trait && (
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 text-xs">●</span>
+                <span className="text-xs text-paper">{player.pos_trait}</span>
+              </div>
+            )}
+            {player.neg_trait && (
+              <div className="flex items-center gap-2">
+                <span className="text-accent text-xs">●</span>
+                <span className="text-xs text-paper">{player.neg_trait}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={onClose}
+          className="mt-5 w-full py-2 rounded-lg bg-background border border-card-border text-muted hover:text-paper transition"
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Selection } from "./ActionPicker";
 
-type Player = { id: string; name: string };
+type Player = { id: string; name: string; eliminated?: boolean };
+type CurrentPlayer = {
+  id: string;
+  name: string;
+  academics?: number;
+  social?: number;
+  wellbeing?: number;
+  money?: number;
+  class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
+} | null;
 
 const DAILY_DECAY = {
   academics: -0.5,
@@ -13,7 +22,7 @@ const DAILY_DECAY = {
 };
 
 const OUTCOMES = [
-  { key: "bad", label: "Bad", color: "#d94f4f", mult: 0.75, icon: "💀" },
+  { key: "bad", label: "Bad", color: "#d94f4f", mult: 0.75, icon: "🥀" },
   { key: "normal", label: "Normal", color: "#F3E5AB", mult: 1.0, icon: "😐" },
   { key: "good", label: "Good", color: "#5b8c5a", mult: 1.25, icon: "✨" },
 ] as const;
@@ -131,22 +140,27 @@ function applyMultiplier(
 /* ------------------------------------------------------------------ */
 
 export default function ResolutionView({
+  roomCode,
   selections,
   players,
+  currentPlayer,
   onNextDay,
 }: {
+  roomCode: string;
   selections: Record<string, Selection | null>;
   players: Player[];
+  currentPlayer: CurrentPlayer;
   onNextDay: () => void;
 }) {
-  const roomCode = "ABCD";
-  const myName =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cls.name") || "You"
-      : "You";
+  const myName = currentPlayer?.name ||
+    (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
 
   const seed = hashString(roomCode + "day1");
   const classSchedule = useMemo(() => {
+    if (Array.isArray(currentPlayer?.class_schedule) && currentPlayer.class_schedule.length > 0) {
+      return currentPlayer.class_schedule;
+    }
+
     const days = [0, 1, 2, 3];
     const out: { day: number; slot: "morning" | "afternoon" }[] = [];
     let s = seed;
@@ -160,12 +174,12 @@ export default function ResolutionView({
       }
     }
     return out;
-  }, [seed]);
+  }, [currentPlayer?.class_schedule, seed]);
 
   const hasClassMorning = classSchedule.some((c) => c.day === 0 && c.slot === "morning");
   const hasClassAfternoon = classSchedule.some((c) => c.day === 0 && c.slot === "afternoon");
 
-  const allocated = useMemo(() => {
+  const fallbackAllocated = useMemo(() => {
     try {
       const raw =
         typeof window !== "undefined"
@@ -180,10 +194,10 @@ export default function ResolutionView({
   }, []);
 
   const startStats = {
-    academics: 1 + (allocated.academics || 0),
-    social: 1 + (allocated.social || 0),
-    wellbeing: 5 + (allocated.wellbeing || 0),
-    money: 2 + (allocated.money || 0),
+    academics: currentPlayer?.academics ?? 1 + (fallbackAllocated.academics || 0),
+    social: currentPlayer?.social ?? 1 + (fallbackAllocated.social || 0),
+    wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
+    money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
   };
 
   /* ---- outcomes: 20% bad, 60% normal, 20% good --------------------- */
@@ -239,36 +253,64 @@ export default function ResolutionView({
   }, [wildcardSlot, myName, roomCode]);
 
   /* ---- sequential fade-in + landing states ------------------------- */
-  const [showMorning, setShowMorning] = useState(false);
-  const [morningLanded, setMorningLanded] = useState(false);
-  const [showAfternoon, setShowAfternoon] = useState(false);
-  const [afternoonLanded, setAfternoonLanded] = useState(false);
-  const [showNight, setShowNight] = useState(false);
-  const [nightLanded, setNightLanded] = useState(false);
+  const [showSlots, setShowSlots] = useState(false);
+  const [slotsLanded, setSlotsLanded] = useState(false);
   const [showWildcard, setShowWildcard] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showHighlights, setShowHighlights] = useState(false);
+  const [visibleHighlights, setVisibleHighlights] = useState<number[]>([]);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setShowMorning(true), 200);
-    const t1b = setTimeout(() => setMorningLanded(true), 2000);
-    const t2 = setTimeout(() => setShowAfternoon(true), 2200);
-    const t2b = setTimeout(() => setAfternoonLanded(true), 4000);
-    const t3 = setTimeout(() => setShowNight(true), 4200);
-    const t3b = setTimeout(() => setNightLanded(true), 6000);
-    const t4 = setTimeout(() => {
+    const t1 = setTimeout(() => setShowSlots(true), 200);
+    const t1b = setTimeout(() => setSlotsLanded(true), 2000);
+    const t2 = setTimeout(() => {
       if (wildcardSlot) setShowWildcard(true);
       else setShowStats(true);
-    }, 7200);
-    const t5 = setTimeout(() => setShowStats(true), wildcardSlot ? 10200 : 7200);
-    return () =>
-      [t1, t1b, t2, t2b, t3, t3b, t4, t5].forEach(clearTimeout);
+    }, 2400);
+    const t3 = setTimeout(() => setShowStats(true), wildcardSlot ? 3200 : 2400);
+    const t4 = setTimeout(() => setShowHighlights(true), wildcardSlot ? 4000 : 3200);
+    return () => [t1, t1b, t2, t3, t4].forEach(clearTimeout);
   }, [wildcardSlot]);
 
+  /* ---- daily highlights (dummy) ---------------------------------- */
+  const highlights = useMemo(() => {
+    try {
+      return generateDailyHighlights({
+        myName,
+        selections,
+        morningOI,
+        afternoonOI,
+        nightOI,
+        wildcardEvent,
+        players,
+      });
+    } catch {
+      return [
+        { text: "Campus was quiet today.", icon: "🍃", color: "#8a8579" },
+        { text: "The dining hall ran out of pizza again.", icon: "🍕", color: "#8a8579" },
+        { text: "Someone left a mysterious note in the library.", icon: "📝", color: "#8a8579" },
+        { text: "The squirrels are getting bolder.", icon: "🐿️", color: "#8a8579" },
+        { text: "A freshman got lost in the STEM building for 3 hours.", icon: "🏗️", color: "#8a8579" },
+      ];
+    }
+  }, [myName, selections, morningOI, afternoonOI, nightOI, wildcardEvent, players]);
+
   const slotData = [
-    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: hasClassMorning, sel: selections.morning, gain: morningGain, oi: morningOI, show: showMorning, landed: morningLanded },
-    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: hasClassAfternoon, sel: selections.afternoon, gain: afternoonGain, oi: afternoonOI, show: showAfternoon, landed: afternoonLanded },
-    { key: "night" as const, label: "Night", icon: "🌙", hasClass: false, sel: selections.night, gain: nightGain, oi: nightOI, show: showNight, landed: nightLanded },
+    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: hasClassMorning, sel: selections.morning, gain: morningGain, oi: morningOI },
+    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: hasClassAfternoon, sel: selections.afternoon, gain: afternoonGain, oi: afternoonOI },
+    { key: "night" as const, label: "Night", icon: "🌙", hasClass: false, sel: selections.night, gain: nightGain, oi: nightOI },
   ];
+
+  useEffect(() => {
+    if (!showHighlights) return;
+    const timers: NodeJS.Timeout[] = [];
+    for (let i = 0; i < highlights.length; i++) {
+      timers.push(setTimeout(() => {
+        setVisibleHighlights((prev) => [...prev, i]);
+      }, 150 + i * 300));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [showHighlights, highlights.length]);
 
   return (
     <div className="flex-1 flex flex-col items-center p-6 overflow-auto">
@@ -287,11 +329,12 @@ export default function ResolutionView({
             ? players.find((p) => p.id === s.sel?.targetId)?.name
             : null;
           const outcome = OUTCOMES[s.oi];
+          const meEliminated = players.find((p) => p.name === myName)?.eliminated;
           return (
             <div
               key={s.key}
               className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
-                s.show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                showSlots ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
             >
               {/* Slot header */}
@@ -304,7 +347,17 @@ export default function ResolutionView({
               <div className="flex gap-3 items-stretch">
                 {/* Action card with result badge inside */}
                 <div className="flex-1 min-w-0">
-                  {s.sel ? (
+                  {meEliminated ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
+                      <span className="text-2xl shrink-0 grayscale opacity-50">🫥</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-muted line-through">
+                          {s.sel ? getActionLabel(s.sel.actionId) : "No action"}
+                        </p>
+                        <p className="text-xs text-muted">Eliminated</p>
+                      </div>
+                    </div>
+                  ) : s.sel ? (
                     <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background/50 px-4 py-3 min-h-[66px]">
                       <span className="text-2xl shrink-0">{getActionIcon(s.sel.actionId)}</span>
                       <div className="flex-1 min-w-0">
@@ -322,7 +375,7 @@ export default function ResolutionView({
                       </div>
 
                       {/* Result badge — inside card, right side */}
-                      {s.landed && (
+                      {slotsLanded && (
                         <div className="shrink-0 flex flex-col items-end gap-0.5">
                           <span
                             className="text-xs font-bold"
@@ -345,7 +398,7 @@ export default function ResolutionView({
 
                 {/* Roulette — stretches to match action card height */}
                 <div className="shrink-0 w-28 h-full">
-                  <SlotRoulette outcomeIndex={s.oi} show={s.show} />
+                  <SlotRoulette outcomeIndex={s.oi} show={showSlots} />
                 </div>
               </div>
             </div>
@@ -419,18 +472,171 @@ export default function ResolutionView({
             );
           })}
 
-          <div className="text-center pt-2">
-            <button
-              onClick={onNextDay}
-              className="px-8 py-3 rounded-xl font-semibold bg-accent text-paper hover:bg-accent/90 transition active:translate-y-0.5 shadow-lg shadow-accent/20"
-            >
-              Next Day →
-            </button>
+        </div>
+
+        {/* Daily Highlights — Word Around Campus */}
+        <div
+          className={`space-y-3 transition-all duration-500 ${
+            showHighlights ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          }`}
+        >
+          <div className="flex items-center gap-2 justify-center pt-2">
+            <span className="text-sm uppercase tracking-widest text-muted font-semibold">
+              Word Around Campus
+            </span>
           </div>
+          {highlights.map((h, i) => (
+            <div
+              key={i}
+              className={`rounded-xl border border-card-border bg-card p-4 flex items-start gap-3 transition-all duration-500 ${
+                visibleHighlights.includes(i)
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-4"
+              }`}
+              style={{
+                borderLeftWidth: "3px",
+                borderLeftColor: h.color,
+              }}
+            >
+              <span className="text-lg shrink-0 mt-0.5">{h.icon}</span>
+              <p className="text-sm text-paper/80 leading-relaxed">{h.text}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Next Day button */}
+        <div
+          className={`text-center pt-2 pb-4 transition-all duration-500 ${
+            showHighlights ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          }`}
+        >
+          <button
+            onClick={onNextDay}
+            className="px-8 py-3 rounded-xl font-semibold bg-accent text-paper hover:bg-accent/90 transition active:translate-y-0.5 shadow-lg shadow-accent/20"
+          >
+            Next Day →
+          </button>
         </div>
       </div>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+// Daily highlights generator (dummy / placeholder)
+
+type Highlight = { text: string; icon: string; color: string };
+
+function generateDailyHighlights({
+  myName,
+  selections,
+  morningOI,
+  afternoonOI,
+  nightOI,
+  wildcardEvent,
+  players,
+}: {
+  myName: string;
+  selections: Record<string, Selection | null>;
+  morningOI: number;
+  afternoonOI: number;
+  nightOI: number;
+  wildcardEvent: (typeof PRIVATE_EVENT_POOL)[0] | null;
+  players: Player[];
+}): Highlight[] {
+  const out: Highlight[] = [];
+
+  const others = players.filter((p) => p.name !== myName);
+  const randOther = () =>
+    others.length > 0
+      ? others[hashString(myName + "rand") % others.length].name
+      : "someone";
+
+  // Slot highlights — only Bad / Good are interesting
+  const slotInfo = [
+    { label: "morning", sel: selections.morning, oi: morningOI, icon: "☀️" },
+    { label: "afternoon", sel: selections.afternoon, oi: afternoonOI, icon: "🌤" },
+    { label: "night", sel: selections.night, oi: nightOI, icon: "🌙" },
+  ];
+
+  for (const s of slotInfo) {
+    if (!s.sel) continue;
+    const action = getActionLabel(s.sel.actionId);
+    const outcome = OUTCOMES[s.oi];
+    const targetName = s.sel.targetId
+      ? players.find((p) => p.id === s.sel?.targetId)?.name
+      : null;
+
+    if (s.oi === 0) {
+      // Bad
+      const lines = [
+        `${myName} tried to ${action.toLowerCase()}, but the universe had other plans.`,
+        `${myName}'s ${action.toLowerCase()} session went off the rails.`,
+        `Nothing about ${myName}'s ${action.toLowerCase()} went right today.`,
+      ];
+      out.push({
+        text: lines[hashString(myName + s.label) % lines.length],
+        icon: s.icon,
+        color: outcome.color,
+      });
+    } else if (s.oi === 2) {
+      // Good
+      const lines = targetName
+        ? [
+            `${myName} and ${targetName} absolutely crushed their ${action.toLowerCase()}.`,
+            `${myName} and ${targetName} had a magical ${action.toLowerCase()} session.`,
+            `${targetName} and ${myName} were in perfect sync during ${action.toLowerCase()}.`,
+          ]
+        : [
+            `${myName} had an incredible ${action.toLowerCase()} session.`,
+            `${myName} absolutely crushed it during ${action.toLowerCase()}.`,
+            `${myName}'s ${action.toLowerCase()} was the highlight of the day.`,
+          ];
+      out.push({
+        text: lines[hashString(myName + s.label) % lines.length],
+        icon: s.icon,
+        color: outcome.color,
+      });
+    }
+  }
+
+  // Wildcard highlight
+  if (wildcardEvent) {
+    out.push({
+      text: `${myName} stumbled into ${wildcardEvent.name.toLowerCase()}.`,
+      icon: wildcardEvent.icon,
+      color: wildcardEvent.color,
+    });
+  }
+
+  // Generic campus events — fill to 5
+  const generic: Highlight[] = [
+    { text: `${randOther()} was spotted crying in the library at 2am.`, icon: "😢", color: "#8a8579" },
+    { text: `The dining hall ran out of pizza. Again.`, icon: "🍕", color: "#8a8579" },
+    { text: `A squirrel stole ${randOther()}'s bagel. No one intervened.`, icon: "🐿️", color: "#8a8579" },
+    { text: `The STEM building elevator got stuck for 20 minutes.`, icon: "🏗️", color: "#8a8579" },
+    { text: `${randOther()} showed up to class in pajamas. Respect.`, icon: "😴", color: "#8a8579" },
+    { text: `Someone started a rumor that the final got cancelled. It didn't.`, icon: "📢", color: "#8a8579" },
+    { text: `The campus Wi-Fi went down during registration. Chaos ensued.`, icon: "📶", color: "#8a8579" },
+    { text: `${randOther()} lost their ID card for the third time this week.`, icon: "🪪", color: "#8a8579" },
+    { text: `A stray cat has taken up residence in the humanities building.`, icon: "🐈", color: "#8a8579" },
+    { text: `${randOther()} accidentally replied-all to a department email.`, icon: "📧", color: "#8a8579" },
+  ];
+
+  // Shuffle generics deterministically
+  const shuffled = generic
+    .map((g, i) => ({ ...g, sortKey: hashString(myName + "campus" + i) }))
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ sortKey: _, ...rest }) => rest);
+
+  while (out.length < 5 && shuffled.length > 0) {
+    const next = shuffled.shift()!;
+    if (!out.some((o) => o.text === next.text)) {
+      out.push(next);
+    }
+  }
+
+  return out.slice(0, 5);
 }
 
 /* ------------------------------------------------------------------ */

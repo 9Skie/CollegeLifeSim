@@ -22,20 +22,35 @@ export default function HomePage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onCreate = (e: React.FormEvent) => {
+  const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return setError("Enter a name first");
     if (trimmed.length > 20) return setError("Name too long (max 20)");
-    const newCode = generateRoomCode();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cls.name", trimmed);
-      localStorage.setItem("cls.role", "host");
+
+    try {
+      const res = await fetch("/api/room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return setError(data.error || "Failed to create room");
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cls.name", trimmed);
+        localStorage.setItem("cls.role", "host");
+        localStorage.setItem("cls.playerId", data.player.id);
+        localStorage.setItem("cls.roomCode", data.room.code);
+      }
+      router.push(`/room/${data.room.code}`);
+    } catch {
+      setError("Network error. Try again.");
     }
-    router.push(`/room/${newCode}`);
   };
 
-  const onJoin = (e: React.FormEvent) => {
+  const onJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = name.trim();
     const cleanCode = code.trim().toUpperCase();
@@ -43,11 +58,27 @@ export default function HomePage() {
     if (trimmedName.length > 20) return setError("Name too long (max 20)");
     if (cleanCode.length !== 4) return setError("Room code must be 4 letters");
     if (!/^[A-Z]+$/.test(cleanCode)) return setError("Letters only");
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cls.name", trimmedName);
-      localStorage.setItem("cls.role", "player");
+
+    try {
+      const res = await fetch(`/api/room/${cleanCode}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return setError(data.error || "Failed to join room");
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("cls.name", trimmedName);
+        localStorage.setItem("cls.role", "player");
+        localStorage.setItem("cls.playerId", data.player.id);
+        localStorage.setItem("cls.roomCode", cleanCode);
+      }
+      router.push(`/room/${cleanCode}`);
+    } catch {
+      setError("Network error. Try again.");
     }
-    router.push(`/room/${cleanCode}`);
   };
 
   return (

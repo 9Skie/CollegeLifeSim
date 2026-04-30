@@ -14,6 +14,32 @@ const ITEM_HEIGHT = 64;
 const CONTAINER_HEIGHT = 180;
 const PAD = (CONTAINER_HEIGHT - ITEM_HEIGHT) / 2;
 
+export type AllocatedStats = {
+  academics: number;
+  social: number;
+  wellbeing: number;
+  money: number;
+};
+
+export type CharacterSetupResult = {
+  major: string;
+  posTrait: string;
+  negTrait: string;
+  allocatedStats: AllocatedStats;
+};
+
+type InitialSetup = {
+  major: string | null;
+  posTrait: string | null;
+  negTrait: string | null;
+  stats: {
+    academics: number;
+    social: number;
+    wellbeing: number;
+    money: number;
+  } | null;
+};
+
 /* ------------------------------------------------------------------ */
 // Roulette hook
 
@@ -53,15 +79,47 @@ function useRoulette<T>(items: T[], targetIndex: number, durationMs: number) {
 /* ------------------------------------------------------------------ */
 // Component
 
-export default function CharacterSetup({ onReady }: { onReady: () => void }) {
-  const [majorIndex] = useState(() =>
-    Math.floor(Math.random() * MAJORS.length)
-  );
+function getChoiceIndex(choices: readonly string[], value: string | null) {
+  if (!value) {
+    return Math.floor(Math.random() * choices.length);
+  }
+
+  const index = choices.indexOf(value);
+  return index >= 0 ? index : Math.floor(Math.random() * choices.length);
+}
+
+function getInitialAllocatedStats(initialSetup: InitialSetup | null | undefined): AllocatedStats {
+  if (!initialSetup?.stats) {
+    return { academics: 0, social: 0, wellbeing: 0, money: 0 };
+  }
+
+  return {
+    academics: Math.max(0, Math.round(initialSetup.stats.academics - 1)),
+    social: Math.max(0, Math.round(initialSetup.stats.social - 1)),
+    wellbeing: Math.max(0, Math.round(initialSetup.stats.wellbeing - 5)),
+    money: Math.max(0, Math.round(initialSetup.stats.money - 2)),
+  };
+}
+
+export default function CharacterSetup({
+  onReady,
+  initialSetup = null,
+  readyDisabled = false,
+  readyLabel = "I'm Ready →",
+  statusMessage = null,
+}: {
+  onReady: (result: CharacterSetupResult) => void | Promise<void>;
+  initialSetup?: InitialSetup | null;
+  readyDisabled?: boolean;
+  readyLabel?: string;
+  statusMessage?: string | null;
+}) {
+  const [majorIndex] = useState(() => getChoiceIndex(MAJORS, initialSetup?.major ?? null));
   const [posIndex] = useState(() =>
-    Math.floor(Math.random() * POSITIVE_TRAITS.length)
+    getChoiceIndex(POSITIVE_TRAITS, initialSetup?.posTrait ?? null)
   );
   const [negIndex] = useState(() =>
-    Math.floor(Math.random() * NEGATIVE_TRAITS.length)
+    getChoiceIndex(NEGATIVE_TRAITS, initialSetup?.negTrait ?? null)
   );
 
   const majorR = useRoulette([...MAJORS], majorIndex, 2000);
@@ -70,16 +128,13 @@ export default function CharacterSetup({ onReady }: { onReady: () => void }) {
 
   const allLanded = majorR.landed && posR.landed && negR.landed;
 
-  const [allocated, setAllocated] = useState({
-    academics: 0,
-    social: 0,
-    wellbeing: 0,
-    money: 0,
-  });
+  const [allocated, setAllocated] = useState<AllocatedStats>(() =>
+    getInitialAllocatedStats(initialSetup)
+  );
 
   const spent = Object.values(allocated).reduce((a, b) => a + b, 0);
   const remaining = 3 - spent;
-  const canReady = allLanded && remaining === 0;
+  const canReady = allLanded && remaining === 0 && !readyDisabled;
 
   const adjust = (key: keyof typeof allocated, delta: number) => {
     if (delta > 0 && remaining <= 0) return;
@@ -88,13 +143,20 @@ export default function CharacterSetup({ onReady }: { onReady: () => void }) {
   };
 
   const handleReady = () => {
+    const result = {
+      major: MAJORS[majorIndex],
+      posTrait: POSITIVE_TRAITS[posIndex],
+      negTrait: NEGATIVE_TRAITS[negIndex],
+      allocatedStats: allocated,
+    };
+
     if (typeof window !== "undefined") {
-      localStorage.setItem("cls.major", MAJORS[majorIndex]);
-      localStorage.setItem("cls.posTrait", POSITIVE_TRAITS[posIndex]);
-      localStorage.setItem("cls.negTrait", NEGATIVE_TRAITS[negIndex]);
+      localStorage.setItem("cls.major", result.major);
+      localStorage.setItem("cls.posTrait", result.posTrait);
+      localStorage.setItem("cls.negTrait", result.negTrait);
       localStorage.setItem("cls.stats", JSON.stringify(allocated));
     }
-    onReady();
+    onReady(result);
   };
 
   const majorName = MAJORS[majorIndex];
@@ -247,20 +309,29 @@ export default function CharacterSetup({ onReady }: { onReady: () => void }) {
       {/* Ready */}
       {allLanded && (
         <div className="flex justify-end">
-          <button
-            onClick={handleReady}
-            disabled={!canReady}
-            title={
-              canReady ? "Lock in your character" : "Spend all 3 points first"
-            }
-            className={`px-8 py-3 rounded-xl font-semibold transition active:translate-y-0.5 ${
-              canReady
-                ? "bg-accent text-paper hover:bg-accent/90 shadow-lg shadow-accent/20"
-                : "bg-card-border text-muted cursor-not-allowed"
-            }`}
-          >
-            I'm Ready →
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            {statusMessage && (
+              <p className="text-sm text-muted">{statusMessage}</p>
+            )}
+            <button
+              onClick={handleReady}
+              disabled={!canReady}
+              title={
+                readyDisabled
+                  ? "Waiting for room update"
+                  : canReady
+                  ? "Lock in your character"
+                  : "Spend all 3 points first"
+              }
+              className={`px-8 py-3 rounded-xl font-semibold transition active:translate-y-0.5 ${
+                canReady
+                  ? "bg-accent text-paper hover:bg-accent/90 shadow-lg shadow-accent/20"
+                  : "bg-card-border text-muted cursor-not-allowed"
+              }`}
+            >
+              {readyLabel}
+            </button>
+          </div>
         </div>
       )}
     </div>

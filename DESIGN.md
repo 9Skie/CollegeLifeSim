@@ -582,10 +582,10 @@ Effects:
 | 2 | `/room/[code]` (lobby state) | 🟡 **Prototype built** | Lobby — players gather, copy code, host starts game |
 | 3 | `/room/[code]` (setup state) | 🟡 **Prototype built** | Character setup — random major+traits, distribute 3 stat points |
 | 4 | `/room/[code]` (day state) | 🟡 **Prototype built** | Day View — fill 3 slots, inspect sidebar, submit the day |
-| 5 | `/room/[code]` (resolution state) | 🟡 **Placeholder built** | Day Resolution — simple placeholder return screen |
+| 5 | `/room/[code]` (resolution state) | 🟡 **Prototype built** | Day Resolution — per-slot roulette, wildcard flip, stat animation, Next Day button |
 | 6 | `/room/[code]` (exam state) | ⏳ | Exam screen — Midterm / Final reveal |
 | 7 | `/room/[code]` (end state) | ⏳ | End reveal — achievements unveiled, scores, narrative phase |
-| — | play sidebar | 🟡 **Prototype built** | Character info, stats, calendar, class/study trackers, relationships |
+| — | play sidebar | 🟡 **Prototype built** | Character info, stats, calendar, class/study trackers, relationships (mock data) |
 
 The room route is a single page that switches sub-views by game state. In the current prototype, that state is local React state inside `app/room/[code]/page.tsx`; the planned server-backed version is still future work.
 
@@ -616,12 +616,20 @@ The room route is a single page that switches sub-views by game state. In the cu
 
 **Day View** — `app/room/[code]/DayView.tsx` and `ActionPicker.tsx`
 - Left sidebar shows character summary, current stats, calendar, weekly trackers, and top relationships
-- Main area shows a day header, mock player avatars, a 60-second countdown, event banners, and three slot cards
-- Action picking happens in a modal picker with target selection, spend tiers, wildcard code entry, and class-skip warning states
+- Main area shows a day header, mock player avatars, event banners, and three slot cards
+- Action picking happens in a modal picker with target selection, spend tiers, wildcard once-per-day cap, and class-skip warning states
+- Class/work conflict logic: when a slot has class, Study is replaced by Class, Study Together is removed, and Work is removed (or shifted to afternoon if morning has class)
+- Stat preview bars show daily decay in dark red and projected gains in white when all 3 slots are filled
+- Player status indicators ("Thinking…" / "Done") in top bar
 - Current prototype uses seeded mock events, a mocked player list, and local-only submit flow into resolution
 
-**Resolution placeholder** — `app/room/[code]/page.tsx`
-- Displays a simple "Day 1 Resolved" placeholder screen with a back button to the day view
+**Resolution Screen** — `app/room/[code]/ResolutionView.tsx`
+- Sequential fade-in: morning → afternoon → night action cards, each paired with a vertical roulette tile (66px, deceleration animation over ~1.8s)
+- Result badge (Bad / Normal / Good) appears inside each action card after roulette lands, with color-coded multiplier
+- 3D rotateY wildcard card flip if Wildcard was played, showing event name, flavor text, and effect
+- Animated stat bars transition from old → new values, with net change shown
+- "Next Day" button appears immediately with the stats section (not blocked by any secondary content)
+- All outcomes are deterministic (hash-based) for prototyping; no real random rolls yet
 
 ### 2.5 Identity & Room Codes
 
@@ -696,7 +704,35 @@ Planned fuller version:
 - Relationship row: your relationship level with each other player
 - Compact: takes ~25–30% of screen during play
 
-### 2.11 Out of Scope for v1
+### 2.11 Frontend Gaps (What's Missing Before Backend)
+
+The prototype renders every screen, but most mechanical systems are **stubbed, mocked, or entirely absent**. Below is the delta between the current UI and the design intent.
+
+| System | Design Intent | Current State |
+|---|---|---|
+| **Outcome randomness** | Wellbeing-scaled odds (§1.4), true random per-action | Fixed 20/60/20 distribution; deterministic hash-based "random" |
+| **Trait effects** | 20 positive + 20 negative traits with mechanical impact (§1.16) | Traits are dealt and displayed but **do nothing** mechanically |
+| **Relationship system** | Per-pair hidden 0–3 levels with multipliers on shared actions (§1.3, §1.8) | Sidebar shows a mock "Top 3" list; no real tracking, no mutual-confirm matching |
+| **Mutual-confirm actions** | Both players must pick each other in the same slot to match (§1.8) | Target can be selected, but there is no match/mismatch resolution |
+| **Same-day repetition penalty** | 2nd use of same action type = ×0.5, 3rd = ×0.25 (§1.9) | Not implemented |
+| **No-sleep penalty** | Night ≠ Sleep → extra Wellbeing −1.5 (§1.7) | Not implemented |
+| **Broke penalty** | Money clamps at 0 → extra Wellbeing −1.5 (§1.10) | Not implemented |
+| **Homework quota** | 4 Studies required per week or Academics penalty (§1.11) | Not implemented; no weekly tracking |
+| **Exams** | Midterm (Wk2) and Final (Wk3) with Bad/Normal/Good rolls (§1.12) | No exam screen built |
+| **Achievements + final score** | 15 hidden achievements, weighted scoring by major (§1.15, §1.17, §1.18) | No end-of-game screen; no score calculation |
+| **Public events** | 20-event deck, 10 sampled per session, announced at day start (§1.14a) | One mock event banner shown; no real event system |
+| **Private events** | 20-event deck, dealt as codes to subset of players, one-hop shareable (§1.14b) | 6 hardcoded events in a flip card; no code-dealing, no prereq checks |
+| **Wildcard deck** | 21 cards with defined distribution (§1.13) | Not implemented — Wildcard pulls from the 6 private events instead |
+| **Flavor text / highlights** | ~300 lines, 5 highlights per day (§1.21, §2.9) | Briefly prototyped then removed; no narrative feedback on resolutions |
+| **Day-to-day persistence** | Stats carry over; history accumulates | Stats reset to `localStorage` base every day; no history log |
+| **Calendar / class visualization** | Visual schedule showing which upcoming days have class (§2.10) | Calendar is present but does not highlight class days |
+| **Elimination** | Wellbeing ≤ 0 → out, score locked at 0 (§1.2) | Not implemented |
+| **Major scoring weights** | wA/wS/wW/wM multipliers at endgame (§1.15) | Not used |
+| **Money labels** | Displayed as `$25 / $50` spend tiers alongside 0–10 scale (§1.2) | Shows raw 0–10 numbers only |
+| **Day counter / semester progress** | "Day X of 21" with week indicators (§1.1) | Shows "Day 1" statically; no progression concept |
+| **Tutorial / onboarding** | First-time overlay explaining stats, slots, submission (was out-of-scope) | No tutorial; players are dropped in cold |
+
+### 2.12 Out of Scope for v1
 
 - Mobile-first layout (laptop-primary; mobile is best-effort)
 - Spectator mode (eliminated players watch passively)
@@ -704,7 +740,6 @@ Planned fuller version:
 - Public room browser
 - Replay / save game
 - Profanity filter on names
-- Tutorial / how-to-play overlay
 - Animation polish beyond the basics
 
 ---
@@ -723,7 +758,7 @@ Planned fuller version:
 | Lobby screen | 🟡 prototype |
 | Character setup | 🟡 prototype |
 | Day view | 🟡 prototype |
-| Day resolution | 🟡 placeholder |
+| Day resolution | 🟡 prototype |
 | Exam screen | ⏳ |
 | End reveal | ⏳ |
 | Side panel | 🟡 prototype |

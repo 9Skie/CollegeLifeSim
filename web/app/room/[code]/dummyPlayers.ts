@@ -1,0 +1,89 @@
+import type { Selection } from "./ActionPicker";
+
+export const DUMMY_PLAYERS = [
+  { name: "Maya", behavior: "socializeWithYou" },
+  { name: "Jake", behavior: "studyTogetherWithYou" },
+  { name: "Quinn", behavior: "wildcardRestSleep" },
+  { name: "Riley", behavior: "randomEachSlot" },
+] as const;
+
+export type DummyBehavior = (typeof DUMMY_PLAYERS)[number]["behavior"];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+}
+
+export function getDummyBehavior(name: string): DummyBehavior | null {
+  return DUMMY_PLAYERS.find((player) => player.name === name)?.behavior ?? null;
+}
+
+export function getDummySelection(
+  name: string,
+  slot: "morning" | "afternoon" | "night",
+  roomCode: string,
+  myPlayerId: string | null
+): Selection | null {
+  const behavior = getDummyBehavior(name);
+  if (!behavior) {
+    return null;
+  }
+
+  if (behavior === "socializeWithYou") {
+    return myPlayerId
+      ? { actionId: "socialize", targetId: myPlayerId, spend: 0 }
+      : { actionId: slot === "night" ? "sleep" : "rest" };
+  }
+
+  if (behavior === "studyTogetherWithYou") {
+    return myPlayerId
+      ? { actionId: "studyTogether", targetId: myPlayerId }
+      : { actionId: "study" };
+  }
+
+  if (behavior === "wildcardRestSleep") {
+    if (slot === "morning") return { actionId: "wildcard" };
+    if (slot === "afternoon") return { actionId: "rest" };
+    return { actionId: "sleep" };
+  }
+
+  const randomPools: Record<typeof slot, Selection[]> = {
+    morning: [
+      { actionId: "study" },
+      { actionId: "wildcard" },
+      { actionId: "exercise" },
+      { actionId: "rest" },
+      { actionId: "work" },
+      ...(myPlayerId
+        ? [{ actionId: "socialize", targetId: myPlayerId, spend: 0 as const }]
+        : []),
+    ],
+    afternoon: [
+      { actionId: "study" },
+      { actionId: "wildcard" },
+      { actionId: "exercise" },
+      { actionId: "rest" },
+      { actionId: "work" },
+      ...(myPlayerId
+        ? [{ actionId: "socialize", targetId: myPlayerId, spend: 0 as const }]
+        : []),
+    ],
+    night: [
+      { actionId: "study" },
+      { actionId: "wildcard" },
+      { actionId: "sleep" },
+      ...(myPlayerId
+        ? [
+            { actionId: "socialize", targetId: myPlayerId, spend: 0 as const },
+            { actionId: "studyTogether", targetId: myPlayerId },
+          ]
+        : []),
+    ],
+  };
+
+  const pool = randomPools[slot];
+  return pool[hashString(`${name}:${roomCode}:${slot}`) % pool.length];
+}
