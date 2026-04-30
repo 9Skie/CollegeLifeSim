@@ -27,6 +27,7 @@ export type SlotResolution = {
   multiplier: number;
   baseGain: Stats;
   finalGain: Stats;
+  ditched: boolean;
 };
 
 export type StoredResolution = {
@@ -252,6 +253,17 @@ export function resolveDayForRoom({
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
 
+  // Map: target_id -> set of player_ids who socialized with them
+  const socializeTargets = new Map<string, Set<string>>();
+  for (const row of dayActions) {
+    if (row.action === "socialize" && row.target_id) {
+      if (!socializeTargets.has(row.target_id)) {
+        socializeTargets.set(row.target_id, new Set());
+      }
+      socializeTargets.get(row.target_id)!.add(row.player_id);
+    }
+  }
+
   const resolutions: StoredResolution[] = [];
   const resolvedActionRows: Array<{
     room_code: string;
@@ -323,6 +335,7 @@ export function resolveDayForRoom({
           multiplier: 1,
           baseGain: emptyStats(),
           finalGain: emptyStats(),
+          ditched: false,
         };
       }
 
@@ -350,10 +363,19 @@ export function resolveDayForRoom({
         actionCounts.set(sel.actionId, count + 1);
       }
 
-      const finalGain = applyMultiplier(
+      let finalGain = applyMultiplier(
         applyMultiplier(baseGain, multiplier),
         repeatDecay
       );
+
+      const ditched =
+        selection.actionId === "socialize" &&
+        typeof selection.targetId === "string" &&
+        !socializeTargets.get(player.id)?.has(selection.targetId);
+
+      if (ditched) {
+        finalGain = applyMultiplier(finalGain, 0.5);
+      }
 
       resolvedActionRows.push({
         room_code: roomCode,
@@ -378,6 +400,7 @@ export function resolveDayForRoom({
         multiplier,
         baseGain,
         finalGain,
+        ditched,
       };
     });
 
