@@ -103,10 +103,29 @@ function getActionEffect(id: string, spend?: number): string {
   }
 }
 
+function getRepeatDecay(
+  selections: Record<string, Selection | null>,
+  targetSlot: string
+): number {
+  const order = ["morning", "afternoon", "night"];
+  const counts = new Map<string, number>();
+  for (const slot of order) {
+    const sel = selections[slot];
+    if (!sel) continue;
+    if (slot === targetSlot) {
+      const count = counts.get(sel.actionId) || 0;
+      return count === 0 ? 1 : count === 1 ? 0.5 : 0.25;
+    }
+    counts.set(sel.actionId, (counts.get(sel.actionId) || 0) + 1);
+  }
+  return 1;
+}
+
 function calculateSlotGain(
   sel: Selection | null,
   slot: string,
-  hasClass: boolean
+  hasClass: boolean,
+  selections: Record<string, Selection | null>
 ): Record<string, number> {
   const gain = { academics: 0, social: 0, wellbeing: 0, money: 0 };
   if (!sel) return gain;
@@ -141,6 +160,10 @@ function calculateSlotGain(
   if (hasClass && sel.actionId !== "class") {
     gain.academics -= 0.5;
   }
+  const decay = getRepeatDecay(selections, slot);
+  (Object.keys(gain) as Array<keyof typeof gain>).forEach((key) => {
+    gain[key] *= decay;
+  });
   return gain;
 }
 
@@ -265,9 +288,9 @@ export default function ResolutionView({
     : toOutcomeIndex(nightOutcomeIdx);
 
   /* ---- gains ------------------------------------------------------- */
-  const morningGain = calculateSlotGain(selections.morning, "morning", hasClassMorning);
-  const afternoonGain = calculateSlotGain(selections.afternoon, "afternoon", hasClassAfternoon);
-  const nightGain = calculateSlotGain(selections.night, "night", false);
+  const morningGain = calculateSlotGain(selections.morning, "morning", hasClassMorning, selections);
+  const afternoonGain = calculateSlotGain(selections.afternoon, "afternoon", hasClassAfternoon, selections);
+  const nightGain = calculateSlotGain(selections.night, "night", false, selections);
 
   const morningFinal = applyMultiplier(morningGain, OUTCOMES[morningOI].mult);
   const afternoonFinal = applyMultiplier(afternoonGain, OUTCOMES[afternoonOI].mult);

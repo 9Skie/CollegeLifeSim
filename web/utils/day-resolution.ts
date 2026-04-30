@@ -335,7 +335,25 @@ export function resolveDayForRoom({
         selection.spend ?? null,
         hasClass
       );
-      const finalGain = applyMultiplier(baseGain, multiplier);
+
+      // Repeat decay: 1st = ×1.0, 2nd = ×0.5, 3rd = ×0.25
+      const actionCounts = new Map<string, number>();
+      let repeatDecay = 1;
+      for (const s of DAY_SLOTS) {
+        const sel = selections[s];
+        if (!sel) continue;
+        const count = actionCounts.get(sel.actionId) || 0;
+        if (s === slot) {
+          repeatDecay = count === 0 ? 1 : count === 1 ? 0.5 : 0.25;
+          break;
+        }
+        actionCounts.set(sel.actionId, count + 1);
+      }
+
+      const finalGain = applyMultiplier(
+        applyMultiplier(baseGain, multiplier),
+        repeatDecay
+      );
 
       resolvedActionRows.push({
         room_code: roomCode,

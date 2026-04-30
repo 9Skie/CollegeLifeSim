@@ -207,44 +207,49 @@ function calculateDayGains(
   hasClassAfternoon: boolean
 ): Record<string, number> {
   const gain = { academics: 0, social: 0, wellbeing: 0, money: 0 };
+  const actionCounts = new Map<string, number>();
 
   for (const slot of ["morning", "afternoon", "night"] as const) {
     const sel = selections[slot];
     if (!sel) continue;
-    const isNight = slot === "night";
+
+    // Repeat decay: 1st = ×1.0, 2nd = ×0.5, 3rd = ×0.25
+    const count = actionCounts.get(sel.actionId) || 0;
+    const decay = count === 0 ? 1 : count === 1 ? 0.5 : 0.25;
+    actionCounts.set(sel.actionId, count + 1);
 
     switch (sel.actionId) {
       case "class":
-        gain.academics += 0.75;
-        gain.social += 0.25;
+        gain.academics += 0.75 * decay;
+        gain.social += 0.25 * decay;
         break;
       case "study":
-        gain.academics += 1;
+        gain.academics += 1 * decay;
         break;
       case "work":
-        gain.money += 1;
+        gain.money += 1 * decay;
         break;
       case "exercise":
-        gain.wellbeing += 1;
+        gain.wellbeing += 1 * decay;
         break;
       case "socialize": {
         const spend = sel.spend || 0;
         if (spend === 2) {
-          gain.social += 1.5;
-          gain.money -= 0.5;
+          gain.social += 1.5 * decay;
+          gain.money -= 0.5 * decay;
         } else if (spend === 1) {
-          gain.social += 1.25;
-          gain.money -= 0.25;
+          gain.social += 1.25 * decay;
+          gain.money -= 0.25 * decay;
         } else {
-          gain.social += 1;
+          gain.social += 1 * decay;
         }
         break;
       }
       case "rest":
-        gain.wellbeing += 0.5;
+        gain.wellbeing += 0.5 * decay;
         break;
       case "sleep":
-        gain.wellbeing += 1;
+        gain.wellbeing += 1 * decay;
         break;
       case "wildcard":
         // Unknown until resolution
