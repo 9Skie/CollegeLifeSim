@@ -417,9 +417,10 @@ export default function DayView({
     morning: !hasClassMorning,
     afternoon: !hasClassAfternoon,
   };
-  const classesThisWeek = classSchedule.length;
-  const classesAttended = 0; // TODO: track from resolved days
-  const studiesThisWeek = 0;
+  const classesThisWeek = dayState?.myWeeklyProgress?.classesScheduled ?? classSchedule.length;
+  const classesAttended = dayState?.myWeeklyProgress?.classesAttended ?? 0;
+  const studiesThisWeek = dayState?.myWeeklyProgress?.studiesThisWeek ?? 0;
+  const studyGoal = dayState?.myWeeklyProgress?.studyGoal ?? 4;
 
   const fallbackAllocated = useMemo(() => {
     try {
@@ -554,13 +555,15 @@ export default function DayView({
                 ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨" }],
               ] as const
             ).map(([label, key, warn]) => {
-              const value = stats[key as keyof typeof stats];
+              const rawValue = stats[key as keyof typeof stats];
+              const value = Math.max(0, Math.min(rawValue, 10));
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
               const netGain = gain + decay;
-              const projected = value + netGain;
+              const projected = Math.max(0, Math.min(value + netGain, 10));
               const barMax = 10;
               const isWarned = value <= warn.warnAt;
+              const barPct = value <= 0 ? 0 : Math.min((value / barMax) * 100, 100);
 
               return (
                 <div key={label}>
@@ -589,24 +592,24 @@ export default function DayView({
                   </div>
                   <div className="h-2 bg-background rounded-full overflow-hidden relative">
                     <div
-                      className="h-full bg-accent transition-all duration-300"
-                      style={{ width: `${Math.max(0, Math.min((value / barMax) * 100, 100))}%` }}
+                      className={`h-full bg-accent transition-all duration-300 ${barPct <= 0 ? "opacity-0" : ""}`}
+                      style={{ width: `${barPct}%` }}
                     />
-                    {allFilled && netGain > 0 && (
+                    {allFilled && netGain > 0 && barPct > 0 && (
                       <div
                         className="absolute top-0 h-full bg-white/80 transition-all duration-300"
                         style={{
-                          left: `${Math.min((value / barMax) * 100, 100)}%`,
-                          width: `${Math.min((netGain / barMax) * 100, 100)}%`,
+                          left: `${barPct}%`,
+                          width: `${Math.min((netGain / barMax) * 100, 100 - barPct)}%`,
                         }}
                       />
                     )}
-                    {allFilled && netGain < 0 && (
+                    {allFilled && netGain < 0 && barPct > 0 && (
                       <div
                         className="absolute top-0 h-full bg-red-900/50 transition-all duration-300"
                         style={{
-                          left: `${Math.max(0, ((value + netGain) / barMax) * 100)}%`,
-                          width: `${Math.min((Math.abs(netGain) / barMax) * 100, 100)}%`,
+                          left: `${Math.max(0, barPct - (Math.abs(netGain) / barMax) * 100)}%`,
+                          width: `${Math.min((Math.abs(netGain) / barMax) * 100, barPct)}%`,
                         }}
                       />
                     )}
@@ -686,13 +689,13 @@ export default function DayView({
               <div className="flex justify-between items-center text-xs">
                 <span className="text-muted">Studies this week</span>
                 <span className="text-paper font-medium">
-                  {studiesThisWeek} / 4
+                  {studiesThisWeek} / {studyGoal}
                 </span>
               </div>
               <div className="h-1.5 bg-background rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-accent-soft"
-                  style={{ width: `${(studiesThisWeek / 4) * 100}%` }}
+                  style={{ width: `${(studiesThisWeek / Math.max(1, studyGoal)) * 100}%` }}
                 />
               </div>
             </div>

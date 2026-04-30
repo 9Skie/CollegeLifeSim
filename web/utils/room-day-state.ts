@@ -10,6 +10,7 @@ import {
 type RoomPlayerForDayState = {
   id: string;
   eliminated?: boolean | null;
+  class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }> | null;
 };
 
 type DayActionRow = {
@@ -33,6 +34,15 @@ export type RoomDayState = {
   playerStatuses: PlayerDayStatus[];
   myStatus: DaySubmissionStatus | null;
   mySelections: SelectionRecord;
+  myWeeklyProgress: {
+    currentWeek: number;
+    weekStartDay: number;
+    weekEndDay: number;
+    classesScheduled: number;
+    classesAttended: number;
+    studiesThisWeek: number;
+    studyGoal: number;
+  } | null;
 };
 
 export async function loadRoomDayState(
@@ -83,6 +93,41 @@ export async function loadRoomDayState(
       )
     : createEmptySelectionRecord();
 
+  let myWeeklyProgress = null;
+
+  if (playerId) {
+    const currentWeek = Math.floor((currentDay - 1) / 7) + 1;
+    const weekStartDay = (currentWeek - 1) * 7 + 1;
+    const weekEndDay = weekStartDay + 6;
+
+    const { data: weeklyRows, error: weeklyError } = await supabase
+      .from("day_actions")
+      .select("action")
+      .eq("room_code", code)
+      .eq("player_id", playerId)
+      .gte("day", weekStartDay)
+      .lte("day", weekEndDay);
+
+    if (weeklyError) {
+      throw weeklyError;
+    }
+
+    const currentPlayer = players.find((player) => player.id === playerId);
+    const classSchedule = Array.isArray(currentPlayer?.class_schedule)
+      ? currentPlayer.class_schedule
+      : [];
+
+    myWeeklyProgress = {
+      currentWeek,
+      weekStartDay,
+      weekEndDay,
+      classesScheduled: classSchedule.length,
+      classesAttended: (weeklyRows || []).filter((row) => row.action === "class").length,
+      studiesThisWeek: (weeklyRows || []).filter((row) => row.action === "study").length,
+      studyGoal: 4,
+    };
+  }
+
   return {
     currentDay,
     activePlayerCount,
@@ -92,5 +137,6 @@ export async function loadRoomDayState(
     playerStatuses,
     myStatus,
     mySelections,
+    myWeeklyProgress,
   };
 }
