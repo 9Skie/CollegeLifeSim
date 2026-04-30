@@ -394,9 +394,9 @@ export default function ResolutionView({
   }, [currentResolution?.highlights, myName, selections, morningOI, afternoonOI, nightOI, wildcardEvent, players]);
 
   const slotData = [
-    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: resolvedMorning?.hasClass ?? hasClassMorning, sel: selections.morning, gain: resolvedMorning?.finalGain ?? morningGain, oi: morningOI, ditched: resolvedMorning?.ditched ?? false },
-    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: resolvedAfternoon?.hasClass ?? hasClassAfternoon, sel: selections.afternoon, gain: resolvedAfternoon?.finalGain ?? afternoonGain, oi: afternoonOI, ditched: resolvedAfternoon?.ditched ?? false },
-    { key: "night" as const, label: "Night", icon: "🌙", hasClass: resolvedNight?.hasClass ?? false, sel: selections.night, gain: resolvedNight?.finalGain ?? nightGain, oi: nightOI, ditched: resolvedNight?.ditched ?? false },
+    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: resolvedMorning?.hasClass ?? hasClassMorning, sel: selections.morning, gain: resolvedMorning?.finalGain ?? morningGain, oi: morningOI, ditched: resolvedMorning?.ditched ?? false, repeatDecay: getRepeatDecay(selections, "morning") },
+    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: resolvedAfternoon?.hasClass ?? hasClassAfternoon, sel: selections.afternoon, gain: resolvedAfternoon?.finalGain ?? afternoonGain, oi: afternoonOI, ditched: resolvedAfternoon?.ditched ?? false, repeatDecay: getRepeatDecay(selections, "afternoon") },
+    { key: "night" as const, label: "Night", icon: "🌙", hasClass: resolvedNight?.hasClass ?? false, sel: selections.night, gain: resolvedNight?.finalGain ?? nightGain, oi: nightOI, ditched: resolvedNight?.ditched ?? false, repeatDecay: getRepeatDecay(selections, "night") },
   ];
 
   useEffect(() => {
@@ -517,6 +517,11 @@ export default function ResolutionView({
                         {/* Result badge — inside card, right side */}
                         {slotsLanded && (
                           <div className="shrink-0 flex flex-col items-end gap-0.5">
+                            {s.repeatDecay < 1 && (
+                              <span className="text-[10px] font-bold text-accent">
+                                Repetition ×{s.repeatDecay}
+                              </span>
+                            )}
                             {s.ditched && (
                               <span className="text-[10px] font-bold text-accent">
                                 Ditched ×0.5
