@@ -655,6 +655,9 @@ export default function DayView({
                     <span>{w.word}</span>
                   </div>
                 ))}
+                <p className="text-[10px] text-muted">
+                  Each warning: −1.5 Wellbeing ({warns.length} active = −{(warns.length * 1.5).toFixed(1)})
+                </p>
               </div>
             );
           })()}
