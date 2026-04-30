@@ -178,10 +178,8 @@ function calculateSlotGain(
     case "socialize": {
       const amount = toNumber(spend, 0);
       if (amount >= 0.5) {
-        gain.social += 1.5;
         gain.money -= 0.5;
       } else if (amount >= 0.25) {
-        gain.social += 1.25;
         gain.money -= 0.25;
       } else {
         gain.social += 1;
@@ -252,6 +250,19 @@ export function resolveDayForRoom({
 }) {
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
+
+  // Socialize spend gifts: target_id -> total social received
+  const socialGifts = new Map<string, number>();
+  for (const row of dayActions) {
+    if (row.action === "socialize" && row.target_id) {
+      const spend = toNumber(row.money_spent, 0);
+      if (spend >= 0.5) {
+        socialGifts.set(row.target_id, (socialGifts.get(row.target_id) || 0) + 1.5);
+      } else if (spend >= 0.25) {
+        socialGifts.set(row.target_id, (socialGifts.get(row.target_id) || 0) + 1.25);
+      }
+    }
+  }
 
   const resolutions: StoredResolution[] = [];
   const resolvedActionRows: Array<{
@@ -417,9 +428,11 @@ export function resolveDayForRoom({
       }
     );
 
+    const giftSocial = socialGifts.get(player.id) || 0;
+
     const newStats = normalizeStats({
       academics: oldStats.academics + netChange.academics,
-      social: oldStats.social + netChange.social,
+      social: oldStats.social + netChange.social + giftSocial,
       wellbeing: oldStats.wellbeing + netChange.wellbeing - (hadRestOrSleep ? 0 : 1.5),
       money: oldStats.money + netChange.money,
     });

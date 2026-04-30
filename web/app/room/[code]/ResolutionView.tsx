@@ -93,8 +93,8 @@ function getActionEffect(id: string, spend?: number): string {
     case "work": return "Money +1";
     case "exercise": return "Wellbeing +1";
     case "socialize":
-      if (spend === 1) return "Social +1.25, Money −0.25";
-      if (spend === 2) return "Social +1.5, Money −0.5";
+      if (spend === 1) return "Target Social +1.25, Money −0.25";
+      if (spend === 2) return "Target Social +1.5, Money −0.5";
       return "Social +1";
     case "rest": return "Wellbeing +0.75";
     case "sleep": return "Wellbeing +1";
@@ -145,8 +145,8 @@ function calculateSlotGain(
       break;
     case "socialize": {
       const spend = sel.spend || 0;
-      if (spend === 2) { gain.social += 1.5; gain.money -= 0.5; }
-      else if (spend === 1) { gain.social += 1.25; gain.money -= 0.25; }
+      if (spend === 2) { gain.money -= 0.5; }
+      else if (spend === 1) { gain.money -= 0.25; }
       else { gain.social += 1; }
       break;
     }

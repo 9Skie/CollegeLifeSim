@@ -235,10 +235,8 @@ function calculateDayGains(
       case "socialize": {
         const spend = sel.spend || 0;
         if (spend === 2) {
-          gain.social += 1.5 * decay;
           gain.money -= 0.5 * decay;
         } else if (spend === 1) {
-          gain.social += 1.25 * decay;
           gain.money -= 0.25 * decay;
         } else {
           gain.social += 1 * decay;
@@ -1363,8 +1361,8 @@ function getActionEffect(
     case "exercise":
       return "Wellbeing +1";
     case "socialize": {
-      if (spend === 1) return "Social +1.25, Money −0.25";
-      if (spend === 2) return "Social +1.5, Money −0.5";
+      if (spend === 1) return "Target Social +1.25, Money −0.25";
+      if (spend === 2) return "Target Social +1.5, Money −0.5";
       return "Social +1";
     }
     case "rest":

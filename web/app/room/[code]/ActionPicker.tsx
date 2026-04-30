@@ -24,7 +24,7 @@ function getActions(
       id: "socialize",
       label: "Socialize",
       icon: "💬",
-      desc: "Social +1 – 1.5",
+      desc: "Social +1, spend boosts target",
       needsTarget: true,
       hasTiers: true,
     },
