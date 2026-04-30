@@ -548,23 +548,27 @@ export default function DayView({
           <div className="space-y-2.5">
             {(
               [
-                ["Academics", "academics"],
-                ["Social", "social"],
-                ["Money", "money"],
-                ["Wellbeing", "wellbeing"],
+                ["Academics", "academics", { warnAt: 1, emoji: "😰" }],
+                ["Social", "social", { warnAt: 1, emoji: "🌧️" }],
+                ["Money", "money", { warnAt: 0, emoji: "🍽️" }],
+                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨" }],
               ] as const
-            ).map(([label, key]) => {
+            ).map(([label, key, warn]) => {
               const value = stats[key as keyof typeof stats];
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
               const netGain = gain + decay;
               const projected = value + netGain;
               const barMax = 10;
+              const isWarned = value <= warn.warnAt;
 
               return (
                 <div key={label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-paper font-medium">{label}</span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-paper font-medium">{label}</span>
+                      {isWarned && <span className="text-[10px]">{warn.emoji}</span>}
+                    </span>
                     <span className="text-muted">
                       {value.toFixed(2)}
                       <span className="text-red-900/40 ml-1.5">
