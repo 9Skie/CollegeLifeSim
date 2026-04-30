@@ -284,10 +284,16 @@ export default function ResolutionView({
     [morningFinal, afternoonFinal, nightFinal]
   );
 
+  const hadRestOrSleep = ["morning", "afternoon", "night" as const].some(
+    (slot) =>
+      selections[slot]?.actionId === "rest" || selections[slot]?.actionId === "sleep"
+  );
+  const sleepDeprivationPenalty = hadRestOrSleep ? 0 : 1.5;
+
   const computedEndStats = {
     academics: startStats.academics + DAILY_DECAY.academics + totalGain.academics,
     social: startStats.social + DAILY_DECAY.social + totalGain.social,
-    wellbeing: startStats.wellbeing + DAILY_DECAY.wellbeing + totalGain.wellbeing,
+    wellbeing: startStats.wellbeing + DAILY_DECAY.wellbeing + totalGain.wellbeing - sleepDeprivationPenalty,
     money: startStats.money + DAILY_DECAY.money + totalGain.money,
   };
 

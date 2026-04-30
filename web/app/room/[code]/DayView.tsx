@@ -621,11 +621,17 @@ export default function DayView({
 
           {/* Warnings — full tags, only when needed */}
           {(() => {
+            const hadRestOrSleep = DAY_SLOTS.some(
+              (slot) =>
+                selections[slot]?.actionId === "rest" ||
+                selections[slot]?.actionId === "sleep"
+            );
             const warns: { emoji: string; word: string }[] = [];
             if (stats.academics <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
             if (stats.social <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
             if (stats.money <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
             if (stats.wellbeing <= 1) warns.push({ emoji: "🚨", word: "Critical" });
+            if (!hadRestOrSleep && allFilled) warns.push({ emoji: "😵", word: "Sleep Deprivation" });
             if (warns.length === 0) return null;
             return (
               <div className="mt-3 space-y-1.5">

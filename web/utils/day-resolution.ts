@@ -374,10 +374,17 @@ export function resolveDayForRoom({
       addStats(totalGain, DAILY_DECAY)
     );
 
+    const hadRestOrSleep = DAY_SLOTS.some(
+      (slot) => {
+        const sel = selections[slot];
+        return sel?.actionId === "rest" || sel?.actionId === "sleep";
+      }
+    );
+
     const newStats = normalizeStats({
       academics: oldStats.academics + netChange.academics,
       social: oldStats.social + netChange.social,
-      wellbeing: oldStats.wellbeing + netChange.wellbeing,
+      wellbeing: oldStats.wellbeing + netChange.wellbeing - (hadRestOrSleep ? 0 : 1.5),
       money: oldStats.money + netChange.money,
     });
 
