@@ -45,7 +45,7 @@ function getActions(
       ...base,
       ...(workAvailable ? [{ id: "work", label: "Work", icon: "💼", desc: "Money +1" }] : []),
       { id: "exercise", label: "Exercise", icon: "🏃", desc: "Wellbeing +1" },
-      { id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.5" },
+      { id: "rest", label: "Rest", icon: "🛋️", desc: "Wellbeing +0.75" },
     ];
   }
 
