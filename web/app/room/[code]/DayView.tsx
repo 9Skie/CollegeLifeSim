@@ -963,7 +963,7 @@ function InfoPopup({
   let title = popup.name;
   let desc = "";
   let effect = "";
-  let borderColor = "";
+  let accentColor = "";
   let badgeColor = "";
   let badgeText = "";
 
@@ -971,73 +971,57 @@ function InfoPopup({
     const data = MAJOR_DATA[popup.name];
     desc = data?.focus || "";
     effect = data?.weights || "";
-    borderColor = "border-[#F3E5AB]";
+    accentColor = "#F3E5AB";
     badgeColor = "bg-[#F3E5AB]/10 text-[#F3E5AB]";
     badgeText = "Major";
   } else if (isPos) {
     const data = POSITIVE_TRAIT_DATA[popup.name];
     desc = data?.desc || "";
     effect = data?.effect || "";
-    borderColor = "border-green-400";
+    accentColor = "#4ade80";
     badgeColor = "bg-green-400/10 text-green-400";
     badgeText = "Positive Trait";
   } else {
     const data = NEGATIVE_TRAIT_DATA[popup.name];
     desc = data?.desc || "";
     effect = data?.effect || "";
-    borderColor = "border-accent";
+    accentColor = "#d94f4f";
     badgeColor = "bg-accent/10 text-accent";
     badgeText = "Negative Trait";
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className={`relative w-full max-w-sm rounded-2xl border-l-4 ${borderColor} bg-card p-6 shadow-2xl`}
-        style={{ animation: "popIn 0.2s ease-out" }}
+        className="absolute left-80 mt-16 w-64 rounded-xl border border-card-border bg-card p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <span
-            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${badgeColor}`}
-          >
+        <div
+          className="absolute -top-1.5 left-8 w-3 h-3 bg-card border-l border-t border-card-border rotate-45"
+        />
+
+        <div className="flex items-center gap-2 mb-3">
+          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${badgeColor}`}>
             {badgeText}
           </span>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-background border border-card-border text-muted hover:text-paper transition flex items-center justify-center"
-          >
-            ✕
-          </button>
         </div>
 
-        <h3 className="text-xl font-bold text-paper mb-2">{title}</h3>
+        <h3 className="text-base font-bold text-paper mb-2">{title}</h3>
 
-        {isMajor && (
-          <>
-            <p className="text-sm text-paper/80 leading-relaxed mb-3">
-              {desc}
-            </p>
-            <div className="rounded-md bg-[#F3E5AB]/10 border border-[#F3E5AB]/20 p-2.5">
-              <p className="text-xs text-[#F3E5AB] font-medium">{effect}</p>
-            </div>
-          </>
-        )}
-        {!isMajor && (
-          <>
-            <p className="text-sm text-paper/80 leading-relaxed mb-4">{desc}</p>
-            <div className="rounded-lg p-3 bg-background/70 border border-card-border">
-              <p className="text-xs uppercase tracking-wider text-muted mb-1">
-                Effect
-              </p>
-              <p className="text-sm text-paper font-medium">{effect}</p>
-            </div>
-          </>
-        )}
+        <p className="text-xs text-paper/80 leading-relaxed mb-3">{desc}</p>
+
+        <div
+          className="rounded-lg p-2.5 border"
+          style={{
+            backgroundColor: accentColor + "10",
+            borderColor: accentColor + "20",
+          }}
+        >
+          <p className="text-[10px] uppercase tracking-wider text-muted mb-1">Effect</p>
+          <p className="text-xs font-medium" style={{ color: accentColor }}>
+            {effect}
+          </p>
+        </div>
       </div>
     </div>
   );
