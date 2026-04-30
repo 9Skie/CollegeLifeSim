@@ -539,44 +539,37 @@ export default function ResolutionView({
             </p>
             {(
               [
-                ["Academics", "academics", { warnAt: 1, emoji: "😰", word: "Anxiety" }],
-                ["Social", "social", { warnAt: 1, emoji: "🌧️", word: "Depression" }],
-                ["Money", "money", { warnAt: 0, emoji: "🍽️", word: "Starvation" }],
-                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨", word: "Critical" }],
+                ["Academics", "academics", { warnAt: 1, emoji: "😰" }],
+                ["Social", "social", { warnAt: 1, emoji: "🌧️" }],
+                ["Money", "money", { warnAt: 0, emoji: "🍽️" }],
+                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨" }],
               ] as const
             ).map(([label, key, warn]) => {
-              const start = startStats[key];
-              const end = endStats[key];
+              const rawStart = startStats[key];
+              const rawEnd = endStats[key];
+              const start = Math.max(0, Math.min(rawStart, 10));
+              const end = Math.max(0, Math.min(rawEnd, 10));
               const change = end - start;
               const barMax = 10;
               const isWarned = end <= warn.warnAt;
               return (
                 <div key={key}>
                   <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-paper font-medium">{label}</span>
                     <span className="flex items-center gap-1.5">
-                      <span className="text-paper font-medium">{label}</span>
-                      {isWarned && (
-                        <span
-                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border"
-                          style={{
-                            color: "#d94f4f",
-                            backgroundColor: "#d94f4f12",
-                            borderColor: "#d94f4f30",
-                          }}
-                        >
-                          {warn.emoji} {warn.word}
-                        </span>
-                      )}
-                    </span>
-                    <span>
                       <span className="text-muted">{start.toFixed(2)}</span>
-                      <span className="text-muted ml-1.5">
+                      <span className="text-muted">
                         ({change >= 0 ? "+" : ""}
                         {change.toFixed(2)})
                       </span>
-                      <span className="text-paper font-bold ml-1.5">
+                      <span className="text-paper font-bold">
                         → {end.toFixed(2)}
                       </span>
+                      {isWarned && (
+                        <span className="text-[10px]" title={label + " critical"}>
+                          {warn.emoji}
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="h-2.5 bg-background rounded-full overflow-hidden">
