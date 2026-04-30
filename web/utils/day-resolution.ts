@@ -283,12 +283,25 @@ export function resolveDayForRoom({
       dayActions.filter((row) => row.player_id === player.id)
     );
 
-    const oldStats = normalizeStats({
+    const rawOldStats = normalizeStats({
       academics: toNumber(player.academics, 1),
       social: toNumber(player.social, 1),
       wellbeing: toNumber(player.wellbeing, 5),
       money: toNumber(player.money, 2),
     });
+
+    const activeWarnings = [
+      rawOldStats.academics <= 1,
+      rawOldStats.social <= 1,
+      rawOldStats.money <= 0,
+      rawOldStats.wellbeing <= 1,
+    ].filter(Boolean).length;
+    const warningPenalty = activeWarnings * 1.5;
+
+    const oldStats = {
+      ...rawOldStats,
+      wellbeing: Math.max(0, rawOldStats.wellbeing - warningPenalty),
+    };
 
     const slotResults: SlotResolution[] = DAY_SLOTS.map((slot) => {
       const selection = selections[slot];
@@ -361,25 +374,12 @@ export function resolveDayForRoom({
       addStats(totalGain, DAILY_DECAY)
     );
 
-    let newStats = normalizeStats({
+    const newStats = normalizeStats({
       academics: oldStats.academics + netChange.academics,
       social: oldStats.social + netChange.social,
       wellbeing: oldStats.wellbeing + netChange.wellbeing,
       money: oldStats.money + netChange.money,
     });
-
-    const activeWarnings = [
-      newStats.academics <= 1,
-      newStats.social <= 1,
-      newStats.money <= 0,
-      newStats.wellbeing <= 1,
-    ].filter(Boolean).length;
-    if (activeWarnings > 0) {
-      newStats = {
-        ...newStats,
-        wellbeing: Math.max(0, newStats.wellbeing - activeWarnings * 1.5),
-      };
-    }
 
     resolutions.push({
       room_code: roomCode,

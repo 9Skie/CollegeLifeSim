@@ -291,21 +291,8 @@ export default function ResolutionView({
     money: startStats.money + DAILY_DECAY.money + totalGain.money,
   };
 
-  const activeWarnings = [
-    computedEndStats.academics <= 1,
-    computedEndStats.social <= 1,
-    computedEndStats.money <= 0,
-    computedEndStats.wellbeing <= 1,
-  ].filter(Boolean).length;
-  const warningPenalty = activeWarnings * 1.5;
-
-  const penalizedEndStats = {
-    ...computedEndStats,
-    wellbeing: computedEndStats.wellbeing - warningPenalty,
-  };
-
   const endStats =
-    currentResolution?.new_stats || quantizeStats(clampStatsToBounds(penalizedEndStats));
+    currentResolution?.new_stats || quantizeStats(clampStatsToBounds(computedEndStats));
 
   /* ---- wildcard ---------------------------------------------------- */
   const wildcardSlot = useMemo(() => {
@@ -605,17 +592,6 @@ export default function ResolutionView({
                 </div>
               );
             })}
-
-            {warningPenalty > 0 && (
-              <div className="flex items-center gap-2 rounded-lg border px-3 py-2 mt-2"
-                style={{ backgroundColor: "#d94f4f12", borderColor: "#d94f4f30" }}
-              >
-                <span className="text-sm">⚠️</span>
-                <span className="text-xs font-bold" style={{ color: "#d94f4f" }}>
-                  {activeWarnings} warning{activeWarnings > 1 ? "s" : ""} triggered — Wellbeing −{warningPenalty.toFixed(1)}
-                </span>
-              </div>
-            )}
 
             {/* Next Day button — directly under stats */}
             <div className="pt-3 text-center border-t border-card-border">
