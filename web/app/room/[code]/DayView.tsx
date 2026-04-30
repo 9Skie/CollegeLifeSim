@@ -346,7 +346,7 @@ export default function DayView({
   const [pickingSlot, setPickingSlot] = useState<string | null>(null);
   const [timer, setTimer] = useState(60);
   const [submitted, setSubmitted] = useState(false);
-  const [statsPopupPlayer, setStatsPopupPlayer] = useState<Player | null>(null);
+  const [statsPopup, setStatsPopup] = useState<{ player: Player; rect: DOMRect } | null>(null);
   // relationships always show top 3, no toggle needed
   const [infoPopup, setInfoPopup] = useState<
     | { type: "major"; name: string }
@@ -679,59 +679,104 @@ export default function DayView({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-card-border bg-background/80 backdrop-blur-sm">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted">
-              {dayLabel}
-            </p>
-            <h1 className="text-lg font-bold text-paper">Plan Your Day</h1>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted">
+                {dayLabel}
+              </p>
+              <h1 className="text-lg font-bold text-paper">Plan Your Day</h1>
+            </div>
+
+            {/* Me — always on the left */}
+            {(() => {
+              const me = playerStatuses.find((p) => p.name === myName);
+              if (!me) return null;
+              const color = getAvatarColor(me.name);
+              const isGoner = me.status === "goner";
+              return (
+                <div className="flex items-center gap-2 pl-3 border-l border-card-border">
+                  <div
+                    className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white ${
+                      isGoner ? "grayscale opacity-50" : ""
+                    }`}
+                    style={{ backgroundColor: color }}
+                  >
+                    {getInitials(me.name)}
+                    {me.status === "done" && !isGoner && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
+                        <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                    )}
+                    {me.status === "thinking" && !isGoner && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-accent-soft border-2 border-background flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-muted leading-tight">You</span>
+                    <span className={`text-xs font-medium leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
+                      {me.name}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Others — scrollable */}
             <div className="flex items-center gap-4 overflow-x-auto">
-              {playerStatuses.map((p) => {
-                const color = getAvatarColor(p.name);
-                const isGoner = p.status === "goner";
-                return (
-                  <button
-                    key={p.id}
-                    className="flex items-center gap-2 shrink-0 text-left"
-                    onClick={() => { if (!isMe) setStatsPopupPlayer(p); }}
-                  >
-                    <div
-                      className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white transition ${
-                        isGoner ? "grayscale opacity-50" : ""
-                      }`}
-                      style={{ backgroundColor: color }}
+              {playerStatuses
+                .filter((p) => p.name !== myName)
+                .map((p) => {
+                  const color = getAvatarColor(p.name);
+                  const isGoner = p.status === "goner";
+                  return (
+                    <button
+                      key={p.id}
+                      className="flex items-center gap-2 shrink-0 text-left cursor-pointer"
+                      onClick={(e) =>
+                        setStatsPopup({ player: p, rect: e.currentTarget.getBoundingClientRect() })
+                      }
                     >
-                      {getInitials(p.name)}
-                      {p.status === "done" && !isGoner && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
-                          <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                            <path d="M5 13l4 4L19 7" />
-                          </svg>
-                        </span>
-                      )}
-                      {p.status === "thinking" && !isGoner && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-accent-soft border-2 border-background flex items-center justify-center">
-                          <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`text-xs font-medium leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
-                        {p.name}
-                      </span>
-                      <span
-                        className={`text-[10px] leading-tight font-medium ${
-                          isGoner ? "text-muted" : p.status === "thinking" ? "text-accent-soft" : "text-green-400"
+                      <div
+                        className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white transition ${
+                          isGoner ? "grayscale opacity-50" : ""
                         }`}
+                        style={{ backgroundColor: color }}
                       >
-                        {isGoner ? "Goner" : p.status === "thinking" ? "Thinking…" : "Done"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                        {getInitials(p.name)}
+                        {p.status === "done" && !isGoner && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
+                            <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                        {p.status === "thinking" && !isGoner && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-accent-soft border-2 border-background flex items-center justify-center">
+                            <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className={`text-xs font-medium leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>
+                          {p.name}
+                        </span>
+                        <span
+                          className={`text-[10px] leading-tight font-medium ${
+                            isGoner ? "text-muted" : p.status === "thinking" ? "text-accent-soft" : "text-green-400"
+                          }`}
+                        >
+                          {isGoner ? "Goner" : p.status === "thinking" ? "Thinking…" : "Done"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
 
             <div
@@ -852,8 +897,12 @@ export default function DayView({
       )}
 
       {/* Player Stats Popup */}
-      {statsPopupPlayer && (
-        <PlayerStatsPopup player={statsPopupPlayer} onClose={() => setStatsPopupPlayer(null)} />
+      {statsPopup && (
+        <PlayerStatsPopup
+          player={statsPopup.player}
+          rect={statsPopup.rect}
+          onClose={() => setStatsPopup(null)}
+        />
       )}
     </div>
   );
@@ -864,9 +913,11 @@ export default function DayView({
 
 function PlayerStatsPopup({
   player,
+  rect,
   onClose,
 }: {
   player: Player;
+  rect: DOMRect;
   onClose: () => void;
 }) {
   const seed = hashString(player.name + "stats");
@@ -885,11 +936,19 @@ function PlayerStatsPopup({
   const color = getAvatarColor(player.name);
   const isGoner = player.eliminated;
 
+  const left = rect.left + rect.width / 2;
+  const top = rect.bottom + 8;
+
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
-        className="absolute left-1/2 -translate-x-1/2 mt-2 w-56 rounded-xl border border-card-border bg-card p-4 shadow-xl"
-        style={{ top: "4.5rem" }}
+        className="absolute w-56 rounded-xl border border-card-border bg-card p-4 shadow-xl"
+        style={{
+          left,
+          top,
+          transform: "translateX(-50%)",
+          animation: "tooltipPop 0.15s ease-out",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-l border-t border-card-border rotate-45" />

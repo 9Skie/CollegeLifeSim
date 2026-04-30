@@ -75,6 +75,11 @@ body > * {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes tooltipPop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(-4px); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+}
+
 .title-wobble {
   animation: wobble 6s ease-in-out infinite;
   display: inline-block;
