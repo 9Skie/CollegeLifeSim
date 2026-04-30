@@ -105,11 +105,17 @@ export default function HomePage() {
         { name: "Greg", eliminated: true, wellbeing: 0 },
       ];
       for (const dummy of dummies) {
-        await fetch("/api/room/TEST/join", {
+        const joinRes = await fetch("/api/room/TEST/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dummy),
         });
+        if (!joinRes.ok) {
+          const joinData = await joinRes.json().catch(() => ({}));
+          console.error(`Failed to add ${dummy.name}:`, joinData.error || joinRes.status);
+        }
+        // Small delay to avoid race conditions
+        await new Promise((r) => setTimeout(r, 100));
       }
 
       // 3. Save and redirect

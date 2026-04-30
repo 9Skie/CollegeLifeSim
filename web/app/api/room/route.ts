@@ -35,14 +35,9 @@ export async function POST(request: Request) {
     let code = clientCode || fixedDebugRoomCode || generateCode();
 
     if (clientCode || fixedDebugRoomCode) {
-      const { error: deleteError } = await supabase
-        .from("rooms")
-        .delete()
-        .eq("code", code);
-
-      if (deleteError) {
-        return NextResponse.json({ error: "Failed to reset room" }, { status: 500 });
-      }
+      // Delete players first to avoid foreign-key issues, then delete room
+      await supabase.from("players").delete().eq("room_code", code);
+      await supabase.from("rooms").delete().eq("code", code);
     } else {
       let attempts = 0;
       while (attempts < 10) {
