@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Selection } from "./ActionPicker";
+import type { StoredResolution } from "@/utils/day-resolution";
 
 type Player = { id: string; name: string; eliminated?: boolean };
 type CurrentPlayer = {
@@ -42,6 +43,29 @@ function hashString(str: string): number {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   return Math.abs(hash);
+}
+
+function quantizeQuarter(value: number) {
+  const quantized = Math.round(Math.abs(value) * 4) / 4;
+  return Math.sign(value) * quantized;
+}
+
+function quantizeStats(stats: Record<string, number>) {
+  return {
+    academics: quantizeQuarter(stats.academics),
+    social: quantizeQuarter(stats.social),
+    wellbeing: quantizeQuarter(stats.wellbeing),
+    money: quantizeQuarter(stats.money),
+  };
+}
+
+function clampStatsToBounds(stats: Record<string, number>) {
+  return {
+    academics: Math.min(10, Math.max(0, stats.academics)),
+    social: Math.min(10, Math.max(0, stats.social)),
+    wellbeing: Math.min(10, Math.max(0, stats.wellbeing)),
+    money: Math.min(10, Math.max(0, stats.money)),
+  };
 }
 
 function getActionLabel(id: string): string {
@@ -124,12 +148,12 @@ function applyMultiplier(
   gain: Record<string, number>,
   mult: number
 ): Record<string, number> {
-  return {
+  return quantizeStats({
     academics: gain.academics * mult,
     social: gain.social * mult,
     wellbeing: gain.wellbeing * mult,
     money: gain.money * mult,
-  };
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,6 +164,7 @@ export default function ResolutionView({
   selections,
   players,
   currentPlayer,
+  currentResolution,
   isHost,
   onNextDay,
 }: {
@@ -148,6 +173,7 @@ export default function ResolutionView({
   selections: Record<string, Selection | null>;
   players: Player[];
   currentPlayer: CurrentPlayer;
+  currentResolution: StoredResolution | null;
   isHost: boolean;
   onNextDay: () => Promise<void>;
 }) {
@@ -184,6 +210,17 @@ export default function ResolutionView({
   const hasClassAfternoon = classSchedule.some(
     (c) => c.day === currentDayIndex && c.slot === "afternoon"
   );
+  const resolvedSlotResults = currentResolution?.changes?.slotResults || [];
+
+  const outcomeTierToIndex = (tier: string | null | undefined) => {
+    if (tier === "bad") return 0;
+    if (tier === "good") return 2;
+    return 1;
+  };
+
+  const resolvedMorning = resolvedSlotResults.find((slot) => slot.slot === "morning");
+  const resolvedAfternoon = resolvedSlotResults.find((slot) => slot.slot === "afternoon");
+  const resolvedNight = resolvedSlotResults.find((slot) => slot.slot === "night");
 
   const fallbackAllocated = useMemo(() => {
     try {
@@ -199,7 +236,7 @@ export default function ResolutionView({
     }
   }, []);
 
-  const startStats = {
+  const startStats = currentResolution?.old_stats || {
     academics: currentPlayer?.academics ?? 1 + (fallbackAllocated.academics || 0),
     social: currentPlayer?.social ?? 1 + (fallbackAllocated.social || 0),
     wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
@@ -217,9 +254,15 @@ export default function ResolutionView({
     return 2;
   };
 
-  const morningOI = toOutcomeIndex(morningOutcomeIdx);
-  const afternoonOI = toOutcomeIndex(afternoonOutcomeIdx);
-  const nightOI = toOutcomeIndex(nightOutcomeIdx);
+  const morningOI = resolvedMorning
+    ? outcomeTierToIndex(resolvedMorning.outcomeTier)
+    : toOutcomeIndex(morningOutcomeIdx);
+  const afternoonOI = resolvedAfternoon
+    ? outcomeTierToIndex(resolvedAfternoon.outcomeTier)
+    : toOutcomeIndex(afternoonOutcomeIdx);
+  const nightOI = resolvedNight
+    ? outcomeTierToIndex(resolvedNight.outcomeTier)
+    : toOutcomeIndex(nightOutcomeIdx);
 
   /* ---- gains ------------------------------------------------------- */
   const morningGain = calculateSlotGain(selections.morning, "morning", hasClassMorning);
@@ -230,19 +273,39 @@ export default function ResolutionView({
   const afternoonFinal = applyMultiplier(afternoonGain, OUTCOMES[afternoonOI].mult);
   const nightFinal = applyMultiplier(nightGain, OUTCOMES[nightOI].mult);
 
-  const totalGain = useMemo(() => ({
-    academics: morningFinal.academics + afternoonFinal.academics + nightFinal.academics,
-    social: morningFinal.social + afternoonFinal.social + nightFinal.social,
-    wellbeing: morningFinal.wellbeing + afternoonFinal.wellbeing + nightFinal.wellbeing,
-    money: morningFinal.money + afternoonFinal.money + nightFinal.money,
-  }), [morningFinal, afternoonFinal, nightFinal]);
+  const totalGain = useMemo(
+    () =>
+      quantizeStats({
+        academics: morningFinal.academics + afternoonFinal.academics + nightFinal.academics,
+        social: morningFinal.social + afternoonFinal.social + nightFinal.social,
+        wellbeing: morningFinal.wellbeing + afternoonFinal.wellbeing + nightFinal.wellbeing,
+        money: morningFinal.money + afternoonFinal.money + nightFinal.money,
+      }),
+    [morningFinal, afternoonFinal, nightFinal]
+  );
 
-  const endStats = {
+  const computedEndStats = {
     academics: startStats.academics + DAILY_DECAY.academics + totalGain.academics,
     social: startStats.social + DAILY_DECAY.social + totalGain.social,
     wellbeing: startStats.wellbeing + DAILY_DECAY.wellbeing + totalGain.wellbeing,
     money: startStats.money + DAILY_DECAY.money + totalGain.money,
   };
+
+  const activeWarnings = [
+    computedEndStats.academics <= 1,
+    computedEndStats.social <= 1,
+    computedEndStats.money <= 0,
+    computedEndStats.wellbeing <= 1,
+  ].filter(Boolean).length;
+  const warningPenalty = activeWarnings * 1.5;
+
+  const penalizedEndStats = {
+    ...computedEndStats,
+    wellbeing: computedEndStats.wellbeing - warningPenalty,
+  };
+
+  const endStats =
+    currentResolution?.new_stats || quantizeStats(clampStatsToBounds(penalizedEndStats));
 
   /* ---- wildcard ---------------------------------------------------- */
   const wildcardSlot = useMemo(() => {
@@ -284,6 +347,10 @@ export default function ResolutionView({
 
   /* ---- daily highlights (dummy) ---------------------------------- */
   const highlights = useMemo(() => {
+    if (currentResolution?.highlights?.length) {
+      return currentResolution.highlights as Highlight[];
+    }
+
     try {
       return generateDailyHighlights({
         myName,
@@ -303,12 +370,12 @@ export default function ResolutionView({
         { text: "A freshman got lost in the STEM building for 3 hours.", icon: "🏗️", color: "#8a8579" },
       ];
     }
-  }, [myName, selections, morningOI, afternoonOI, nightOI, wildcardEvent, players]);
+  }, [currentResolution?.highlights, myName, selections, morningOI, afternoonOI, nightOI, wildcardEvent, players]);
 
   const slotData = [
-    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: hasClassMorning, sel: selections.morning, gain: morningGain, oi: morningOI },
-    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: hasClassAfternoon, sel: selections.afternoon, gain: afternoonGain, oi: afternoonOI },
-    { key: "night" as const, label: "Night", icon: "🌙", hasClass: false, sel: selections.night, gain: nightGain, oi: nightOI },
+    { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: resolvedMorning?.hasClass ?? hasClassMorning, sel: selections.morning, gain: resolvedMorning?.finalGain ?? morningGain, oi: morningOI },
+    { key: "afternoon" as const, label: "Afternoon", icon: "🌤", hasClass: resolvedAfternoon?.hasClass ?? hasClassAfternoon, sel: selections.afternoon, gain: resolvedAfternoon?.finalGain ?? afternoonGain, oi: afternoonOI },
+    { key: "night" as const, label: "Night", icon: "🌙", hasClass: resolvedNight?.hasClass ?? false, sel: selections.night, gain: resolvedNight?.finalGain ?? nightGain, oi: nightOI },
   ];
 
   useEffect(() => {
@@ -366,9 +433,9 @@ export default function ResolutionView({
         <div className="w-full space-y-5 pb-8">
           {/* Header */}
           <div className="text-center pt-4">
-            <p className="text-muted text-sm uppercase tracking-widest mb-2">
-              Day 1 Resolved
-            </p>
+              <p className="text-muted text-sm uppercase tracking-widest mb-2">
+                Day {currentDay} Resolved
+              </p>
             <h1 className="text-3xl font-bold text-paper">How did it go?</h1>
           </div>
 
@@ -485,20 +552,35 @@ export default function ResolutionView({
             </p>
             {(
               [
-                ["Academics", "academics"] as const,
-                ["Social", "social"] as const,
-                ["Wellbeing", "wellbeing"] as const,
-                ["Money", "money"] as const,
+                ["Academics", "academics", { warnAt: 1, emoji: "😰", word: "Anxiety" }],
+                ["Social", "social", { warnAt: 1, emoji: "🌧️", word: "Depression" }],
+                ["Money", "money", { warnAt: 0, emoji: "🍽️", word: "Starvation" }],
+                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨", word: "Critical" }],
               ] as const
-            ).map(([label, key]) => {
+            ).map(([label, key, warn]) => {
               const start = startStats[key];
               const end = endStats[key];
               const change = end - start;
               const barMax = 10;
+              const isWarned = end <= warn.warnAt;
               return (
                 <div key={key}>
                   <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-paper font-medium">{label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-paper font-medium">{label}</span>
+                      {isWarned && (
+                        <span
+                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border"
+                          style={{
+                            color: "#d94f4f",
+                            backgroundColor: "#d94f4f12",
+                            borderColor: "#d94f4f30",
+                          }}
+                        >
+                          {warn.emoji} {warn.word}
+                        </span>
+                      )}
+                    </span>
                     <span>
                       <span className="text-muted">{start.toFixed(2)}</span>
                       <span className="text-muted ml-1.5">
@@ -515,14 +597,25 @@ export default function ResolutionView({
                       className="h-full bg-accent transition-all duration-700 ease-out"
                       style={{
                         width: showStats
-                          ? `${Math.min((end / barMax) * 100, 100)}%`
-                          : `${Math.min((start / barMax) * 100, 100)}%`,
+                          ? `${Math.max(0, Math.min((end / barMax) * 100, 100))}%`
+                          : `${Math.max(0, Math.min((start / barMax) * 100, 100))}%`,
                       }}
                     />
                   </div>
                 </div>
               );
             })}
+
+            {warningPenalty > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border px-3 py-2 mt-2"
+                style={{ backgroundColor: "#d94f4f12", borderColor: "#d94f4f30" }}
+              >
+                <span className="text-sm">⚠️</span>
+                <span className="text-xs font-bold" style={{ color: "#d94f4f" }}>
+                  {activeWarnings} warning{activeWarnings > 1 ? "s" : ""} triggered — Wellbeing −{warningPenalty.toFixed(1)}
+                </span>
+              </div>
+            )}
 
             {/* Next Day button — directly under stats */}
             <div className="pt-3 text-center border-t border-card-border">

@@ -60,7 +60,21 @@ export async function GET(
       playerId
     );
 
-    return NextResponse.json({ room, players: players || [], dayState });
+    let currentResolution = null;
+
+    if (playerId && room.current_phase === "resolution") {
+      const { data: resolution } = await supabase
+        .from("resolutions")
+        .select("room_code, day, player_id, old_stats, new_stats, changes, highlights")
+        .eq("room_code", code)
+        .eq("day", room.current_day)
+        .eq("player_id", playerId)
+        .maybeSingle();
+
+      currentResolution = resolution || null;
+    }
+
+    return NextResponse.json({ room, players: players || [], dayState, currentResolution });
   } catch (err) {
     console.error("GET /api/room/[code] error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

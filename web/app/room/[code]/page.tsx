@@ -10,6 +10,7 @@ import {
   createEmptySelectionRecord,
   type SelectionRecord,
 } from "@/utils/day-actions";
+import type { StoredResolution } from "@/utils/day-resolution";
 import type { RoomDayState } from "@/utils/room-day-state";
 
 type Player = {
@@ -67,6 +68,7 @@ export default function RoomPage() {
     createEmptySelectionRecord()
   );
   const [dayState, setDayState] = useState<RoomDayState | null>(null);
+  const [currentResolution, setCurrentResolution] = useState<StoredResolution | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [hostId, setHostId] = useState<string | null>(null);
   const [currentDay, setCurrentDay] = useState(1);
@@ -107,6 +109,7 @@ export default function RoomPage() {
         setCurrentDay(incomingDay);
         setRoomStatus(data.room.status);
         setDayState(data.dayState || null);
+        setCurrentResolution(data.currentResolution || null);
         if (data.room.current_phase) {
           setPhase((prev) =>
             prev === "lobby" ||
@@ -166,6 +169,7 @@ export default function RoomPage() {
 
     setDaySelections(selections);
     setDayState(data.dayState || null);
+    setCurrentResolution(data.currentResolution || null);
     if (data.room) {
       setCurrentDay(data.room.current_day || currentDay);
       setRoomStatus(data.room.status);
@@ -200,6 +204,7 @@ export default function RoomPage() {
     setRoomStatus(data.room.status);
     setDaySelections(createEmptySelectionRecord());
     setDayState(null);
+    setCurrentResolution(null);
     setPhase("day");
   };
 
@@ -417,6 +422,7 @@ export default function RoomPage() {
           selections={daySelections}
           players={players}
           currentPlayer={currentPlayer}
+          currentResolution={currentResolution}
           isHost={isHost}
           onNextDay={startNextDay}
         />
@@ -641,8 +647,8 @@ function PlayerStatsPopup({
             [
               ["Academics", mockStats.academics] as const,
               ["Social", mockStats.social] as const,
-              ["Wellbeing", mockStats.wellbeing] as const,
               ["Money", mockStats.money] as const,
+              ["Wellbeing", mockStats.wellbeing] as const,
             ] as const
           ).map(([label, val]) => (
             <div key={label}>
@@ -653,7 +659,7 @@ function PlayerStatsPopup({
               <div className="h-1.5 bg-background rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
-                  style={{ width: `${Math.min((val / 10) * 100, 100)}%` }}
+                  style={{ width: `${Math.max(0, Math.min((val / 10) * 100, 100))}%` }}
                 />
               </div>
             </div>

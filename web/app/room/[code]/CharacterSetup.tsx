@@ -248,11 +248,11 @@ export default function CharacterSetup({
               [
                 ["academics", "Academics"],
                 ["social", "Social"],
-                ["wellbeing", "Wellbeing"],
                 ["money", "Money"],
+                ["wellbeing", "Wellbeing"],
               ] as const
             ).map(([key, label]) => {
-              const base = { academics: 1, social: 1, wellbeing: 5, money: 2 }[
+              const base = { academics: 1, social: 1, money: 2, wellbeing: 5 }[
                 key
               ];
               const added = allocated[key];

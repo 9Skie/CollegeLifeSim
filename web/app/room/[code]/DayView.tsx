@@ -548,25 +548,38 @@ export default function DayView({
           <div className="space-y-2.5">
             {(
               [
-                ["Academics", "academics"] as const,
-                ["Social", "social"] as const,
-                ["Wellbeing", "wellbeing"] as const,
-                ["Money", "money"] as const,
+                ["Academics", "academics", { warnAt: 1, emoji: "😰", word: "Anxiety" }],
+                ["Social", "social", { warnAt: 1, emoji: "🌧️", word: "Depression" }],
+                ["Money", "money", { warnAt: 0, emoji: "🍽️", word: "Starvation" }],
+                ["Wellbeing", "wellbeing", { warnAt: 1, emoji: "🚨", word: "Critical" }],
               ] as const
-            ).map(([label, key]) => {
+            ).map(([label, key, warn]) => {
               const value = stats[key as keyof typeof stats];
-              const base = baseStats[key as keyof typeof baseStats];
-              const added = value - base;
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
               const netGain = gain + decay;
               const projected = value + netGain;
               const barMax = 10;
+              const isWarned = value <= warn.warnAt;
 
               return (
                 <div key={label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-paper font-medium">{label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-paper font-medium">{label}</span>
+                      {isWarned && (
+                        <span
+                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border"
+                          style={{
+                            color: "#d94f4f",
+                            backgroundColor: "#d94f4f12",
+                            borderColor: "#d94f4f30",
+                          }}
+                        >
+                          {warn.emoji} {warn.word}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-muted">
                       {value.toFixed(2)}
                       <span className="text-red-900/40 ml-1.5">
@@ -586,16 +599,10 @@ export default function DayView({
                     </span>
                   </div>
                   <div className="h-2 bg-background rounded-full overflow-hidden relative">
-                    <div className="h-full flex">
-                      <div
-                        className="h-full bg-accent transition-all duration-300"
-                        style={{ width: `${Math.min((base / barMax) * 100, 100)}%` }}
-                      />
-                      <div
-                        className="h-full bg-accent transition-all duration-300"
-                        style={{ width: `${Math.min((added / barMax) * 100, 100)}%` }}
-                      />
-                    </div>
+                    <div
+                      className="h-full bg-accent transition-all duration-300"
+                      style={{ width: `${Math.max(0, Math.min((value / barMax) * 100, 100))}%` }}
+                    />
                     {allFilled && netGain > 0 && (
                       <div
                         className="absolute top-0 h-full bg-white/80 transition-all duration-300"
@@ -609,7 +616,7 @@ export default function DayView({
                       <div
                         className="absolute top-0 h-full bg-red-900/50 transition-all duration-300"
                         style={{
-                          left: `${Math.max(0, (projected / barMax) * 100)}%`,
+                          left: `${Math.max(0, ((value + netGain) / barMax) * 100)}%`,
                           width: `${Math.min((Math.abs(netGain) / barMax) * 100, 100)}%`,
                         }}
                       />
@@ -619,36 +626,6 @@ export default function DayView({
               );
             })}
           </div>
-
-          {/* Critical Warnings */}
-          {(() => {
-            const warnings: { label: string; emoji: string; color: string }[] = [];
-            if (stats.academics <= 0) warnings.push({ label: "Anxiety", emoji: "😰", color: "#d94f4f" });
-            if (stats.social <= 0) warnings.push({ label: "Depression", emoji: "🌧️", color: "#d94f4f" });
-            if (stats.money <= 0) warnings.push({ label: "Starvation", emoji: "🍽️", color: "#d94f4f" });
-            if (stats.wellbeing <= 1) warnings.push({ label: "Critical", emoji: "🚨", color: "#d94f4f" });
-            if (warnings.length === 0) return null;
-            return (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs uppercase tracking-widest text-accent mb-2">Warnings</p>
-                {warnings.map((w) => (
-                  <div
-                    key={w.label}
-                    className="flex items-center gap-2 rounded-lg border px-3 py-2"
-                    style={{
-                      backgroundColor: w.color + "12",
-                      borderColor: w.color + "30",
-                    }}
-                  >
-                    <span className="text-lg">{w.emoji}</span>
-                    <span className="text-sm font-bold" style={{ color: w.color }}>
-                      {w.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
         </section>
 
         {/* Calendar + trackers */}
@@ -1055,8 +1032,8 @@ function PlayerStatsPopup({
             [
               ["Academics", stats.academics] as const,
               ["Social", stats.social] as const,
-              ["Wellbeing", stats.wellbeing] as const,
               ["Money", stats.money] as const,
+              ["Wellbeing", stats.wellbeing] as const,
             ] as const
           ).map(([label, val]) => (
             <div key={label}>
@@ -1067,7 +1044,7 @@ function PlayerStatsPopup({
               <div className="h-1.5 bg-background rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
-                  style={{ width: `${Math.min((val / 10) * 100, 100)}%` }}
+                  style={{ width: `${Math.max(0, Math.min((val / 10) * 100, 100))}%` }}
                 />
               </div>
             </div>
