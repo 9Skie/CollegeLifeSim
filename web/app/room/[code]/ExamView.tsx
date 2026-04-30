@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { resolveExamForRoom } from "@/utils/exam-resolution";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
 
@@ -12,6 +12,7 @@ type Player = {
   eliminated?: boolean;
 };
 
+const GRADE_RANK: Record<ExamGrade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
 const GRADE_COLORS: Record<ExamGrade, string> = {
   A: "#5b8c5a",
   B: "#8fb58e",
@@ -46,21 +47,53 @@ export default function ExamView({
   players,
   isHost,
   onContinue,
+  myName,
 }: {
   roomCode: string;
   currentDay: number;
   players: Player[];
   isHost: boolean;
   onContinue: () => Promise<void>;
+  myName: string;
 }) {
   const isFinal = currentDay >= 19;
   const title = isFinal ? "Finals" : "Midterm";
 
-  const results = useMemo(() => {
+  const allResults = useMemo(() => {
     return resolveExamForRoom({ currentDay, players }).results;
   }, [currentDay, players]);
 
+  // Sort by grade rank descending (A first, F last)
+  const sortedResults = useMemo(() => {
+    return [...allResults].sort(
+      (a, b) => GRADE_RANK[b.grade] - GRADE_RANK[a.grade]
+    );
+  }, [allResults]);
+
+  const myResult = allResults.find((r) => r.playerName === myName);
+
+  const [visibleCards, setVisibleCards] = useState<number[]>([]);
+  const [showButton, setShowButton] = useState(false);
   const [continuing, setContinuing] = useState(false);
+
+  useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+    // My card first if it exists
+    const total = myResult ? 1 + sortedResults.length : sortedResults.length;
+    for (let i = 0; i < total; i++) {
+      timers.push(
+        setTimeout(() => {
+          setVisibleCards((prev) => [...prev, i]);
+        }, 300 + i * 400)
+      );
+    }
+    timers.push(
+      setTimeout(() => {
+        setShowButton(true);
+      }, 300 + total * 400 + 600)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [sortedResults.length, myResult]);
 
   const handleContinue = async () => {
     setContinuing(true);
@@ -70,6 +103,98 @@ export default function ExamView({
       setContinuing(false);
     }
   };
+
+  function ResultCard({
+    result,
+    isVisible,
+    isMe,
+    size = "normal",
+  }: {
+    result: ExamResult;
+    isVisible: boolean;
+    isMe: boolean;
+    size?: "hero" | "normal";
+  }) {
+    const color = getAvatarColor(result.playerName);
+    const gradeColor = GRADE_COLORS[result.grade];
+    const isHero = size === "hero";
+
+    return (
+      <div
+        className={`rounded-2xl border bg-card flex flex-col items-center text-center transition-all duration-500 ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        } ${isMe ? "border-[#F3E5AB]/60" : "border-card-border"}`}
+        style={isHero ? { padding: "1.75rem" } : { padding: "1rem" }}
+      >
+        <div
+          className={`rounded-full flex items-center justify-center font-bold text-white mb-3 ${
+            isHero ? "w-16 h-16 text-lg" : "w-10 h-10 text-xs"
+          }`}
+          style={{ backgroundColor: color }}
+        >
+          {getInitials(result.playerName)}
+        </div>
+        <p
+          className={`font-semibold text-paper mb-1 ${
+            isHero ? "text-lg" : "text-sm"
+          }`}
+        >
+          {result.playerName}
+          {isMe && (
+            <span className="ml-1.5 text-[10px] font-bold text-[#F3E5AB] uppercase tracking-wider">
+              You
+            </span>
+          )}
+        </p>
+
+        <div
+          className={`rounded-full flex items-center justify-center font-black mb-3 ${
+            isHero ? "w-20 h-20 text-3xl" : "w-14 h-14 text-xl"
+          }`}
+          style={{
+            backgroundColor: gradeColor + "18",
+            border: `2px solid ${gradeColor}50`,
+            color: gradeColor,
+          }}
+        >
+          {result.grade}
+        </div>
+
+        <div className={`w-full space-y-1 ${isHero ? "text-sm" : "text-[11px]"}`}>
+          <div className="flex justify-between">
+            <span className="text-muted">Academics</span>
+            <span className="text-paper font-medium">
+              {result.oldAcademics.toFixed(2)}
+              {result.academicsChange !== 0 && (
+                <span
+                  className="ml-1 font-bold"
+                  style={{
+                    color: result.academicsChange > 0 ? "#5b8c5a" : "#d94f4f",
+                  }}
+                >
+                  {result.academicsChange > 0 ? "+" : ""}
+                  {result.academicsChange.toFixed(2)}
+                </span>
+              )}
+              <span className="text-paper font-bold ml-1">
+                → {result.newAcademics.toFixed(2)}
+              </span>
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">Wellbeing</span>
+            <span className="text-paper font-medium">
+              {result.oldWellbeing.toFixed(2)}
+              <span className="text-[#5b8c5a] font-bold ml-1">+1.00</span>
+              <span className="text-paper font-bold ml-1">
+                → {result.newWellbeing.toFixed(2)}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -85,102 +210,71 @@ export default function ExamView({
           </p>
         </div>
 
-        {/* Collective report board */}
+        {/* Your grade — hero card */}
+        {myResult && (
+          <div className="mb-6">
+            <p className="text-center text-[10px] uppercase tracking-widest text-[#F3E5AB] mb-3">
+              Your Result
+            </p>
+            <div className="max-w-xs mx-auto">
+              <ResultCard
+                result={myResult}
+                isVisible={visibleCards.includes(0)}
+                isMe={true}
+                size="hero"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Full class roster — ranked by grade */}
+        <div className="mb-2">
+          <p className="text-center text-[10px] uppercase tracking-widest text-muted mb-3">
+            Full Class Rankings
+          </p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {results.map((result) => {
-            const color = getAvatarColor(result.playerName);
-            const gradeColor = GRADE_COLORS[result.grade];
-
+          {sortedResults.map((result, i) => {
+            const index = myResult ? i + 1 : i;
+            const isMe = result.playerName === myName;
             return (
-              <div
+              <ResultCard
                 key={result.playerId}
-                className="rounded-2xl border border-card-border bg-card p-4 flex flex-col items-center text-center"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white mb-3"
-                  style={{ backgroundColor: color }}
-                >
-                  {getInitials(result.playerName)}
-                </div>
-                <p className="text-sm font-semibold text-paper mb-1">
-                  {result.playerName}
-                </p>
-
-                {/* Grade circle */}
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black mb-3"
-                  style={{
-                    backgroundColor: gradeColor + "18",
-                    border: `2px solid ${gradeColor}50`,
-                    color: gradeColor,
-                  }}
-                >
-                  {result.grade}
-                </div>
-
-                {/* Stats */}
-                <div className="w-full space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted">Academics</span>
-                    <span className="text-paper font-medium">
-                      {result.oldAcademics.toFixed(2)}
-                      {result.academicsChange !== 0 && (
-                        <span
-                          className="ml-1 font-bold"
-                          style={{
-                            color:
-                              result.academicsChange > 0 ? "#5b8c5a" : "#d94f4f",
-                          }}
-                        >
-                          {result.academicsChange > 0 ? "+" : ""}
-                          {result.academicsChange.toFixed(2)}
-                        </span>
-                      )}
-                      <span className="text-paper font-bold ml-1">
-                        → {result.newAcademics.toFixed(2)}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Wellbeing</span>
-                    <span className="text-paper font-medium">
-                      {result.oldWellbeing.toFixed(2)}
-                      <span className="text-[#5b8c5a] font-bold ml-1">+1.00</span>
-                      <span className="text-paper font-bold ml-1">
-                        → {result.newWellbeing.toFixed(2)}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
+                result={result}
+                isVisible={visibleCards.includes(index)}
+                isMe={isMe}
+                size="normal"
+              />
             );
           })}
         </div>
 
         {/* Continue button */}
-        <div className="mt-10 text-center">
-          {isHost ? (
-            <button
-              onClick={handleContinue}
-              disabled={continuing}
-              className={`px-8 py-3 rounded-xl font-semibold transition active:translate-y-0.5 shadow-lg shadow-accent/20 ${
-                continuing
-                  ? "bg-card-border text-muted cursor-not-allowed shadow-none"
-                  : "bg-accent text-paper hover:bg-accent/90"
-              }`}
-            >
-              {continuing
-                ? "Continuing..."
-                : isFinal
-                ? "See Final Results →"
-                : "Continue →"}
-            </button>
-          ) : (
-            <p className="text-sm text-muted">
-              Waiting for the host to continue...
-            </p>
-          )}
-        </div>
+        {showButton && (
+          <div className="mt-10 text-center transition-all duration-500 opacity-100 translate-y-0">
+            {isHost ? (
+              <button
+                onClick={handleContinue}
+                disabled={continuing}
+                className={`px-8 py-3 rounded-xl font-semibold transition active:translate-y-0.5 shadow-lg shadow-accent/20 ${
+                  continuing
+                    ? "bg-card-border text-muted cursor-not-allowed shadow-none"
+                    : "bg-accent text-paper hover:bg-accent/90"
+                }`}
+              >
+                {continuing
+                  ? "Continuing..."
+                  : isFinal
+                  ? "See Final Results →"
+                  : "Continue →"}
+              </button>
+            ) : (
+              <p className="text-sm text-muted">
+                Waiting for the host to continue...
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -151,6 +151,9 @@ export default function RoomPage() {
     ? players.find((player) => player.id === myId) ?? null
     : null;
 
+  const myName = currentPlayer?.name ||
+    (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
+
   const submitDaySelections = async (
     selections: SelectionRecord
   ) => {
@@ -467,6 +470,7 @@ export default function RoomPage() {
           players={players}
           isHost={isHost}
           onContinue={resolveExam}
+          myName={myName}
         />
       </div>
     );
