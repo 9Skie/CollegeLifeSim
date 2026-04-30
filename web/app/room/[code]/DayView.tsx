@@ -1440,7 +1440,7 @@ function SlotCard({
                 borderColor: "#d94f4f30",
               }}
             >
-              ×{repeatDecay}
+              ×{repeatDecay} — Repetition
             </span>
           )}
           {selection ? (
