@@ -1193,7 +1193,7 @@ function InfoPopup({
   if (isMajor) {
     const data = MAJOR_DATA[popup.name];
     desc = data?.focus || "";
-    effect = data?.weights || "";
+    effect = data?.weights ? "Score: " + data.weights : "";
     accentColor = "#F3E5AB";
     badgeColor = "bg-[#F3E5AB]/10 text-[#F3E5AB]";
     badgeText = "Major";
