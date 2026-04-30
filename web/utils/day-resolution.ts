@@ -68,7 +68,7 @@ const DAILY_DECAY: Stats = {
   academics: -0.5,
   social: -0.5,
   wellbeing: -0.5,
-  money: -1,
+  money: -0.5,
 };
 
 function hashString(str: string): number {
