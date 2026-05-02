@@ -202,6 +202,10 @@ const DAILY_DECAY = {
   money: -0.5,
 };
 
+function quantizeQuarter(value: number): number {
+  return Math.round(value * 4) / 4;
+}
+
 function calculateDayGains(
   selections: Record<string, Selection | null>,
   hasClassMorning: boolean,
@@ -265,6 +269,11 @@ function calculateDayGains(
   if (hasClassAfternoon && selections.afternoon?.actionId !== "class") {
     gain.academics -= 0.5;
   }
+
+  gain.academics = quantizeQuarter(gain.academics);
+  gain.social = quantizeQuarter(gain.social);
+  gain.wellbeing = quantizeQuarter(gain.wellbeing);
+  gain.money = quantizeQuarter(gain.money);
 
   return gain;
 }
