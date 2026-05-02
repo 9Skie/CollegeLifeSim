@@ -460,12 +460,11 @@ export default function DayView({
   }, []);
 
   const stats = {
-    academics: currentPlayer?.academics ?? 2 + (fallbackAllocated.academics || 0),
-    social: currentPlayer?.social ?? 2 + (fallbackAllocated.social || 0),
-    wellbeing: currentPlayer?.wellbeing ?? 5 + (fallbackAllocated.wellbeing || 0),
-    money: currentPlayer?.money ?? 2 + (fallbackAllocated.money || 0),
+    academics: currentPlayer?.academics ?? null,
+    social: currentPlayer?.social ?? null,
+    wellbeing: currentPlayer?.wellbeing ?? null,
+    money: currentPlayer?.money ?? null,
   };
-  const baseStats = { academics: 2, social: 2, wellbeing: 5, money: 2 };
   const allFilled = DAY_SLOTS.every((slot) => !!selections[slot]);
   const hadRestOrSleep = DAY_SLOTS.some(
     (slot) =>
@@ -589,13 +588,26 @@ export default function DayView({
               ] as const
             ).map(([label, key, warn]) => {
               const rawValue = stats[key as keyof typeof stats];
-              const value = Math.max(0, Math.min(rawValue, 10));
+              const barMax = 10;
+
+              if (rawValue === null) {
+                return (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-paper font-medium">{label}</span>
+                      <span className="text-muted">—</span>
+                    </div>
+                    <div className="h-2 bg-background rounded-full overflow-hidden" />
+                  </div>
+                );
+              }
+
+              const value = Math.max(0, Math.min(Number(rawValue), 10));
               const decay = DAILY_DECAY[key as keyof typeof DAILY_DECAY];
               const gain = dayGains[key] || 0;
               const sleepPenalty = key === "wellbeing" && !hadRestOrSleep && allFilled ? 1.5 : 0;
               const netGain = gain + decay;
               const projected = Math.max(0, Math.min(value + netGain - sleepPenalty, 10));
-              const barMax = 10;
               const isWarned = value <= warn.warnAt;
               const barPct = value <= 0 ? 0 : Math.min((value / barMax) * 100, 100);
 
@@ -664,9 +676,9 @@ export default function DayView({
           {/* Warnings — full tags, only when needed */}
           {(() => {
             const warns: { emoji: string; word: string }[] = [];
-            if (Number(stats.academics) <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
-            if (Number(stats.social) <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
-            if (Number(stats.money) <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
+            if (stats.academics != null && Number(stats.academics) <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
+            if (stats.social != null && Number(stats.social) <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
+            if (stats.money != null && Number(stats.money) <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
             if (!hadRestOrSleep && allFilled) warns.push({ emoji: "🥱", word: "Drowsy" });
             if (warns.length === 0) return null;
             return (
