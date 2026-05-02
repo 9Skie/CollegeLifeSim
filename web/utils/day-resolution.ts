@@ -43,6 +43,8 @@ export type StoredResolution = {
     slotResults: SlotResolution[];
   };
   highlights: ResolutionHighlight[];
+  /** True if the server filled missing slots with random actions because the player did not submit in time. */
+  autoFilled?: boolean;
 };
 
 type RoomPlayerForResolution = {

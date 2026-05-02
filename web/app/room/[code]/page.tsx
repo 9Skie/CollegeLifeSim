@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
 import ExamView from "./ExamView";
+import SpectatorView from "./SpectatorView";
 
 import {
   createEmptySelectionRecord,
@@ -70,6 +71,7 @@ export default function RoomPage() {
   );
   const [dayState, setDayState] = useState<RoomDayState | null>(null);
   const [currentResolution, setCurrentResolution] = useState<StoredResolution | null>(null);
+  const [allResolutions, setAllResolutions] = useState<StoredResolution[] | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [hostId, setHostId] = useState<string | null>(null);
   const [currentDay, setCurrentDay] = useState(1);
@@ -79,8 +81,16 @@ export default function RoomPage() {
   const [setupSubmitting, setSetupSubmitting] = useState(false);
   const [setupReady, setSetupReady] = useState(false);
   const [statsPopupPlayer, setStatsPopupPlayer] = useState<Player | null>(null);
+  const isSpectatorRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Derived player state (must be before the polling effect)
+  const currentPlayer = myId
+    ? players.find((player) => player.id === myId) ?? null
+    : null;
+  const isSpectator = currentPlayer?.eliminated === true;
+  isSpectatorRef.current = isSpectator;
 
   /* ------------------------------------------------------------------ */
   // Hydrate my player ID from localStorage + fetch room state
@@ -111,6 +121,7 @@ export default function RoomPage() {
         setRoomStatus(data.room.status);
         setDayState(data.dayState || null);
         setCurrentResolution(data.currentResolution || null);
+        setAllResolutions(data.allResolutions || null);
         if (data.room.current_phase) {
           setPhase((prev) =>
             prev === "lobby" ||
@@ -140,16 +151,20 @@ export default function RoomPage() {
     };
 
     fetchRoom();
-    const interval = setInterval(fetchRoom, 3000);
-    return () => clearInterval(interval);
-  }, [code, currentDay]);
+
+    // Spectators don't poll during day phase — they only see updates when
+    // the day resolves (or when currentDay changes). Everyone else polls
+    // every 3s. Spectators in resolution/exam also poll every 3s.
+    const shouldPoll = !isSpectator || phase !== "day";
+    const interval = shouldPoll ? setInterval(fetchRoom, 3000) : null;
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [code, currentDay, phase, isSpectator]);
 
   /* ------------------------------------------------------------------ */
   const isHost = myId === hostId;
   const canStart = players.length >= 3 && players.length <= 12;
-  const currentPlayer = myId
-    ? players.find((player) => player.id === myId) ?? null
-    : null;
 
   const myName = currentPlayer?.name ||
     (typeof window !== "undefined" ? localStorage.getItem("cls.name") || "You" : "You");
@@ -399,6 +414,21 @@ export default function RoomPage() {
           />
         </div>
       </main>
+    );
+  }
+
+  if (isSpectator && phase !== "lobby") {
+    return (
+      <div className="flex-1 flex overflow-hidden">
+        <SpectatorView
+          roomCode={code}
+          currentDay={currentDay}
+          phase={phase}
+          players={players}
+          currentPlayer={currentPlayer}
+          allResolutions={allResolutions}
+        />
+      </div>
     );
   }
 

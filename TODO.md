@@ -6,12 +6,6 @@
 
 ## 🔴 CRITICAL — Game Balance is Wrong
 
-- [ ] **Outcome multipliers are wrong**  
-  Design says Bad = ×0.5, Good = ×1.5. Code has Bad = ×0.75, Good = ×1.25. This changes the entire game feel.
-
-- [ ] **Starting stats & decay don't match design**  
-  Design: Academics 1.0, Social 1.0, Money decay −1.0, others −0.75.  
-  Code: Academics 2, Social 2, ALL decays −0.5. Economy is off by 50%.
 
 - [ ] **No true randomness** — everything is hash-based deterministic. Outcome rolls, events, class schedules, dummy actions all use `hashString()`. Design calls for actual RNG.
 
