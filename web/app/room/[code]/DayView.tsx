@@ -1046,6 +1046,40 @@ export default function DayView({
 /* ------------------------------------------------------------------ */
 // Player Stats Popup
 
+function getStatBucket(
+  label: string,
+  val: number
+): { label: string; color: string } {
+  const bucket =
+    val < 2.5 ? 0 : val < 5 ? 1 : val < 7.5 ? 2 : 3;
+  const colors = ["#6b7280", "#d99f4f", "#F3E5AB", "#5b8c5a"];
+
+  switch (label) {
+    case "Academics":
+      return {
+        label: ["Failing", "Getting By", "Solid", "Brilliant"][bucket],
+        color: colors[bucket],
+      };
+    case "Social":
+      return {
+        label: ["Hermit", "Warming Up", "Popular", "Icon"][bucket],
+        color: colors[bucket],
+      };
+    case "Wellbeing":
+      return {
+        label: ["Falling Apart", "Rough", "Okay", "Thriving"][bucket],
+        color: colors[bucket],
+      };
+    case "Money":
+      return {
+        label: ["Broke", "Tight", "Stable", "Loaded"][bucket],
+        color: colors[bucket],
+      };
+    default:
+      return { label: "—", color: "#6b7280" };
+  }
+}
+
 function PlayerStatsPopup({
   player,
   rect,
@@ -1055,18 +1089,11 @@ function PlayerStatsPopup({
   rect: DOMRect;
   onClose: () => void;
 }) {
-  const seed = hashString(player.name + "stats");
-  const mockStats = {
-    academics: 2 + (seed % 50) / 10,
-    social: 2 + ((seed >> 4) % 50) / 10,
-    wellbeing: 3 + ((seed >> 8) % 50) / 10,
-    money: ((seed >> 12) % 40) / 10,
-  };
   const stats = {
-    academics: player.academics ?? mockStats.academics,
-    social: player.social ?? mockStats.social,
-    wellbeing: player.wellbeing ?? mockStats.wellbeing,
-    money: player.money ?? mockStats.money,
+    academics: player.academics ?? null,
+    social: player.social ?? null,
+    wellbeing: player.wellbeing ?? null,
+    money: player.money ?? null,
   };
   const color = getAvatarColor(player.name);
   const isGoner = player.eliminated;
@@ -1114,28 +1141,38 @@ function PlayerStatsPopup({
               ["Money", stats.money] as const,
               ["Wellbeing", stats.wellbeing] as const,
             ] as const
-          ).map(([label, val]) => (
-            <div key={label}>
-              <div className="flex justify-between text-[10px] mb-0.5">
-                <span className="text-muted">{label}</span>
-                <span className="text-paper font-medium">{val.toFixed(2)}</span>
+          ).map(([label, rawVal]) => {
+            if (rawVal === null) {
+              return (
+                <div key={label}>
+                  <div className="flex justify-between text-[10px] mb-0.5">
+                    <span className="text-muted">{label}</span>
+                    <span className="text-muted font-medium">—</span>
+                  </div>
+                  <div className="h-1.5 bg-background rounded-full overflow-hidden" />
+                </div>
+              );
+            }
+            const val = Number(rawVal);
+            const bucket = getStatBucket(label, val);
+            return (
+              <div key={label}>
+                <div className="flex justify-between text-[10px] mb-0.5">
+                  <span className="text-muted">{label}</span>
+                  <span className="font-medium" style={{ color: bucket.color }}>
+                    {bucket.label}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
+                    style={{ width: `${Math.max(0, Math.min((val / 10) * 100, 100))}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-1.5 bg-background rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
-                  style={{ width: `${Math.max(0, Math.min((val / 10) * 100, 100))}%` }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-
-        {(player.pos_trait || player.neg_trait) && !isGoner && (
-          <div className="mt-2 pt-2 border-t border-card-border space-y-1">
-            {player.pos_trait && <p className="text-[10px] text-green-400">● {player.pos_trait}</p>}
-            {player.neg_trait && <p className="text-[10px] text-accent">● {player.neg_trait}</p>}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1264,7 +1301,7 @@ function InfoPopup({
   if (isMajor) {
     const data = MAJOR_DATA[popup.name];
     desc = data?.focus || "";
-    effect = data?.weights ? "Score: " + data.weights : "";
+    effect = data?.weights || "";
     accentColor = "#F3E5AB";
     badgeColor = "bg-[#F3E5AB]/10 text-[#F3E5AB]";
     badgeText = "Major";
@@ -1318,7 +1355,9 @@ function InfoPopup({
             borderColor: accentColor + "20",
           }}
         >
-          <p className="text-[10px] uppercase tracking-wider text-muted mb-1">Effect</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
+            {isMajor ? "Final Score Multipliers" : "Trait Effect"}
+          </p>
           <p className="text-xs font-medium" style={{ color: accentColor }}>
             {effect}
           </p>
