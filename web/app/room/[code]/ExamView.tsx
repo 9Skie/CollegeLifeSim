@@ -233,7 +233,7 @@ export default function ExamView({
             Full Class Rankings
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="flex flex-col gap-3 max-w-md mx-auto">
           {sortedResults.map((result, i) => {
             const index = myResult ? i + 1 : i;
             const isMe = result.playerName === myName;
