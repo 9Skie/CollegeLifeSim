@@ -585,6 +585,34 @@ export default function ResolutionView({
             </div>
           )}
 
+          {/* Warnings */}
+          {(() => {
+            const warnedStats: string[] = [];
+            if (endStats.academics <= 1) warnedStats.push("Academics");
+            if (endStats.social <= 1) warnedStats.push("Social");
+            if (endStats.money <= 0) warnedStats.push("Money");
+            const penalty = warnedStats.length * 1.5;
+            if (warnedStats.length === 0) return null;
+            return (
+              <div
+                className={`rounded-xl border border-accent/20 bg-accent/10 px-4 py-3 transition-all duration-500 ${
+                  showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                }`}
+              >
+                <p className="text-sm text-accent font-semibold mb-1">
+                  <span className="mr-1">⚠️</span>
+                  {warnedStats.length} Warning{warnedStats.length !== 1 ? "s" : ""} Active
+                </p>
+                <p className="text-xs text-accent/80 mb-1">
+                  {warnedStats.join(" · ")}
+                </p>
+                <p className="text-xs text-accent/80">
+                  Wellbeing penalty: <span className="font-bold">-{penalty.toFixed(2)}</span> next day
+                </p>
+              </div>
+            );
+          })()}
+
           {/* Stats */}
           <div
             className={`rounded-2xl border border-card-border bg-card p-6 space-y-4 transition-all duration-500 ${
