@@ -587,26 +587,35 @@ export default function ResolutionView({
 
           {/* Warnings applied today */}
           {(() => {
-            const warnedStats: string[] = [];
-            if (startStats.academics <= 1) warnedStats.push("Academics");
-            if (startStats.social <= 1) warnedStats.push("Social");
-            if (startStats.money <= 0) warnedStats.push("Money");
-            const penalty = warnedStats.length * 1.5;
-            if (warnedStats.length === 0) return null;
+            const warns: { label: string; emoji: string }[] = [];
+            if (startStats.academics <= 1) warns.push({ label: "Academics", emoji: "😰" });
+            if (startStats.social <= 1) warns.push({ label: "Social", emoji: "🌧️" });
+            if (startStats.money <= 0) warns.push({ label: "Money", emoji: "🍽️" });
+            const penalty = warns.length * 1.5;
+            if (warns.length === 0) return null;
             return (
               <div
-                className={`rounded-xl border border-accent/20 bg-accent/10 px-4 py-3 transition-all duration-500 ${
+                className={`transition-all duration-500 ${
                   showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                 }`}
               >
-                <p className="text-sm text-accent font-semibold mb-1">
-                  <span className="mr-1">⚠️</span>
-                  {warnedStats.length} Warning{warnedStats.length !== 1 ? "s" : ""} Applied Today
-                </p>
-                <p className="text-xs text-accent/80 mb-1">
-                  {warnedStats.join(" · ")}
-                </p>
-                <p className="text-xs text-accent/80">
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {warns.map((w) => (
+                    <span
+                      key={w.label}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded border"
+                      style={{
+                        color: "#d94f4f",
+                        backgroundColor: "#d94f4f12",
+                        borderColor: "#d94f4f30",
+                      }}
+                    >
+                      <span>{w.emoji}</span>
+                      <span>{w.label}</span>
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-accent mb-3">
                   Wellbeing penalty: <span className="font-bold">-{penalty.toFixed(2)}</span>
                 </p>
               </div>

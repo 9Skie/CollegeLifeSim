@@ -664,9 +664,9 @@ export default function DayView({
           {/* Warnings — full tags, only when needed */}
           {(() => {
             const warns: { emoji: string; word: string }[] = [];
-            if (stats.academics <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
-            if (stats.social <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
-            if (stats.money <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
+            if (Number(stats.academics) <= 1) warns.push({ emoji: "😰", word: "Anxiety" });
+            if (Number(stats.social) <= 1) warns.push({ emoji: "🌧️", word: "Depression" });
+            if (Number(stats.money) <= 0) warns.push({ emoji: "🍽️", word: "Starvation" });
             if (!hadRestOrSleep && allFilled) warns.push({ emoji: "🥱", word: "Drowsy" });
             if (warns.length === 0) return null;
             return (
