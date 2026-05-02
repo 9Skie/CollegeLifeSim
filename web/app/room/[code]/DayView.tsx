@@ -1360,7 +1360,7 @@ function InfoPopup({
             borderColor: accentColor + "20",
           }}
         >
-          <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
+          <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: accentColor + "aa" }}>
             {isMajor ? "Final Score Multipliers" : "Trait Effect"}
           </p>
           <p className="text-xs font-medium" style={{ color: accentColor }}>
