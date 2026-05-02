@@ -656,7 +656,7 @@ export default function DayView({
           {/* Preview disclaimer */}
           {allFilled && (
             <p className="mt-3 text-[11px] text-muted leading-relaxed">
-              <span className="text-accent-soft font-semibold">Preview only</span> —
+              <span className="text-[#F3E5AB] font-semibold">Preview only</span> —
               actual results depend on traits, events, wildcard rolls, and outcome multipliers.
             </p>
           )}
