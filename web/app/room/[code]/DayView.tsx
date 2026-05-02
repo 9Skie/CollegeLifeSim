@@ -1049,34 +1049,39 @@ export default function DayView({
 function getStatBucket(
   label: string,
   val: number
-): { label: string; color: string } {
+): { label: string; color: string; barWidth: number } {
   const bucket =
     val < 2.5 ? 0 : val < 5 ? 1 : val < 7.5 ? 2 : 3;
   const colors = ["#6b7280", "#d99f4f", "#F3E5AB", "#5b8c5a"];
+  const widths = [25, 50, 75, 100];
 
   switch (label) {
     case "Academics":
       return {
         label: ["Failing", "Getting By", "Solid", "Brilliant"][bucket],
         color: colors[bucket],
+        barWidth: widths[bucket],
       };
     case "Social":
       return {
         label: ["Hermit", "Warming Up", "Popular", "Icon"][bucket],
         color: colors[bucket],
+        barWidth: widths[bucket],
       };
     case "Wellbeing":
       return {
         label: ["Falling Apart", "Rough", "Okay", "Thriving"][bucket],
         color: colors[bucket],
+        barWidth: widths[bucket],
       };
     case "Money":
       return {
         label: ["Broke", "Tight", "Stable", "Loaded"][bucket],
         color: colors[bucket],
+        barWidth: widths[bucket],
       };
     default:
-      return { label: "—", color: "#6b7280" };
+      return { label: "—", color: "#6b7280", barWidth: 0 };
   }
 }
 
@@ -1166,7 +1171,7 @@ function PlayerStatsPopup({
                 <div className="h-1.5 bg-background rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${isGoner ? "bg-muted" : "bg-accent"}`}
-                    style={{ width: `${Math.max(0, Math.min((val / 10) * 100, 100))}%` }}
+                    style={{ width: `${bucket.barWidth}%` }}
                   />
                 </div>
               </div>
