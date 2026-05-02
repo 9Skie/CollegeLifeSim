@@ -21,6 +21,9 @@ const ALLOWED_ACTIONS = new Set([
   "wildcard",
 ]);
 
+const TARGETED_ACTIONS = new Set(["socialize"]);
+const SPEND_ACTIONS = new Set(["socialize"]);
+
 type RoomPlayer = {
   id: string;
   name: string;
@@ -140,10 +143,20 @@ export async function POST(
         return NextResponse.json({ error: "Invalid action selection" }, { status: 400 });
       }
 
-      if (selection.targetId) {
+      if (TARGETED_ACTIONS.has(selection.actionId)) {
+        if (!selection.targetId) {
+          return NextResponse.json({ error: "Socialize requires a valid target" }, { status: 400 });
+        }
+
         if (!activePlayerIds.has(selection.targetId) || selection.targetId === playerId) {
           return NextResponse.json({ error: "Invalid target selection" }, { status: 400 });
         }
+      } else if (selection.targetId) {
+        return NextResponse.json({ error: "This action cannot target another player" }, { status: 400 });
+      }
+
+      if (!SPEND_ACTIONS.has(selection.actionId) && selection.spend !== undefined) {
+        return NextResponse.json({ error: "Only socialize can spend money tiers" }, { status: 400 });
       }
     }
 

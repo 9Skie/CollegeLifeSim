@@ -461,25 +461,17 @@ export default function ResolutionView({
           </div>
 
           {/* Auto-fill warning */}
-          {(() => {
-            const hadManualSubmission =
-              selections.morning && selections.afternoon && selections.night;
-            const wasAutoFilled =
-              currentResolution?.autoFilled ||
-              (!hadManualSubmission && currentResolution != null);
-            if (!wasAutoFilled) return null;
-            return (
-              <div
-                className="rounded-xl border border-accent/20 bg-accent/10 px-4 py-3 text-center"
-                style={{ animation: "fadeUp 0.4s ease-out" }}
-              >
-                <p className="text-sm text-accent">
-                  <span className="font-bold">⚠️ Your actions were randomized</span> —
-                  you did not finalize your decisions before the day ended.
-                </p>
-              </div>
-            );
-          })()}
+          {currentResolution?.changes?.autoFilled === true && (
+            <div
+              className="rounded-xl border border-accent/20 bg-accent/10 px-4 py-3 text-center"
+              style={{ animation: "fadeUp 0.4s ease-out" }}
+            >
+              <p className="text-sm text-accent">
+                <span className="font-bold">⚠️ Your actions were randomized</span> —
+                you did not finalize your decisions before the day ended.
+              </p>
+            </div>
+          )}
 
           {/* Slot sections — fade in one at a time */}
           {slotData.map((s, i) => {
@@ -749,7 +741,7 @@ function generateDailyHighlights({
   nightOI: number;
   wildcardEvent: (typeof PRIVATE_EVENT_POOL)[0] | null;
   players: Player[];
-}): Highlight[] {
+}) {
   const out: Highlight[] = [];
 
   const others = players.filter((p) => p.name !== myName);

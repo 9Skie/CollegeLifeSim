@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import type { StoredResolution } from "@/utils/day-resolution";
 
-import { resolveExamForRoom } from "@/utils/exam-resolution";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
 
 /* ------------------------------------------------------------------ */
@@ -26,6 +25,7 @@ type SpectatorViewProps = {
   players: Player[];
   currentPlayer: Player | null;
   allResolutions: StoredResolution[] | null;
+  currentExamResults: ExamResult[] | null;
 };
 
 type PublicEvent = { name: string; flavor: string; effect: string };
@@ -175,6 +175,7 @@ export default function SpectatorView({
   players,
   currentPlayer,
   allResolutions,
+  currentExamResults,
 }: SpectatorViewProps) {
   const myName = currentPlayer?.name || "You";
 
@@ -198,7 +199,7 @@ export default function SpectatorView({
     return (
       <SpectatorExamView
         currentDay={currentDay}
-        players={players}
+        results={currentExamResults}
         myName={myName}
       />
     );
@@ -719,19 +720,17 @@ const GRADE_COLORS: Record<ExamGrade, string> = {
 
 function SpectatorExamView({
   currentDay,
-  players,
+  results,
   myName,
 }: {
   currentDay: number;
-  players: Player[];
+  results: ExamResult[] | null;
   myName: string;
 }) {
   const isFinal = currentDay >= 19;
   const title = isFinal ? "Finals" : "Midterm";
 
-  const allResults = useMemo(() => {
-    return resolveExamForRoom({ currentDay, players }).results;
-  }, [currentDay, players]);
+  const allResults = useMemo(() => results || [], [results]);
 
   const sortedResults = useMemo(() => {
     return [...allResults].sort(

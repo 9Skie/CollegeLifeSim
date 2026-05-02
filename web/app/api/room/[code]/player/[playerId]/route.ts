@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import {
-  MAJORS,
-  NEGATIVE_TRAITS,
-  POSITIVE_TRAITS,
-  areTraitsCompatible,
-} from "@/data/game";
+import { ensureSetupRollsForPlayers } from "@/utils/setup-roll";
 
 type AllocatedStats = {
   academics: number;
@@ -13,20 +8,6 @@ type AllocatedStats = {
   wellbeing: number;
   money: number;
 };
-
-type ClassSlot = "morning" | "afternoon";
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function isValidChoice(value: unknown, choices: readonly string[]) {
-  return typeof value === "string" && choices.includes(value);
-}
 
 function isValidAllocatedStats(value: unknown): value is AllocatedStats {
   if (!value || typeof value !== "object") {
@@ -48,29 +29,6 @@ function isValidAllocatedStats(value: unknown): value is AllocatedStats {
   return total === 3;
 }
 
-function generateClassSchedule(roomCode: string, playerId: string) {
-  const days = [0, 1, 2, 3];
-  const schedule: Array<{ day: number; slot: ClassSlot }> = [];
-  const usedDays = new Set<number>();
-  let seed = hashString(`${roomCode}:${playerId}:class-schedule`);
-
-  while (schedule.length < 3 && usedDays.size < days.length) {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    const day = days[seed % days.length];
-    if (usedDays.has(day)) {
-      continue;
-    }
-
-    usedDays.add(day);
-    schedule.push({
-      day,
-      slot: seed % 2 === 0 ? "morning" : "afternoon",
-    });
-  }
-
-  return schedule;
-}
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ code: string; playerId: string }> }
@@ -78,26 +36,7 @@ export async function PATCH(
   try {
     const { code, playerId } = await params;
     const body = await request.json();
-    const { major, posTrait, negTrait, allocatedStats } = body;
-
-    if (!isValidChoice(major, MAJORS)) {
-      return NextResponse.json({ error: "Invalid major" }, { status: 400 });
-    }
-
-    if (!isValidChoice(posTrait, POSITIVE_TRAITS)) {
-      return NextResponse.json({ error: "Invalid positive trait" }, { status: 400 });
-    }
-
-    if (!isValidChoice(negTrait, NEGATIVE_TRAITS)) {
-      return NextResponse.json({ error: "Invalid negative trait" }, { status: 400 });
-    }
-
-    if (!areTraitsCompatible(posTrait, negTrait)) {
-      return NextResponse.json(
-        { error: "Positive and negative traits conflict" },
-        { status: 400 }
-      );
-    }
+    const { allocatedStats } = body;
 
     if (!isValidAllocatedStats(allocatedStats)) {
       return NextResponse.json(
@@ -110,7 +49,7 @@ export async function PATCH(
 
     const { data: player, error: playerError } = await supabase
       .from("players")
-      .select("id, room_code, class_schedule")
+      .select("id, room_code, major, pos_trait, neg_trait, class_schedule")
       .eq("id", playerId)
       .eq("room_code", code)
       .single();
@@ -119,25 +58,23 @@ export async function PATCH(
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
-    const existingSchedule = Array.isArray(player.class_schedule)
-      ? player.class_schedule
-      : [];
-    const classSchedule =
-      existingSchedule.length > 0
-        ? existingSchedule
-        : generateClassSchedule(code, playerId);
+    const [rolledPlayer] = await ensureSetupRollsForPlayers({
+      supabase,
+      roomCode: code,
+      players: [player],
+    });
 
     const { data: updatedPlayer, error: updateError } = await supabase
       .from("players")
       .update({
-        major,
-        pos_trait: posTrait,
-        neg_trait: negTrait,
+        major: rolledPlayer.major,
+        pos_trait: rolledPlayer.pos_trait,
+        neg_trait: rolledPlayer.neg_trait,
         academics: 2 + allocatedStats.academics,
         social: 2 + allocatedStats.social,
         wellbeing: 5 + allocatedStats.wellbeing,
         money: 2 + allocatedStats.money,
-        class_schedule: classSchedule,
+        class_schedule: rolledPlayer.class_schedule,
       })
       .eq("id", playerId)
       .eq("room_code", code)

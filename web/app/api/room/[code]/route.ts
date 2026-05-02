@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { ensureDayPhaseResolved } from "@/utils/day-phase";
+import { resolveExamForRoom } from "@/utils/exam-resolution";
 import { loadRoomDayState } from "@/utils/room-day-state";
+import { ensureSetupRollsForPlayers } from "@/utils/setup-roll";
 
 const ALLOWED_PHASES = new Set([
   "lobby",
@@ -53,10 +55,26 @@ export async function GET(
       return NextResponse.json({ error: "Failed to load players" }, { status: 500 });
     }
 
+    const setupPlayers =
+      room.current_phase === "setup"
+        ? await ensureSetupRollsForPlayers({
+            supabase,
+            roomCode: code,
+            players: (players || []) as Array<{
+              id: string;
+              room_code?: string | null;
+              major?: string | null;
+              pos_trait?: string | null;
+              neg_trait?: string | null;
+              class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }> | null;
+            }>,
+          })
+        : (players || []);
+
     const ensuredDay = await ensureDayPhaseResolved({
       supabase,
       room,
-      players: (players || []) as Array<{
+      players: setupPlayers as Array<{
         id: string;
         name: string;
         major?: string | null;
@@ -86,6 +104,7 @@ export async function GET(
 
     let currentResolution = ensuredDay.currentResolution;
     let allResolutions = ensuredDay.allResolutions;
+    let currentExamResults = null;
 
     if (effectiveRoom.current_phase === "resolution" && !allResolutions) {
       const { data: allRes } = await supabase
@@ -102,12 +121,20 @@ export async function GET(
       }
     }
 
+    if (effectiveRoom.current_phase === "exam") {
+      currentExamResults = resolveExamForRoom({
+        currentDay: effectiveRoom.current_day,
+        players: effectivePlayers,
+      }).results;
+    }
+
     return NextResponse.json({
       room: effectiveRoom,
       players: effectivePlayers,
       dayState,
       currentResolution,
       allResolutions,
+      currentExamResults,
     });
   } catch (err) {
     console.error("GET /api/room/[code] error:", err);
@@ -181,7 +208,36 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to update room" }, { status: 500 });
     }
 
-    return NextResponse.json({ room: updatedRoom });
+    let updatedPlayers = null;
+
+    if (currentPhase === "setup") {
+      const { data: roomPlayers, error: roomPlayersError } = await supabase
+        .from("players")
+        .select(
+          "id, room_code, name, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated, created_at"
+        )
+        .eq("room_code", code)
+        .order("created_at", { ascending: true });
+
+      if (roomPlayersError || !roomPlayers) {
+        return NextResponse.json({ error: "Failed to load setup players" }, { status: 500 });
+      }
+
+      updatedPlayers = await ensureSetupRollsForPlayers({
+        supabase,
+        roomCode: code,
+        players: roomPlayers as Array<{
+          id: string;
+          room_code?: string | null;
+          major?: string | null;
+          pos_trait?: string | null;
+          neg_trait?: string | null;
+          class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }> | null;
+        }>,
+      });
+    }
+
+    return NextResponse.json({ room: updatedRoom, players: updatedPlayers });
   } catch (err) {
     console.error("PATCH /api/room/[code] error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

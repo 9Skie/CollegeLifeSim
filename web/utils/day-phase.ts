@@ -255,6 +255,7 @@ export async function ensureDayPhaseResolved({
     (player) => (counts.get(player.id) || 0) >= DAY_SLOTS.length
   );
   const timedOut = isDayExpired(room.updated_at);
+  const autoFilledPlayerIds = new Set<string>();
 
   if (!allActivePlayersSubmitted && !timedOut) {
     return {
@@ -268,6 +269,10 @@ export async function ensureDayPhaseResolved({
 
   if (timedOut && !allActivePlayersSubmitted) {
     const autofillRows = buildAutofillRows({ room, players, dayActions });
+
+    for (const row of autofillRows) {
+      autoFilledPlayerIds.add(row.player_id);
+    }
 
     if (autofillRows.length > 0) {
       const { error: autofillError } = await supabase
@@ -313,6 +318,14 @@ export async function ensureDayPhaseResolved({
     dayActions,
     weeklyActionHistory: weeklyActionHistory || [],
   });
+
+  resolvedDay.resolutions = resolvedDay.resolutions.map((resolution) => ({
+    ...resolution,
+    changes: {
+      ...resolution.changes,
+      autoFilled: autoFilledPlayerIds.has(resolution.player_id),
+    },
+  }));
 
   const { error: actionResolveError } = await supabase
     .from("day_actions")

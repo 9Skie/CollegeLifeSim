@@ -13,6 +13,7 @@ import {
   type SelectionRecord,
 } from "@/utils/day-actions";
 import type { StoredResolution } from "@/utils/day-resolution";
+import type { ExamResult } from "@/utils/exam-resolution";
 import type { RoomDayState } from "@/utils/room-day-state";
 
 type Player = {
@@ -72,6 +73,7 @@ export default function RoomPage() {
   const [dayState, setDayState] = useState<RoomDayState | null>(null);
   const [currentResolution, setCurrentResolution] = useState<StoredResolution | null>(null);
   const [allResolutions, setAllResolutions] = useState<StoredResolution[] | null>(null);
+  const [currentExamResults, setCurrentExamResults] = useState<ExamResult[] | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [hostId, setHostId] = useState<string | null>(null);
   const [currentDay, setCurrentDay] = useState(1);
@@ -122,6 +124,7 @@ export default function RoomPage() {
         setDayState(data.dayState || null);
         setCurrentResolution(data.currentResolution || null);
         setAllResolutions(data.allResolutions || null);
+        setCurrentExamResults(data.currentExamResults || null);
         if (data.room.current_phase) {
           setPhase((prev) =>
             prev === "lobby" ||
@@ -190,6 +193,7 @@ export default function RoomPage() {
     setDaySelections(selections);
     setDayState(data.dayState || null);
     setCurrentResolution(data.currentResolution || null);
+    setCurrentExamResults(null);
     if (data.room) {
       setCurrentDay(data.room.current_day || currentDay);
       setRoomStatus(data.room.status);
@@ -229,6 +233,7 @@ export default function RoomPage() {
     setDaySelections(createEmptySelectionRecord());
     setDayState(null);
     setCurrentResolution(null);
+    setCurrentExamResults(null);
     setPhase(data.room.current_phase || nextPhase);
   };
 
@@ -251,6 +256,7 @@ export default function RoomPage() {
     setCurrentDay(data.room.current_day || currentDay);
     setRoomStatus(data.room.status);
     setPlayers(data.players || []);
+    setCurrentExamResults(null);
     setPhase(data.room.current_phase || "day");
   };
 
@@ -293,8 +299,11 @@ export default function RoomPage() {
         return;
       }
 
-      setRoomStatus(data.room.status);
-      setPhase("setup");
+	      setRoomStatus(data.room.status);
+	      if (data.players) {
+	        setPlayers(data.players);
+	      }
+	      setPhase("setup");
     } catch {
       setError("Failed to start game");
     } finally {
@@ -392,6 +401,7 @@ export default function RoomPage() {
             </div>
           )}
           <CharacterSetup
+            key={`${initialSetup?.major ?? "pending"}:${initialSetup?.posTrait ?? "pending"}:${initialSetup?.negTrait ?? "pending"}`}
             onReady={finishSetup}
             initialSetup={initialSetup}
             readyDisabled={setupReady || setupSubmitting}
@@ -427,6 +437,7 @@ export default function RoomPage() {
           players={players}
           currentPlayer={currentPlayer}
           allResolutions={allResolutions}
+          currentExamResults={currentExamResults}
         />
       </div>
     );
@@ -469,9 +480,8 @@ export default function RoomPage() {
     return (
       <div className="flex-1 flex overflow-hidden">
         <ExamView
-          roomCode={code}
           currentDay={currentDay}
-          players={players}
+          results={currentExamResults}
           isHost={isHost}
           onContinue={resolveExam}
           myName={myName}

@@ -88,7 +88,16 @@ export async function POST(
       return NextResponse.json({ error: "Failed to advance room" }, { status: 500 });
     }
 
-    return NextResponse.json({ room: updatedRoom, results, players: players });
+    const { data: updatedPlayers, error: updatedPlayersError } = await supabase
+      .from("players")
+      .select("id, name, academics, social, wellbeing, money, eliminated")
+      .eq("room_code", code);
+
+    if (updatedPlayersError) {
+      return NextResponse.json({ error: "Failed to load updated players" }, { status: 500 });
+    }
+
+    return NextResponse.json({ room: updatedRoom, results, players: updatedPlayers || [] });
   } catch (err) {
     console.error("POST /api/room/[code]/exam error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

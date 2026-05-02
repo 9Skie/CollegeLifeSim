@@ -1,16 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { resolveExamForRoom } from "@/utils/exam-resolution";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
-
-type Player = {
-  id: string;
-  name: string;
-  academics?: number | string | null;
-  wellbeing?: number | string | null;
-  eliminated?: boolean;
-};
 
 const GRADE_RANK: Record<ExamGrade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
 const GRADE_COLORS: Record<ExamGrade, string> = {
@@ -44,14 +35,13 @@ function getInitials(name: string): string {
 
 export default function ExamView({
   currentDay,
-  players,
+  results,
   isHost,
   onContinue,
   myName,
 }: {
-  roomCode: string;
   currentDay: number;
-  players: Player[];
+  results: ExamResult[] | null;
   isHost: boolean;
   onContinue: () => Promise<void>;
   myName: string;
@@ -59,9 +49,7 @@ export default function ExamView({
   const isFinal = currentDay >= 19;
   const title = isFinal ? "Finals" : "Midterm";
 
-  const allResults = useMemo(() => {
-    return resolveExamForRoom({ currentDay, players }).results;
-  }, [currentDay, players]);
+  const allResults = useMemo(() => results || [], [results]);
 
   // Sort by grade rank descending (A first, F last)
   const sortedResults = useMemo(() => {
@@ -77,8 +65,10 @@ export default function ExamView({
   const [continuing, setContinuing] = useState(false);
 
   useEffect(() => {
+    setVisibleCards([]);
+    setShowButton(false);
+
     const timers: NodeJS.Timeout[] = [];
-    // My card first if it exists
     const total = myResult ? 1 + sortedResults.length : sortedResults.length;
     for (let i = 0; i < total; i++) {
       timers.push(
@@ -185,7 +175,17 @@ export default function ExamView({
             <span className="text-muted">Wellbeing</span>
             <span className="text-paper font-medium">
               {result.oldWellbeing.toFixed(2)}
-              <span className="text-[#5b8c5a] font-bold ml-1">+1.00</span>
+              {result.wellbeingChange !== 0 && (
+                <span
+                  className="font-bold ml-1"
+                  style={{
+                    color: result.wellbeingChange > 0 ? "#5b8c5a" : "#d94f4f",
+                  }}
+                >
+                  {result.wellbeingChange > 0 ? "+" : ""}
+                  {result.wellbeingChange.toFixed(2)}
+                </span>
+              )}
               <span className="text-paper font-bold ml-1">
                 → {result.newWellbeing.toFixed(2)}
               </span>

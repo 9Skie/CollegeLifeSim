@@ -8,7 +8,6 @@ import {
   POSITIVE_TRAIT_DATA,
   NEGATIVE_TRAITS,
   NEGATIVE_TRAIT_DATA,
-  getCompatibleNegativeTraits,
 } from "@/data/game";
 
 const ITEM_HEIGHT = 64;
@@ -23,9 +22,6 @@ export type AllocatedStats = {
 };
 
 export type CharacterSetupResult = {
-  major: string;
-  posTrait: string;
-  negTrait: string;
   allocatedStats: AllocatedStats;
 };
 
@@ -80,31 +76,9 @@ function useRoulette<T>(items: T[], targetIndex: number, durationMs: number) {
 /* ------------------------------------------------------------------ */
 // Component
 
-function getChoiceIndex(choices: readonly string[], value: string | null) {
-  if (!value) {
-    return Math.floor(Math.random() * choices.length);
-  }
-
+function getChoiceIndex(choices: readonly string[], value: string) {
   const index = choices.indexOf(value);
-  return index >= 0 ? index : Math.floor(Math.random() * choices.length);
-}
-
-function getCompatibleNegativeTrait(
-  posTrait: string,
-  preferredNegTrait: string | null
-) {
-  const compatibleNegativeTraits = getCompatibleNegativeTraits(posTrait, NEGATIVE_TRAITS);
-
-  if (
-    preferredNegTrait &&
-    compatibleNegativeTraits.includes(preferredNegTrait)
-  ) {
-    return preferredNegTrait;
-  }
-
-  return compatibleNegativeTraits[
-    Math.floor(Math.random() * compatibleNegativeTraits.length)
-  ];
+  return index >= 0 ? index : 0;
 }
 
 function getInitialAllocatedStats(initialSetup: InitialSetup | null | undefined): AllocatedStats {
@@ -133,16 +107,19 @@ export default function CharacterSetup({
   readyLabel?: string;
   statusMessage?: string | null;
 }) {
-  const [majorIndex] = useState(() => getChoiceIndex(MAJORS, initialSetup?.major ?? null));
+  const rollReady = Boolean(
+    initialSetup?.major && initialSetup?.posTrait && initialSetup?.negTrait
+  );
+
+  const [majorIndex] = useState(() =>
+    getChoiceIndex(MAJORS, initialSetup?.major ?? MAJORS[0])
+  );
   const [posIndex] = useState(() =>
-    getChoiceIndex(POSITIVE_TRAITS, initialSetup?.posTrait ?? null)
+    getChoiceIndex(POSITIVE_TRAITS, initialSetup?.posTrait ?? POSITIVE_TRAITS[0])
   );
   const posTraitName = POSITIVE_TRAITS[posIndex];
   const [negIndex] = useState(() =>
-    getChoiceIndex(
-      NEGATIVE_TRAITS,
-      getCompatibleNegativeTrait(posTraitName, initialSetup?.negTrait ?? null)
-    )
+    getChoiceIndex(NEGATIVE_TRAITS, initialSetup?.negTrait ?? NEGATIVE_TRAITS[0])
   );
 
   const majorR = useRoulette([...MAJORS], majorIndex, 2000);
@@ -157,7 +134,7 @@ export default function CharacterSetup({
 
   const spent = Object.values(allocated).reduce((a, b) => a + b, 0);
   const remaining = 3 - spent;
-  const canReady = allLanded && remaining === 0 && !readyDisabled;
+  const canReady = rollReady && allLanded && remaining === 0 && !readyDisabled;
 
   const adjust = (key: keyof typeof allocated, delta: number) => {
     if (delta > 0 && remaining <= 0) return;
@@ -167,16 +144,13 @@ export default function CharacterSetup({
 
   const handleReady = () => {
     const result = {
-      major: MAJORS[majorIndex],
-      posTrait: POSITIVE_TRAITS[posIndex],
-      negTrait: NEGATIVE_TRAITS[negIndex],
       allocatedStats: allocated,
     };
 
     if (typeof window !== "undefined") {
-      localStorage.setItem("cls.major", result.major);
-      localStorage.setItem("cls.posTrait", result.posTrait);
-      localStorage.setItem("cls.negTrait", result.negTrait);
+      localStorage.setItem("cls.major", majorName);
+      localStorage.setItem("cls.posTrait", posName);
+      localStorage.setItem("cls.negTrait", negName);
       localStorage.setItem("cls.stats", JSON.stringify(allocated));
     }
     onReady(result);
@@ -185,6 +159,22 @@ export default function CharacterSetup({
   const majorName = MAJORS[majorIndex];
   const posName = posTraitName;
   const negName = NEGATIVE_TRAITS[negIndex];
+
+  if (!rollReady) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold text-paper text-center mb-2">
+          Character Creation
+        </h1>
+        <p className="text-muted text-center mb-8">
+          Waiting for the server to deal your character...
+        </p>
+        <div className="rounded-2xl border border-card-border bg-card p-10 text-center text-sm text-muted">
+          Your major and traits are being assigned by the server.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto py-8 px-4">
@@ -204,6 +194,9 @@ export default function CharacterSetup({
                 {MAJOR_DATA[majorName]?.focus}
               </p>
               <div className="rounded-md bg-[#F3E5AB]/10 border border-[#F3E5AB]/20 px-2.5 py-1.5">
+                <p className="text-[10px] text-[#F3E5AB]/70 font-semibold uppercase tracking-wider mb-0.5">
+                  Final Score Multipliers
+                </p>
                 <p className="text-xs text-[#F3E5AB] font-medium">
                   {MAJOR_DATA[majorName]?.weights}
                 </p>
@@ -223,6 +216,9 @@ export default function CharacterSetup({
                 {POSITIVE_TRAIT_DATA[posName]?.desc}
               </p>
               <div className="rounded-md bg-green-400/10 border border-green-400/20 px-2.5 py-1.5">
+                <p className="text-[10px] text-green-400/70 font-semibold uppercase tracking-wider mb-0.5">
+                  Trait Effect
+                </p>
                 <p className="text-xs text-green-400 font-medium">
                   {POSITIVE_TRAIT_DATA[posName]?.effect}
                 </p>
@@ -242,6 +238,9 @@ export default function CharacterSetup({
                 {NEGATIVE_TRAIT_DATA[negName]?.desc}
               </p>
               <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5">
+                <p className="text-[10px] text-accent/70 font-semibold uppercase tracking-wider mb-0.5">
+                  Trait Effect
+                </p>
                 <p className="text-xs text-accent font-medium">
                   {NEGATIVE_TRAIT_DATA[negName]?.effect}
                 </p>

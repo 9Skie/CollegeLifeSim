@@ -7,6 +7,7 @@ export type ExamResult = {
   academicsChange: number;
   oldAcademics: number;
   newAcademics: number;
+  wellbeingChange: number;
   oldWellbeing: number;
   newWellbeing: number;
 };
@@ -99,6 +100,7 @@ export function resolveExamForRoom({
       academicsChange,
       oldAcademics,
       newAcademics,
+      wellbeingChange,
       oldWellbeing,
       newWellbeing,
     });
