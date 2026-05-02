@@ -599,7 +599,10 @@ export default function ResolutionView({
                   showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                 }`}
               >
-                <div className="flex flex-wrap gap-1.5 mb-2">
+                <p className="text-[10px] uppercase tracking-widest text-accent mb-1.5">
+                  Warnings −{penalty.toFixed(1)} Wellbeing
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {warns.map((w) => (
                     <span
                       key={w.label}
@@ -615,9 +618,6 @@ export default function ResolutionView({
                     </span>
                   ))}
                 </div>
-                <p className="text-xs text-accent mb-3">
-                  Wellbeing penalty: <span className="font-bold">-{penalty.toFixed(2)}</span>
-                </p>
               </div>
             );
           })()}
