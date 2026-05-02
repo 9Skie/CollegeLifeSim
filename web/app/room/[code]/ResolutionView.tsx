@@ -591,7 +591,13 @@ export default function ResolutionView({
             if (startStats.academics <= 1) warns.push({ label: "Academics", emoji: "😰" });
             if (startStats.social <= 1) warns.push({ label: "Social", emoji: "🌧️" });
             if (startStats.money <= 0) warns.push({ label: "Money", emoji: "🍽️" });
-            const penalty = warns.length * 1.5;
+            const hadRestOrSleep = ["morning", "afternoon", "night"].some(
+              (slot) =>
+                selections[slot]?.actionId === "rest" ||
+                selections[slot]?.actionId === "sleep"
+            );
+            if (!hadRestOrSleep) warns.push({ label: "Drowsy", emoji: "🥱" });
+            const penalty = warns.filter((w) => w.label !== "Drowsy").length * 1.5;
             if (warns.length === 0) return null;
             return (
               <div
