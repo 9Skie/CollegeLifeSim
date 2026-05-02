@@ -585,12 +585,12 @@ export default function ResolutionView({
             </div>
           )}
 
-          {/* Warnings */}
+          {/* Warnings applied today */}
           {(() => {
             const warnedStats: string[] = [];
-            if (endStats.academics <= 1) warnedStats.push("Academics");
-            if (endStats.social <= 1) warnedStats.push("Social");
-            if (endStats.money <= 0) warnedStats.push("Money");
+            if (startStats.academics <= 1) warnedStats.push("Academics");
+            if (startStats.social <= 1) warnedStats.push("Social");
+            if (startStats.money <= 0) warnedStats.push("Money");
             const penalty = warnedStats.length * 1.5;
             if (warnedStats.length === 0) return null;
             return (
@@ -601,13 +601,13 @@ export default function ResolutionView({
               >
                 <p className="text-sm text-accent font-semibold mb-1">
                   <span className="mr-1">⚠️</span>
-                  {warnedStats.length} Warning{warnedStats.length !== 1 ? "s" : ""} Active
+                  {warnedStats.length} Warning{warnedStats.length !== 1 ? "s" : ""} Applied Today
                 </p>
                 <p className="text-xs text-accent/80 mb-1">
                   {warnedStats.join(" · ")}
                 </p>
                 <p className="text-xs text-accent/80">
-                  Wellbeing penalty: <span className="font-bold">-{penalty.toFixed(2)}</span> next day
+                  Wellbeing penalty: <span className="font-bold">-{penalty.toFixed(2)}</span>
                 </p>
               </div>
             );
