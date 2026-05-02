@@ -649,7 +649,14 @@ export default function ResolutionView({
               return (
                 <div key={key}>
                   <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-paper font-medium">{label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-paper font-medium">{label}</span>
+                      {isWarned && (
+                        <span className="text-[10px]" title={label + " critical"}>
+                          {warn.emoji}
+                        </span>
+                      )}
+                    </span>
                     <span className="flex items-center gap-1.5">
                       <span className="text-muted">{start.toFixed(2)}</span>
                       <span className="text-muted">
@@ -659,11 +666,6 @@ export default function ResolutionView({
                       <span className="text-paper font-bold">
                         → {end.toFixed(2)}
                       </span>
-                      {isWarned && (
-                        <span className="text-[10px]" title={label + " critical"}>
-                          {warn.emoji}
-                        </span>
-                      )}
                     </span>
                   </div>
                   <div className="h-2.5 bg-background rounded-full overflow-hidden">
