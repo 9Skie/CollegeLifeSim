@@ -595,14 +595,14 @@ export default function ResolutionView({
             if (warns.length === 0) return null;
             return (
               <div
-                className={`transition-all duration-500 ${
+                className={`rounded-xl border border-card-border bg-card p-4 transition-all duration-500 ${
                   showStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
                 }`}
               >
-                <p className="text-[10px] uppercase tracking-widest text-accent mb-1.5">
+                <p className="text-[10px] uppercase tracking-widest text-accent mb-2">
                   Warnings −{penalty.toFixed(1)} Wellbeing
                 </p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="flex flex-wrap gap-1.5">
                   {warns.map((w) => (
                     <span
                       key={w.label}
