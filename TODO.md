@@ -1,32 +1,33 @@
 # College Life Sim — What's Missing / TODO
 
-> Last updated: 2026-04-28
+> Last updated: 2026-05-02
 
 ---
 
-## 🔴 CRITICAL — Game Balance is Wrong
+## 🔴 CRITICAL — Game Balance / Backend Truth
 
-
-- [ ] **No true randomness** — everything is hash-based deterministic. Outcome rolls, events, class schedules, dummy actions all use `hashString()`. Design calls for actual RNG.
-
+- [ ] **No true randomness** — Outcome rolls, events, class schedules, dummy actions all use `hashString()`. Design calls for actual RNG (`Math.random()` server-side, seeded per-room).
 - [ ] **Broke penalty missing** — Design says Money clamped at 0 → extra Wellbeing −1.5. Code clamps but never applies the penalty.
-
-- [ ] **Homework quota tracker is UI-only** — 4 Studies/week goal is shown but the end-of-week penalty is never applied in resolution.
+- [ ] **Homework quota tracker** — 4 Studies/week goal is UI-only. The end-of-week penalty is never applied in resolution.
 
 ---
 
 ## 🟠 MAJOR SYSTEMS — Stubbed or Missing
 
-### Traits (44 defined, ~half do nothing)
-- [ ] **Resilient** — "First time Wellbeing hits 0, set to 1" (no code)
+### Traits (~20 of 25 have code hooks; rest are flavor-only)
+- [ ] **Resilient** — "First time Wellbeing hits 0, set to 1 instead" (no elimination-save hook)
 - [ ] **Connected** — "Start with 1 free event code" (no code-dealing system)
 - [ ] **Loose Lips** — "Codes auto-leak" (no code-dealing system)
-- [ ] **Hot-Headed** — "Mismatched actions cost relationship progress" (no relationship progress)
+- [ ] **Hot-Headed** — "Mismatched actions cost relationship progress" (no relationship progress system)
 - [ ] **Heartbreaker** — "Cannot reach Relationship Lvl 3" (no relationship levels)
 - [ ] **Forgetful** — "1 class per week auto-skipped" (no auto-skip logic)
 - [ ] **Phone Addict** — "Wildcard never pulls positive" (no wildcard deck)
 - [ ] **Burnout-Prone** — "Studying 2 days in a row → Wellbeing −1" (no consecutive-day tracking)
-- [ ] Many others have flavor text but no resolution hook.
+- [ ] **Influencer** — "At Social ≥ 7, gain +0.25 Social passive each day" (no daily passive hook)
+- [ ] **Optimist** — "Wellbeing decay −0.25 instead of −0.75" (hardcoded decay; no trait hook)
+- [ ] **Self Care** — "Rest and Sleep give +0.25 extra Wellbeing" (hardcoded rest/sleep values)
+- [ ] **Professor's Favorite** — "Class gives +0.25 extra Social" (hardcoded class values)
+- [ ] **Coupon Clipper** — "Free Socialize uses Coffee-tier effect" (no tier-swap logic)
 
 ### Relationships
 - [ ] **Completely mocked** — `DayView.tsx` generates fake `relationships` from `hashString(name + roomCode) % 4`. No `relationships` table is ever queried or updated.
@@ -60,17 +61,27 @@
 
 ---
 
-## 🟢 UI / POLISH
+## 🟢 UI / POLISH — Frontend
 
-- [ ] **Day preview doesn't match server** — `DayView.tsx`'s `calculateDayGains` re-implements math client-side. It ignores traits, public events, relationships, outcome multipliers, and warning penalties. Players see wrong projections.
-- [ ] **60-second timer is cosmetic** — Counts down but does nothing at 0. No auto-submit.
 - [ ] **Exam day hardcoded to wrong days** — Design: Day 14 (Week 2 Friday) and Day 21 (Week 3 Friday). Code: Day 12 and Day 19.
 - [ ] **Exam mechanics wrong** — Design uses outcome roll with Effective Exam Wellbeing = (Academics + Wellbeing) / 2. Code uses simple threshold scoring with no roll.
-- [ ] **ExamView wellbeing change is hardcoded** — Shows `+1.00` in UI regardless of actual `wellbeingChange`.
-- [ ] **Player stat popups show mock data** — When real stats missing, generates fake numbers from `name.charCodeAt()`.
 - [ ] **Daily highlights are placeholder** — `generateDailyHighlights()` uses a tiny hardcoded pool. Design's ~300-line flavor pool doesn't exist.
-- [ ] **Spectator mode for eliminated players** — They see "You're Out" but the full UI still renders. Should be a passive watch view.
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
+- [ ] **Calendar does not highlight class days** — Visual schedule exists but class days aren't marked.
+
+### ✅ UI — Recently Fixed
+- [x] Day preview disclaimer added ("Preview only — actual results depend on traits, events, wildcard rolls, and outcome multipliers")
+- [x] ExamView wellbeing change is dynamic (was hardcoded `+1.00`)
+- [x] Player stat popups use real server data (removed `mockStats` fallback)
+- [x] Spectator mode built and wired (`SpectatorView` + polling logic)
+- [x] Score multiplier labels in CharacterSetup and DayView info popups
+- [x] Other players see stat buckets instead of exact scores
+- [x] Trait compatibility rules expanded (20+ incompatible pairs)
+- [x] ResolutionView warnings card with emoji boxes
+- [x] Discrete bar widths for other players' stat buckets
+- [x] "Goner" → "Spectator" label everywhere
+- [x] Auto-fill warning banner in ResolutionView
+- [x] ExamView animation runs once only; vertical list layout
 
 ---
 
@@ -94,3 +105,12 @@
 - [x] Exam day system (midterm + finals)
 - [x] Ditched penalty for unreciprocated socialize
 - [x] Repetition decay display in ResolutionView
+- [x] Server-side setup rolls (major, traits, class schedule assigned by backend)
+- [x] Auto-fill on timeout — missing day actions auto-generated, flagged with `autoFilled`
+- [x] Spectator mode for eliminated players
+- [x] Score multiplier / trait effect labels in setup + day view
+- [x] Other players' stats shown as buckets (Empty/Low/Average/High) not exact numbers
+- [x] Trait compatibility rules prevent illogical pairings
+- [x] ResolutionView warnings card (stat warnings + drowsy + wellbeing penalty)
+- [x] DayView warnings with emoji tags + preview quantize to 0.25
+- [x] ExamView animation deduped; vertical list instead of grid
