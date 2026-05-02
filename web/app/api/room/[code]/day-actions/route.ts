@@ -6,9 +6,9 @@ import {
   isSelectionRecord,
   type SelectionRecord,
 } from "@/utils/day-actions";
-import { resolveDayForRoom } from "@/utils/day-resolution";
+import { getDummyBehavior, getDummySelection, isDebugRoomCode } from "@/utils/debug-room";
+import { ensureDayPhaseResolved } from "@/utils/day-phase";
 import { loadRoomDayState } from "@/utils/room-day-state";
-import { getDummyBehavior, getDummySelection } from "@/app/room/[code]/dummyPlayers";
 
 const ALLOWED_ACTIONS = new Set([
   "class",
@@ -24,6 +24,7 @@ const ALLOWED_ACTIONS = new Set([
 type RoomPlayer = {
   id: string;
   name: string;
+  major?: string | null;
   pos_trait?: string | null;
   neg_trait?: string | null;
   academics?: number | string | null;
@@ -62,7 +63,7 @@ export async function POST(
 
     const { data: room, error: roomError } = await supabase
       .from("rooms")
-      .select("code, current_day, current_phase, status")
+      .select("code, current_day, current_phase, status, updated_at")
       .eq("code", code)
       .single();
 
@@ -77,7 +78,7 @@ export async function POST(
     const { data: players, error: playersError } = await supabase
       .from("players")
       .select(
-        "id, name, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated"
+        "id, name, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated"
       )
       .eq("room_code", code);
 
@@ -86,6 +87,32 @@ export async function POST(
     }
 
     const roomPlayers = players as RoomPlayer[];
+
+    const preSubmitResolution = await ensureDayPhaseResolved({
+      supabase,
+      room,
+      players: roomPlayers,
+      playerId,
+    });
+
+    if (preSubmitResolution.room.current_phase !== "day") {
+      const resolvedDayState = await loadRoomDayState(
+        supabase,
+        code,
+        preSubmitResolution.room.current_day,
+        preSubmitResolution.room.current_phase,
+        preSubmitResolution.room.updated_at,
+        preSubmitResolution.players,
+        playerId
+      );
+
+      return NextResponse.json({
+        room: preSubmitResolution.room,
+        dayState: resolvedDayState,
+        currentResolution: preSubmitResolution.currentResolution,
+      });
+    }
+
     const submittingPlayer = roomPlayers.find((player) => player.id === playerId);
 
     if (!submittingPlayer) {
@@ -133,7 +160,9 @@ export async function POST(
       };
     });
 
-    const dummyRows = roomPlayers.flatMap((player) => {
+    const dummyRows = !isDebugRoomCode(code)
+      ? []
+      : roomPlayers.flatMap((player) => {
       if (player.id === playerId || player.eliminated || !getDummyBehavior(player.name)) {
         return [];
       }
@@ -174,99 +203,34 @@ export async function POST(
       supabase,
       code,
       room.current_day,
+      room.current_phase,
+      room.updated_at,
       roomPlayers,
       playerId
     );
 
-    let updatedRoom = room;
-    let currentResolution = null;
+    const ensuredDay = await ensureDayPhaseResolved({
+      supabase,
+      room,
+      players: roomPlayers,
+      playerId,
+    });
 
-    if (dayState.allActivePlayersSubmitted && room.current_phase === "day") {
-      const { data: resolvedRows, error: resolvedRowsError } = await supabase
-        .from("day_actions")
-        .select("id, player_id, slot, action, target_id, money_spent")
-        .eq("room_code", code)
-        .eq("day", room.current_day);
+    const updatedDayState = await loadRoomDayState(
+      supabase,
+      code,
+      ensuredDay.room.current_day,
+      ensuredDay.room.current_phase,
+      ensuredDay.room.updated_at,
+      ensuredDay.players,
+      playerId
+    );
 
-      if (resolvedRowsError || !resolvedRows) {
-        return NextResponse.json({ error: "Failed to load submitted actions" }, { status: 500 });
-      }
-
-      const currentWeek = Math.floor((room.current_day - 1) / 7) + 1;
-      const weekStartDay = (currentWeek - 1) * 7 + 1;
-
-      const { data: weeklyActionHistory, error: weeklyHistoryError } = await supabase
-        .from("day_actions")
-        .select("player_id, action, day, slot")
-        .eq("room_code", code)
-        .gte("day", weekStartDay)
-        .lt("day", room.current_day);
-
-      if (weeklyHistoryError) {
-        return NextResponse.json({ error: "Failed to load weekly action history" }, { status: 500 });
-      }
-
-      const resolvedDay = resolveDayForRoom({
-        roomCode: code,
-        currentDay: room.current_day,
-        players: roomPlayers,
-        dayActions: resolvedRows,
-        weeklyActionHistory: weeklyActionHistory || [],
-      });
-
-      const { error: actionResolveError } = await supabase
-        .from("day_actions")
-        .upsert(resolvedDay.resolvedActionRows, {
-          onConflict: "room_code,day,slot,player_id",
-        });
-
-      if (actionResolveError) {
-        return NextResponse.json({ error: "Failed to resolve day actions" }, { status: 500 });
-      }
-
-      const { error: resolutionError } = await supabase
-        .from("resolutions")
-        .upsert(resolvedDay.resolutions, { onConflict: "room_code,day,player_id" });
-
-      if (resolutionError) {
-        return NextResponse.json({ error: "Failed to store resolutions" }, { status: 500 });
-      }
-
-      for (const playerUpdate of resolvedDay.playerUpdates) {
-        const { error: playerUpdateError } = await supabase
-          .from("players")
-          .update({
-            academics: playerUpdate.academics,
-            social: playerUpdate.social,
-            wellbeing: playerUpdate.wellbeing,
-            money: playerUpdate.money,
-            eliminated: playerUpdate.eliminated,
-          })
-          .eq("id", playerUpdate.playerId)
-          .eq("room_code", code);
-
-        if (playerUpdateError) {
-          return NextResponse.json({ error: "Failed to update player stats" }, { status: 500 });
-        }
-      }
-
-      const { data: resolutionRoom, error: updateError } = await supabase
-        .from("rooms")
-        .update({ current_phase: "resolution", status: "resolution" })
-        .eq("code", code)
-        .select("code, current_day, current_phase, status")
-        .single();
-
-      if (updateError || !resolutionRoom) {
-        return NextResponse.json({ error: "Failed to advance room" }, { status: 500 });
-      }
-
-      updatedRoom = resolutionRoom;
-      currentResolution =
-        resolvedDay.resolutions.find((resolution) => resolution.player_id === playerId) ?? null;
-    }
-
-    return NextResponse.json({ room: updatedRoom, dayState, currentResolution });
+    return NextResponse.json({
+      room: ensuredDay.room,
+      dayState: updatedDayState,
+      currentResolution: ensuredDay.currentResolution,
+    });
   } catch (err) {
     console.error("POST /api/room/[code]/day-actions error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

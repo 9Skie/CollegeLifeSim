@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { ensureDayPhaseResolved } from "@/utils/day-phase";
 import { loadRoomDayState } from "@/utils/room-day-state";
 
 const ALLOWED_PHASES = new Set([
@@ -52,29 +53,62 @@ export async function GET(
       return NextResponse.json({ error: "Failed to load players" }, { status: 500 });
     }
 
+    const ensuredDay = await ensureDayPhaseResolved({
+      supabase,
+      room,
+      players: (players || []) as Array<{
+        id: string;
+        name: string;
+        major?: string | null;
+        pos_trait?: string | null;
+        neg_trait?: string | null;
+        academics?: number | string | null;
+        social?: number | string | null;
+        wellbeing?: number | string | null;
+        money?: number | string | null;
+        class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }> | null;
+        eliminated: boolean;
+      }>,
+      playerId,
+    });
+    const effectiveRoom = ensuredDay.room;
+    const effectivePlayers = ensuredDay.players;
+
     const dayState = await loadRoomDayState(
       supabase,
       code,
-      room.current_day,
-      players || [],
+      effectiveRoom.current_day,
+      effectiveRoom.current_phase,
+      effectiveRoom.updated_at,
+      effectivePlayers,
       playerId
     );
 
-    let currentResolution = null;
+    let currentResolution = ensuredDay.currentResolution;
+    let allResolutions = ensuredDay.allResolutions;
 
-    if (playerId && room.current_phase === "resolution") {
-      const { data: resolution } = await supabase
+    if (effectiveRoom.current_phase === "resolution" && !allResolutions) {
+      const { data: allRes } = await supabase
         .from("resolutions")
         .select("room_code, day, player_id, old_stats, new_stats, changes, highlights")
         .eq("room_code", code)
-        .eq("day", room.current_day)
-        .eq("player_id", playerId)
-        .maybeSingle();
+        .eq("day", effectiveRoom.current_day);
 
-      currentResolution = resolution || null;
+      allResolutions = allRes || [];
+
+      if (playerId) {
+        currentResolution =
+          allResolutions.find((r: { player_id: string }) => r.player_id === playerId) || null;
+      }
     }
 
-    return NextResponse.json({ room, players: players || [], dayState, currentResolution });
+    return NextResponse.json({
+      room: effectiveRoom,
+      players: effectivePlayers,
+      dayState,
+      currentResolution,
+      allResolutions,
+    });
   } catch (err) {
     console.error("GET /api/room/[code] error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -138,7 +172,7 @@ export async function PATCH(
 
     const { data: updatedRoom, error: updateError } = await supabase
       .from("rooms")
-      .update(updates)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("code", code)
       .select("*")
       .single();

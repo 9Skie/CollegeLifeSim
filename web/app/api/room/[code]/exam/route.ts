@@ -77,6 +77,7 @@ export async function POST(
       .update({
         current_phase: nextPhase,
         status: nextStatus,
+        updated_at: new Date().toISOString(),
         ...(isFinal ? {} : { current_day: nextDay }),
       })
       .eq("code", code)

@@ -6,9 +6,26 @@ import {
   type DaySubmissionStatus,
   type SelectionRecord,
 } from "@/utils/day-actions";
+import {
+  buildDayPlanningContext,
+  type DayPlanningContext,
+} from "@/utils/day-planning";
+import {
+  getDayDeadlineAt,
+  getDaySecondsRemaining,
+  isDayExpired,
+} from "@/utils/day-timing";
 
 type RoomPlayerForDayState = {
   id: string;
+  name: string;
+  major?: string | null;
+  pos_trait?: string | null;
+  neg_trait?: string | null;
+  academics?: number | string | null;
+  social?: number | string | null;
+  wellbeing?: number | string | null;
+  money?: number | string | null;
   eliminated?: boolean | null;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }> | null;
 };
@@ -28,12 +45,16 @@ export type PlayerDayStatus = {
 
 export type RoomDayState = {
   currentDay: number;
+  dayDeadlineAt: string | null;
+  daySecondsRemaining: number | null;
+  dayTimedOut: boolean;
   activePlayerCount: number;
   submittedPlayerCount: number;
   allActivePlayersSubmitted: boolean;
   playerStatuses: PlayerDayStatus[];
   myStatus: DaySubmissionStatus | null;
   mySelections: SelectionRecord;
+  myDayContext: DayPlanningContext | null;
   myWeeklyProgress: {
     currentWeek: number;
     weekStartDay: number;
@@ -49,6 +70,8 @@ export async function loadRoomDayState(
   supabase: SupabaseClient,
   code: string,
   currentDay: number,
+  currentPhase: string,
+  roomUpdatedAt: string | null | undefined,
   players: RoomPlayerForDayState[],
   playerId?: string | null
 ): Promise<RoomDayState> {
@@ -92,6 +115,14 @@ export async function loadRoomDayState(
         dayActions.filter((row) => row.player_id === playerId)
       )
     : createEmptySelectionRecord();
+  const myDayContext = playerId
+    ? buildDayPlanningContext({
+        roomCode: code,
+        currentDay,
+        players,
+        playerId,
+      })
+    : null;
 
   let myWeeklyProgress = null;
 
@@ -130,6 +161,10 @@ export async function loadRoomDayState(
 
   return {
     currentDay,
+    dayDeadlineAt: currentPhase === "day" ? getDayDeadlineAt(roomUpdatedAt) : null,
+    daySecondsRemaining:
+      currentPhase === "day" ? getDaySecondsRemaining(roomUpdatedAt) : null,
+    dayTimedOut: currentPhase === "day" ? isDayExpired(roomUpdatedAt) : false,
     activePlayerCount,
     submittedPlayerCount,
     allActivePlayersSubmitted:
@@ -137,6 +172,7 @@ export async function loadRoomDayState(
     playerStatuses,
     myStatus,
     mySelections,
+    myDayContext,
     myWeeklyProgress,
   };
 }

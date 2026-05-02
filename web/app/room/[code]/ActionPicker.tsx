@@ -90,6 +90,7 @@ export default function ActionPicker({
   hasClass,
   workAvailable,
   players,
+  currentPlayerId,
   heldCodes,
   usedWildcard,
   currentSelection,
@@ -101,6 +102,7 @@ export default function ActionPicker({
   hasClass: boolean;
   workAvailable: boolean;
   players: Array<{ id: string; name: string; eliminated?: boolean }>;
+  currentPlayerId: string | null;
   heldCodes: Array<{ code: string; name: string }>;
   usedWildcard: boolean;
   currentSelection: Selection | null;
@@ -108,12 +110,7 @@ export default function ActionPicker({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  const myName =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cls.name") || "You"
-      : "You";
-
-  const otherPlayers = players.filter((p) => p.name !== myName && !p.eliminated);
+  const otherPlayers = players.filter((player) => player.id !== currentPlayerId && !player.eliminated);
 
   const actions = getActions(slot, hasClass, workAvailable);
 

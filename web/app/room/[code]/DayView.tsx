@@ -17,6 +17,7 @@ import {
   type SelectionRecord,
 } from "@/utils/day-actions";
 import type { RoomDayState } from "@/utils/room-day-state";
+import { DAY_DURATION_SECONDS } from "@/utils/day-timing";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -235,8 +236,10 @@ function calculateDayGains(
       case "socialize": {
         const spend = sel.spend || 0;
         if (spend === 2) {
+          gain.social += 1.5 * decay;
           gain.money -= 0.5 * decay;
         } else if (spend === 1) {
+          gain.social += 1.25 * decay;
           gain.money -= 0.25 * decay;
         } else {
           gain.social += 1 * decay;
@@ -351,7 +354,7 @@ export default function DayView({
   /* ---- state ------------------------------------------------------- */
   const [selections, setSelections] = useState<SelectionRecord>(initialSelections);
   const [pickingSlot, setPickingSlot] = useState<DaySlot | null>(null);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(dayState?.daySecondsRemaining ?? DAY_DURATION_SECONDS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [statsPopup, setStatsPopup] = useState<{ player: Player; rect: DOMRect } | null>(null);
@@ -367,13 +370,29 @@ export default function DayView({
     dayState?.myStatus ?? (currentPlayer?.eliminated ? "goner" : null);
   const isCurrentPlayerGoner = currentPlayerStatus === "goner";
   const hasSubmitted = currentPlayerStatus === "done";
-  const submissionLocked = hasSubmitted || isCurrentPlayerGoner || isSubmitting;
+  const timedOut = dayState?.dayTimedOut === true || timer <= 0;
+  const submissionLocked = hasSubmitted || isCurrentPlayerGoner || isSubmitting || timedOut;
 
   useEffect(() => {
-    if (submissionLocked || timer <= 0) return;
-    const t = setInterval(() => setTimer((v) => v - 1), 1000);
+    setTimer(dayState?.daySecondsRemaining ?? DAY_DURATION_SECONDS);
+  }, [currentDay, dayState?.dayDeadlineAt, dayState?.daySecondsRemaining]);
+
+  useEffect(() => {
+    const deadlineAt = dayState?.dayDeadlineAt;
+    if (submissionLocked || !deadlineAt) return;
+
+    const syncTimer = () => {
+      const remainingSeconds = Math.max(
+        0,
+        Math.ceil((Date.parse(deadlineAt) - Date.now()) / 1000)
+      );
+      setTimer(remainingSeconds);
+    };
+
+    syncTimer();
+    const t = setInterval(syncTimer, 1000);
     return () => clearInterval(t);
-  }, [submissionLocked, timer]);
+  }, [dayState?.dayDeadlineAt, submissionLocked]);
 
   useEffect(() => {
     if (hasSubmitted || isCurrentPlayerGoner) {
@@ -489,6 +508,11 @@ export default function DayView({
   const closePicker = () => setPickingSlot(null);
 
   const handleSubmit = async () => {
+    if (timedOut) {
+      setSubmitError("Time is up. Missing actions will be randomized by the server.");
+      return;
+    }
+
     setSubmitError(null);
     setIsSubmitting(true);
 
@@ -628,6 +652,14 @@ export default function DayView({
               );
             })}
           </div>
+
+          {/* Preview disclaimer */}
+          {allFilled && (
+            <p className="mt-3 text-[11px] text-muted leading-relaxed">
+              <span className="text-accent-soft font-semibold">Preview only</span> —
+              actual results depend on traits, events, wildcard rolls, and outcome multipliers.
+            </p>
+          )}
 
           {/* Warnings — full tags, only when needed */}
           {(() => {
@@ -834,7 +866,7 @@ export default function DayView({
                             isGoner ? "text-muted" : p.status === "thinking" ? "text-accent-soft" : "text-green-400"
                           }`}
                         >
-                          {isGoner ? "Goner" : p.status === "thinking" ? "Thinking…" : "Done"}
+                          {isGoner ? "Spectating" : p.status === "thinking" ? "Thinking…" : "Done"}
                         </span>
                       </div>
                     </button>
@@ -942,8 +974,13 @@ export default function DayView({
             )}
             {hasSubmitted && !dayState?.allActivePlayersSubmitted && (
               <p className="mt-2 text-center text-xs text-muted">
-                {dayState?.submittedPlayerCount ?? 0} / {dayState?.activePlayerCount ?? 0} active
-                players submitted
+              {dayState?.submittedPlayerCount ?? 0} / {dayState?.activePlayerCount ?? 0} active
+              players submitted
+            </p>
+          )}
+            {timedOut && !hasSubmitted && (
+              <p className="mt-2 text-center text-xs text-accent">
+                Time&apos;s up. The server will assign random actions for missing slots.
               </p>
             )}
           </div>
@@ -969,6 +1006,7 @@ export default function DayView({
               : workAvailability.night
           }
           players={players}
+          currentPlayerId={currentPlayer?.id ?? null}
           heldCodes={privateEvents.map((e) => ({ code: e.code, name: e.name }))}
           usedWildcard={usedWildcardToday}
           currentSelection={selections[pickingSlot]}

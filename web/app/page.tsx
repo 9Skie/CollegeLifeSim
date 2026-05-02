@@ -86,39 +86,16 @@ export default function HomePage() {
     setError(null);
 
     try {
-      // 1. Create room with code TEST
       const createRes = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, code: "TEST" }),
+        body: JSON.stringify({ name: trimmed, code: "TEST", debugRoom: true }),
       });
       const createData = await createRes.json();
       if (!createRes.ok) {
         return setError(createData.error || "Failed to create room");
       }
 
-      // 2. Add dummy players
-      const dummies = [
-        { name: "Maya" },
-        { name: "Quinn" },
-        { name: "Riley" },
-        { name: "Greg", eliminated: true, wellbeing: 0 },
-      ];
-      for (const dummy of dummies) {
-        const joinRes = await fetch("/api/room/TEST/join", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dummy),
-        });
-        if (!joinRes.ok) {
-          const joinData = await joinRes.json().catch(() => ({}));
-          console.error(`Failed to add ${dummy.name}:`, joinData.error || joinRes.status);
-        }
-        // Small delay to avoid race conditions
-        await new Promise((r) => setTimeout(r, 100));
-      }
-
-      // 3. Save and redirect
       if (typeof window !== "undefined") {
         localStorage.setItem("cls.name", trimmed);
         localStorage.setItem("cls.role", "host");
