@@ -564,7 +564,7 @@ export default function RoomPage() {
                         )}
                       </p>
                       {isGoner && (
-                        <p className="text-[10px] text-muted">Goner</p>
+                        <p className="text-[10px] text-muted">Spectator</p>
                       )}
                     </div>
                     {player.id === hostId && !isGoner && (
