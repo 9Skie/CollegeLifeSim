@@ -169,10 +169,6 @@ export default function ActionPicker({
           </button>
         </div>
 
-        {/* Class skip warning */}
-        {skippingClass && (
-        )}
-
         <div className="grid grid-cols-2 gap-3 mb-5">
           {actions.map((action) => {
             const selected = draft?.actionId === action.id;
