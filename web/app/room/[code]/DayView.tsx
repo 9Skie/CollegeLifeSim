@@ -669,7 +669,7 @@ export default function DayView({
           {/* Preview disclaimer */}
           {allFilled && (
             <p className="mt-3 text-[11px] text-muted leading-relaxed">
-              Preview only — no RNG
+              preview only — no rng included
             </p>
           )}
 
@@ -748,7 +748,7 @@ export default function DayView({
                     </div>
                     {classPenalty > 0 && (
                       <p className="text-[10px] text-accent">
-                        End-of-week penalty: <span className="font-bold">−{classPenalty.toFixed(1)} Academics</span>
+                        End-of-week penalty: −{classPenalty.toFixed(1)} Academics
                       </p>
                     )}
                   </div>
@@ -767,7 +767,7 @@ export default function DayView({
                     </div>
                     {studyPenalty > 0 && (
                       <p className="text-[10px] text-accent">
-                        End-of-week penalty: <span className="font-bold">−{studyPenalty.toFixed(1)} Academics</span>
+                        End-of-week penalty: −{studyPenalty.toFixed(1)} Academics
                       </p>
                     )}
                   </div>

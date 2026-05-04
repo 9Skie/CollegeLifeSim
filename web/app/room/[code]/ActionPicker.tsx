@@ -171,11 +171,6 @@ export default function ActionPicker({
 
         {/* Class skip warning */}
         {skippingClass && (
-          <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20 text-sm text-paper">
-            <span className="text-accent mr-1">⚠️</span>
-            You have class this slot. Choosing another action counts as skipping
-            <span className="text-accent font-semibold"> (-0.5 Academics)</span>.
-          </div>
         )}
 
         <div className="grid grid-cols-2 gap-3 mb-5">

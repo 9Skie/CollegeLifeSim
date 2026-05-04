@@ -597,7 +597,7 @@ export default function ResolutionView({
                 selections[slot]?.actionId === "sleep"
             );
             if (!hadRestOrSleep) warns.push({ label: "Drowsy", emoji: "🥱" });
-            const penalty = warns.filter((w) => w.label !== "Drowsy").length * 1.5;
+            const penalty = warns.length * 1.5;
             if (warns.length === 0) return null;
             return (
               <div
@@ -606,9 +606,7 @@ export default function ResolutionView({
                 }`}
               >
                 <p className="text-[10px] uppercase tracking-widest text-accent mb-2">
-                  {penalty > 0
-                    ? `Warnings −${penalty.toFixed(1)} Wellbeing`
-                    : "Drowsy"}
+                  Warnings −{penalty.toFixed(1)} Wellbeing
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {warns.map((w) => (
