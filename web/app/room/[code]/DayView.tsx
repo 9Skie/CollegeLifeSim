@@ -1175,19 +1175,28 @@ function PlayerStatsPopup({
       ? "Friend"
       : "Soul Mate";
 
-  const nextThreshold =
+  const tierPrev =
+    relationship === null || relationship.level === 0
+      ? 0
+      : relationship.level === 1
+      ? 1
+      : relationship.level === 2
+      ? 3
+      : null;
+  const tierNext =
     relationship === null || relationship.level === 0
       ? 1
       : relationship.level === 1
-      ? 3
+      ? 2
       : relationship.level === 2
-      ? 6
+      ? 3
       : null;
 
   const currentProgress = relationship?.progress ?? 0;
+  const doneInTier = tierPrev !== null ? currentProgress - tierPrev : 0;
   const relProgressPct =
-    nextThreshold !== null && nextThreshold > 0
-      ? Math.min(100, (currentProgress / nextThreshold) * 100)
+    tierNext !== null && tierNext > 0
+      ? Math.min(100, (doneInTier / tierNext) * 100)
       : 100;
 
   return (
@@ -1272,7 +1281,7 @@ function PlayerStatsPopup({
             <p className="text-xs font-bold text-paper mb-1">
               Lv {relationship?.level ?? 0} - {relWord}
             </p>
-            {nextThreshold !== null ? (
+            {tierNext !== null ? (
               <>
                 <div className="h-1.5 bg-background rounded-full overflow-hidden mb-1">
                   <div
@@ -1281,7 +1290,7 @@ function PlayerStatsPopup({
                   />
                 </div>
                 <p className="text-[10px] text-muted">
-                  {currentProgress}/{nextThreshold} socializing together
+                  {doneInTier}/{tierNext} socializing together
                 </p>
               </>
             ) : (
