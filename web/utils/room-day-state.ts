@@ -15,6 +15,7 @@ import {
   getDaySecondsRemaining,
   isDayExpired,
 } from "@/utils/day-timing";
+import type { RelationshipRow } from "@/utils/relationships";
 
 type RoomPlayerForDayState = {
   id: string;
@@ -115,12 +116,23 @@ export async function loadRoomDayState(
         dayActions.filter((row) => row.player_id === playerId)
       )
     : createEmptySelectionRecord();
+
+  const { data: relationshipRows, error: relationshipError } = await supabase
+    .from("relationships")
+    .select("room_code, player_a, player_b, level, progress")
+    .eq("room_code", code);
+
+  if (relationshipError) {
+    throw relationshipError;
+  }
+
   const myDayContext = playerId
     ? buildDayPlanningContext({
         roomCode: code,
         currentDay,
         players,
         playerId,
+        relationshipRows: (relationshipRows || []) as RelationshipRow[],
       })
     : null;
 

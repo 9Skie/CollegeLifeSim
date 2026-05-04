@@ -3,6 +3,14 @@ import {
   buildSelectionRecordFromRows,
   type DaySlot,
 } from "@/utils/day-actions";
+import {
+  getRelationshipBonusAmount,
+  getRelationshipKey,
+  getRelationshipLevel,
+  normalizeRelationshipPair,
+  pickRelationshipBonusStat,
+  type RelationshipRow,
+} from "@/utils/relationships";
 
 export type Stats = {
   academics: number;
@@ -579,6 +587,7 @@ export function resolveDayForRoom({
   players,
   dayActions,
   weeklyActionHistory = [],
+  relationshipRows = [],
 }: {
   roomCode: string;
   currentDay: number;
@@ -590,9 +599,21 @@ export function resolveDayForRoom({
     day: number;
     slot: string;
   }>;
+  relationshipRows?: RelationshipRow[];
 }) {
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
+  const rawStatsByPlayer = new Map(
+    players.map((player) => [
+      player.id,
+      normalizeStats({
+        academics: toNumber(player.academics, 2),
+        social: toNumber(player.social, 2),
+        wellbeing: toNumber(player.wellbeing, 5),
+        money: toNumber(player.money, 2),
+      }),
+    ])
+  );
   const selectionsByPlayer = new Map(
     players.map((player) => [
       player.id,
@@ -639,6 +660,79 @@ export function resolveDayForRoom({
   }
 
   const anyoneSocializedToday = dayActions.some((row) => row.action === "socialize");
+  const relationshipState = new Map(
+    relationshipRows.map((row) => [
+      getRelationshipKey(row.player_a, row.player_b),
+      {
+        playerA: row.player_a,
+        playerB: row.player_b,
+        progress: row.progress,
+        level: getRelationshipLevel(row.progress),
+      },
+    ])
+  );
+  const changedRelationshipKeys = new Set<string>();
+  const relationshipBonusByPlayer = new Map<string, Stats>();
+
+  for (const slot of DAY_SLOTS) {
+    const slotRows = dayActions.filter(
+      (row) => row.slot === slot && row.action === "socialize" && row.target_id
+    );
+
+    for (const row of slotRows) {
+      if (!row.target_id || row.player_id >= row.target_id) {
+        continue;
+      }
+
+      const reciprocal = slotRows.find(
+        (candidate) =>
+          candidate.player_id === row.target_id && candidate.target_id === row.player_id
+      );
+
+      if (!reciprocal) {
+        continue;
+      }
+
+      const { playerA, playerB } = normalizeRelationshipPair(row.player_id, row.target_id);
+      const relationshipKey = getRelationshipKey(playerA, playerB);
+      const previousState = relationshipState.get(relationshipKey) ?? {
+        playerA,
+        playerB,
+        progress: 0,
+        level: 1,
+      };
+      const nextProgress = previousState.progress + 1;
+      const nextLevel = getRelationshipLevel(nextProgress);
+
+      relationshipState.set(relationshipKey, {
+        playerA,
+        playerB,
+        progress: nextProgress,
+        level: nextLevel,
+      });
+      changedRelationshipKeys.add(relationshipKey);
+
+      const bonusAmount = getRelationshipBonusAmount(nextLevel);
+      if (bonusAmount <= 0) {
+        continue;
+      }
+
+      for (const playerId of [playerA, playerB]) {
+        const existingBonus = relationshipBonusByPlayer.get(playerId) || emptyStats();
+        const rawStats = rawStatsByPlayer.get(playerId) || emptyStats();
+        const bonusStat = pickRelationshipBonusStat({
+          academics: rawStats.academics + existingBonus.academics,
+          wellbeing: rawStats.wellbeing + existingBonus.wellbeing,
+          money: rawStats.money + existingBonus.money,
+        });
+
+        relationshipBonusByPlayer.set(playerId, roundStats({
+          ...existingBonus,
+          [bonusStat]: existingBonus[bonusStat] + bonusAmount,
+        }));
+      }
+    }
+  }
 
   const resolutions: StoredResolution[] = [];
   const resolvedActionRows: Array<{
@@ -844,9 +938,12 @@ export function resolveDayForRoom({
     });
 
       const totalGain = roundStats(
-        slotResults.reduce(
-          (totals, slotResult) => addStats(totals, slotResult.finalGain),
-          emptyStats()
+        addStats(
+          slotResults.reduce(
+            (totals, slotResult) => addStats(totals, slotResult.finalGain),
+            emptyStats()
+          ),
+          relationshipBonusByPlayer.get(player.id) || emptyStats()
         )
       );
 
@@ -905,6 +1002,16 @@ export function resolveDayForRoom({
   return {
     resolutions,
     resolvedActionRows,
+    relationshipUpdates: Array.from(changedRelationshipKeys).map((relationshipKey) => {
+      const state = relationshipState.get(relationshipKey)!;
+      return {
+        room_code: roomCode,
+        player_a: state.playerA,
+        player_b: state.playerB,
+        progress: state.progress,
+        level: state.level,
+      };
+    }),
     playerUpdates: resolutions.map((resolution) => ({
       playerId: resolution.player_id,
       academics: resolution.new_stats.academics,

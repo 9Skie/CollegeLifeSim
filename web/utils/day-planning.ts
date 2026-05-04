@@ -1,3 +1,9 @@
+import {
+  getRelationshipKey,
+  getRelationshipLevel,
+  type RelationshipRow,
+} from "@/utils/relationships";
+
 export type DayPublicEvent = {
   name: string;
   flavor: string;
@@ -210,11 +216,13 @@ export function buildDayPlanningContext({
   currentDay,
   players,
   playerId,
+  relationshipRows = [],
 }: {
   roomCode: string;
   currentDay: number;
   players: DayPlanningPlayer[];
   playerId: string;
+  relationshipRows?: RelationshipRow[];
 }): DayPlanningContext | null {
   const currentPlayer = players.find((player) => player.id === playerId);
   if (!currentPlayer) {
@@ -239,6 +247,13 @@ export function buildDayPlanningContext({
     firstPrivateEvent.id === secondPrivateEvent.id
       ? [firstPrivateEvent]
       : [firstPrivateEvent, secondPrivateEvent];
+
+  const relationshipByKey = new Map(
+    relationshipRows.map((row) => [
+      getRelationshipKey(row.player_a, row.player_b),
+      getRelationshipLevel(row.progress),
+    ])
+  );
 
   return {
     character: {
@@ -272,7 +287,8 @@ export function buildDayPlanningContext({
       .map((player) => ({
         playerId: player.id,
         name: player.name,
-        level: hashString(`${roomCode}:${playerId}:${player.id}:relationship`) % 4,
+        level:
+          relationshipByKey.get(getRelationshipKey(playerId, player.id)) ?? 1,
       }))
       .sort((left, right) => right.level - left.level || left.name.localeCompare(right.name)),
   };

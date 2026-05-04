@@ -18,6 +18,7 @@ import {
 } from "@/utils/day-actions";
 import type { RoomDayState } from "@/utils/room-day-state";
 import { DAY_DURATION_SECONDS } from "@/utils/day-timing";
+import { getRelationshipBonusAmount } from "@/utils/relationships";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -342,15 +343,19 @@ export default function DayView({
       : [PRIVATE_EVENT_POOL[idx1], PRIVATE_EVENT_POOL[idx2]];
   }, [seed]);
 
+  const realRelationships = dayState?.myDayContext?.relationships ?? [];
   const relationships = useMemo<Relationship[]>(() => {
+    // Build full list: real data + level 0 for anyone missing
+    const byId = new Map(realRelationships.map((r) => [r.playerId, r]));
     return players
+      .filter((p) => p.id !== currentPlayer?.id)
       .map((p) => ({
         playerId: p.id,
         name: p.name,
-        level: hashString(p.name + roomCode) % 4,
+        level: byId.get(p.id)?.level ?? 0,
       }))
       .sort((a, b) => b.level - a.level);
-  }, [players, roomCode]);
+  }, [players, currentPlayer?.id, realRelationships]);
 
   /* ---- state ------------------------------------------------------- */
   const [selections, setSelections] = useState<SelectionRecord>(initialSelections);
@@ -783,20 +788,39 @@ export default function DayView({
             Relationships
           </p>
           <div className="space-y-2">
-            {relationships.slice(0, 3).map((r) => (
-              <div key={r.playerId} className="flex items-center gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                  style={{ backgroundColor: getAvatarColor(r.name) }}
-                >
-                  {getInitials(r.name)}
+            {relationships.map((r) => {
+              const bonus = getRelationshipBonusAmount(r.level);
+              const word =
+                r.level === 0
+                  ? "Stranger"
+                  : r.level === 1
+                  ? "Acquaintance"
+                  : r.level === 2
+                  ? "Friend"
+                  : "Close Friend";
+              return (
+                <div key={r.playerId} className="flex items-center gap-2">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ backgroundColor: getAvatarColor(r.name) }}
+                  >
+                    {getInitials(r.name)}
+                  </div>
+                  <span className="text-sm text-paper">{r.name}</span>
+                  <span
+                    className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      r.level === 0
+                        ? "bg-muted/20 text-muted"
+                        : "bg-accent-soft/10 text-accent-soft"
+                    }`}
+                    title={bonus > 0 ? `+${bonus} bonus when together` : "No bonus yet"}
+                  >
+                    {word}
+                    {bonus > 0 && ` +${bonus}`}
+                  </span>
                 </div>
-                <span className="text-sm text-paper">{r.name}</span>
-                <span className="ml-auto text-xs text-accent-soft font-bold">
-                  Lvl {r.level}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </aside>
@@ -1038,6 +1062,7 @@ export default function DayView({
           }
           players={players}
           currentPlayerId={currentPlayer?.id ?? null}
+          relationships={relationships}
           heldCodes={privateEvents.map((e) => ({ code: e.code, name: e.name }))}
           usedWildcard={usedWildcardToday}
           currentSelection={selections[pickingSlot]}

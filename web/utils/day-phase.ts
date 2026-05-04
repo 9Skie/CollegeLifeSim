@@ -6,6 +6,7 @@ import {
 } from "@/utils/day-actions";
 import type { StoredResolution } from "@/utils/day-resolution";
 import { resolveDayForRoom } from "@/utils/day-resolution";
+import type { RelationshipRow } from "@/utils/relationships";
 import { isDayExpired } from "@/utils/day-timing";
 
 type RoomRecord = {
@@ -239,6 +240,15 @@ export async function ensureDayPhaseResolved({
   }));
   const counts = new Map<string, number>();
 
+  const { data: relationshipRows, error: relationshipRowsError } = await supabase
+    .from("relationships")
+    .select("room_code, player_a, player_b, level, progress")
+    .eq("room_code", room.code);
+
+  if (relationshipRowsError) {
+    throw relationshipRowsError;
+  }
+
   for (const row of dayActions) {
     counts.set(row.player_id, (counts.get(row.player_id) || 0) + 1);
   }
@@ -310,6 +320,7 @@ export async function ensureDayPhaseResolved({
     players,
     dayActions,
     weeklyActionHistory: weeklyActionHistory || [],
+    relationshipRows: (relationshipRows || []) as RelationshipRow[],
   });
 
   resolvedDay.resolutions = resolvedDay.resolutions.map((resolution) => ({
@@ -336,6 +347,18 @@ export async function ensureDayPhaseResolved({
 
   if (resolutionError) {
     throw resolutionError;
+  }
+
+  if (resolvedDay.relationshipUpdates.length > 0) {
+    const { error: relationshipUpdateError } = await supabase
+      .from("relationships")
+      .upsert(resolvedDay.relationshipUpdates, {
+        onConflict: "room_code,player_a,player_b",
+      });
+
+    if (relationshipUpdateError) {
+      throw relationshipUpdateError;
+    }
   }
 
   for (const playerUpdate of resolvedDay.playerUpdates) {

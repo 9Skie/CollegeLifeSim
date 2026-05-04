@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Selection } from "@/utils/day-actions";
+import { getRelationshipBonusAmount } from "@/utils/relationships";
 
 export type { Selection } from "@/utils/day-actions";
 
@@ -91,6 +92,7 @@ export default function ActionPicker({
   workAvailable,
   players,
   currentPlayerId,
+  relationships,
   heldCodes,
   usedWildcard,
   currentSelection,
@@ -103,6 +105,7 @@ export default function ActionPicker({
   workAvailable: boolean;
   players: Array<{ id: string; name: string; eliminated?: boolean }>;
   currentPlayerId: string | null;
+  relationships: Array<{ playerId: string; name: string; level: number }>;
   heldCodes: Array<{ code: string; name: string }>;
   usedWildcard: boolean;
   currentSelection: Selection | null;
@@ -231,6 +234,17 @@ export default function ActionPicker({
                   <div className="flex flex-wrap gap-2">
                     {otherPlayers.map((p) => {
                       const selected = draft?.targetId === p.id;
+                      const rel = relationships.find((r) => r.playerId === p.id);
+                      const level = rel?.level ?? 0;
+                      const bonus = getRelationshipBonusAmount(level);
+                      const word =
+                        level === 0
+                          ? "Stranger"
+                          : level === 1
+                          ? "Acquaintance"
+                          : level === 2
+                          ? "Friend"
+                          : "Close Friend";
                       return (
                         <button
                           key={p.id}
@@ -241,7 +255,11 @@ export default function ActionPicker({
                               : "border-card-border text-muted hover:border-muted hover:text-paper"
                           }`}
                         >
-                          {p.name}
+                          <span className="block">{p.name}</span>
+                          <span className="block text-[10px] opacity-60 font-normal">
+                            {word}
+                            {bonus > 0 && ` · +${bonus}`}
+                          </span>
                         </button>
                       );
                     })}
