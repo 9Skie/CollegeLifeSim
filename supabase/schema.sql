@@ -52,29 +52,6 @@ CREATE TABLE IF NOT EXISTS wildcard_decks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Wildcard definitions (permanent catalog)
-CREATE TABLE IF NOT EXISTS wildcard_defs (
-  id TEXT PRIMARY KEY,
-  tier TEXT NOT NULL CHECK (
-    tier IN ('really_bad', 'bad', 'normal', 'good', 'really_good')
-  ),
-  type TEXT NOT NULL CHECK (
-    type IN ('stat', 'gimmick')
-  ),
-  title TEXT NOT NULL,
-  emoji TEXT NOT NULL,
-  description TEXT NOT NULL,
-  effect_summary TEXT NOT NULL,
-  duration TEXT NOT NULL CHECK (
-    duration IN ('immediate', 'next_action', 'next_day', 'next_two_actions', 'until_triggered', 'instant')
-  ),
-  target_stats JSONB NOT NULL DEFAULT '[]'::jsonb,
-  immediate JSONB NOT NULL DEFAULT '{}'::jsonb,
-  future JSONB,
-  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Public event definitions (permanent catalog)
 CREATE TABLE IF NOT EXISTS public_event_defs (
   id TEXT PRIMARY KEY,
@@ -133,6 +110,26 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Room public event selections (pre-generated at room creation)
+CREATE TABLE IF NOT EXISTS room_public_events (
+  room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+  day INTEGER NOT NULL,
+  public_event_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (room_code, day),
+  FOREIGN KEY (public_event_id) REFERENCES public_event_defs(id)
+);
+
+-- Room private event day selections (pre-generated at room creation)
+CREATE TABLE IF NOT EXISTS room_private_events (
+  room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+  day INTEGER NOT NULL,
+  private_event_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (room_code, day),
+  FOREIGN KEY (private_event_id) REFERENCES private_event_defs(id)
+);
+
 -- Resolutions table (day-end logs)
 CREATE TABLE IF NOT EXISTS resolutions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -158,11 +155,12 @@ ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wildcard_decks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wildcard_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public_event_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private_event_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE day_actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_public_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_private_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resolutions ENABLE ROW LEVEL SECURITY;
 
 -- Allow read access to all (game uses room code as auth)
@@ -170,11 +168,12 @@ CREATE POLICY "Allow read rooms" ON rooms FOR SELECT USING (true);
 CREATE POLICY "Allow read players" ON players FOR SELECT USING (true);
 CREATE POLICY "Allow read relationships" ON relationships FOR SELECT USING (true);
 CREATE POLICY "Allow read wildcard_decks" ON wildcard_decks FOR SELECT USING (true);
-CREATE POLICY "Allow read wildcard_defs" ON wildcard_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read public_event_defs" ON public_event_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read private_event_defs" ON private_event_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read day_actions" ON day_actions FOR SELECT USING (true);
 CREATE POLICY "Allow read events" ON events FOR SELECT USING (true);
+CREATE POLICY "Allow read room_public_events" ON room_public_events FOR SELECT USING (true);
+CREATE POLICY "Allow read room_private_events" ON room_private_events FOR SELECT USING (true);
 CREATE POLICY "Allow read resolutions" ON resolutions FOR SELECT USING (true);
 
 -- Allow insert/update for game operations (we'll use service role for mutations)
@@ -182,11 +181,12 @@ CREATE POLICY "Allow all rooms" ON rooms FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all players" ON players FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all relationships" ON relationships FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all wildcard_decks" ON wildcard_decks FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all wildcard_defs" ON wildcard_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all public_event_defs" ON public_event_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all private_event_defs" ON private_event_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all day_actions" ON day_actions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all events" ON events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all room_public_events" ON room_public_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all room_private_events" ON room_private_events FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all resolutions" ON resolutions FOR ALL USING (true) WITH CHECK (true);
 
 -- Enable Realtime for all tables
@@ -195,4 +195,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE players;
 ALTER PUBLICATION supabase_realtime ADD TABLE wildcard_decks;
 ALTER PUBLICATION supabase_realtime ADD TABLE day_actions;
 ALTER PUBLICATION supabase_realtime ADD TABLE events;
+ALTER PUBLICATION supabase_realtime ADD TABLE room_public_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE room_private_events;
 ALTER PUBLICATION supabase_realtime ADD TABLE resolutions;

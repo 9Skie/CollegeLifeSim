@@ -5,6 +5,7 @@ import {
   buildDebugDummyPlayers,
   isExplicitDebugRoom,
 } from "@/utils/debug-room";
+import { initializeRoomEventSelections } from "@/utils/event-selection";
 import { ensureWildcardDeckForRoom } from "@/utils/wildcard-deck";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
     }
 
     await ensureWildcardDeckForRoom({ supabase, roomCode: code });
+    await initializeRoomEventSelections({ supabase, roomCode: code });
 
     if (debugBootstrap) {
       const { error: dummyInsertError } = await supabase

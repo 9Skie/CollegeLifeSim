@@ -32,36 +32,47 @@ export async function ensureWildcardDeckForRoom({
 }: {
   supabase: SupabaseClient;
   roomCode: string;
-}) {
-  const { data: existingDeck, error: existingDeckError } = await supabase
-    .from("wildcard_decks")
-    .select("room_code")
-    .eq("room_code", roomCode)
-    .maybeSingle();
+}): Promise<{ room_code: string } | null> {
+  try {
+    const { data: existingDeck, error: existingDeckError } = await supabase
+      .from("wildcard_decks")
+      .select("room_code")
+      .eq("room_code", roomCode)
+      .maybeSingle();
 
-  if (existingDeckError) {
-    throw existingDeckError;
+    if (existingDeckError) {
+      console.warn("ensureWildcardDeckForRoom: query failed, table may not exist yet:", existingDeckError.message);
+      return null;
+    }
+
+    if (existingDeck) {
+      return existingDeck;
+    }
+
+    const { data: deck, error: deckError } = await supabase
+      .from("wildcard_decks")
+      .insert({
+        room_code: roomCode,
+        draw_pile: buildShuffledWildcardDeck(),
+        discard_pile: [],
+      })
+      .select("room_code")
+      .single();
+
+    if (deckError) {
+      console.warn("ensureWildcardDeckForRoom: insert failed, table may not exist yet:", deckError.message);
+      return null;
+    }
+
+    if (!deck) {
+      return null;
+    }
+
+    return deck;
+  } catch (err) {
+    console.warn("ensureWildcardDeckForRoom: unexpected error, table may not exist yet:", err instanceof Error ? err.message : err);
+    return null;
   }
-
-  if (existingDeck) {
-    return existingDeck;
-  }
-
-  const { data: deck, error: deckError } = await supabase
-    .from("wildcard_decks")
-    .insert({
-      room_code: roomCode,
-      draw_pile: buildShuffledWildcardDeck(),
-      discard_pile: [],
-    })
-    .select("room_code")
-    .single();
-
-  if (deckError || !deck) {
-    throw deckError || new Error("Failed to initialize wildcard deck");
-  }
-
-  return deck;
 }
 
 function normalizeDeckRow(row: {
