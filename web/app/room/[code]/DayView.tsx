@@ -671,11 +671,6 @@ export default function DayView({
             })}
           </div>
 
-          {/* Preview disclaimer */}
-          <p className="mt-3 text-[11px] text-muted leading-relaxed">
-            preview only — no rng included
-          </p>
-
           {/* Warnings — full tags, only when needed */}
           {(() => {
             const warns: { emoji: string; word: string }[] = [];
