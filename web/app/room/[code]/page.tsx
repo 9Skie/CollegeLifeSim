@@ -100,12 +100,6 @@ export default function RoomPage() {
     const storedId = localStorage.getItem("cls.playerId");
     if (storedId) setMyId(storedId);
 
-    // Clear storage on browser close / tab close
-    const handleBeforeUnload = () => {
-      clearGameStorage();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
     const fetchRoom = async () => {
       try {
         const activePlayerId = localStorage.getItem("cls.playerId") || storedId;
@@ -168,7 +162,6 @@ export default function RoomPage() {
     const interval = shouldPoll ? setInterval(fetchRoom, 3000) : null;
     return () => {
       if (interval) clearInterval(interval);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [code, currentDay, phase, isSpectator]);
 
