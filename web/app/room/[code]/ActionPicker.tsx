@@ -105,7 +105,7 @@ export default function ActionPicker({
   workAvailable: boolean;
   players: Array<{ id: string; name: string; eliminated?: boolean }>;
   currentPlayerId: string | null;
-  relationships: Array<{ playerId: string; name: string; level: number }>;
+  relationships: Array<{ playerId: string; name: string; level: number; progress?: number }>;
   heldCodes: Array<{ code: string; name: string }>;
   usedWildcard: boolean;
   currentSelection: Selection | null;

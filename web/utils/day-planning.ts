@@ -23,6 +23,7 @@ export type DayRelationship = {
   playerId: string;
   name: string;
   level: number;
+  progress: number;
 };
 
 export type DayPlanningContext = {
@@ -251,7 +252,7 @@ export function buildDayPlanningContext({
   const relationshipByKey = new Map(
     relationshipRows.map((row) => [
       getRelationshipKey(row.player_a, row.player_b),
-      getRelationshipLevel(row.progress),
+      { level: getRelationshipLevel(row.progress), progress: row.progress },
     ])
   );
 
@@ -284,12 +285,15 @@ export function buildDayPlanningContext({
     heldCodes: privateEvents.map((event) => ({ code: event.code, name: event.name })),
     relationships: players
       .filter((player) => player.id !== playerId)
-      .map((player) => ({
-        playerId: player.id,
-        name: player.name,
-        level:
-          relationshipByKey.get(getRelationshipKey(playerId, player.id)) ?? 1,
-      }))
+      .map((player) => {
+        const rel = relationshipByKey.get(getRelationshipKey(playerId, player.id));
+        return {
+          playerId: player.id,
+          name: player.name,
+          level: rel?.level ?? 0,
+          progress: rel?.progress ?? 0,
+        };
+      })
       .sort((left, right) => right.level - left.level || left.name.localeCompare(right.name)),
   };
 }

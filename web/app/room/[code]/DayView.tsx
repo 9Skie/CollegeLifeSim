@@ -45,7 +45,7 @@ type PrivateEvent = {
   effect: string;
   prereq: string;
 };
-type Relationship = { playerId: string; name: string; level: number };
+type Relationship = { playerId: string; name: string; level: number; progress: number };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -343,19 +343,19 @@ export default function DayView({
       : [PRIVATE_EVENT_POOL[idx1], PRIVATE_EVENT_POOL[idx2]];
   }, [seed]);
 
-  const realRelationships = dayState?.myDayContext?.relationships ?? [];
   const relationships = useMemo<Relationship[]>(() => {
-    // Build full list: real data + level 0 for anyone missing
-    const byId = new Map(realRelationships.map((r) => [r.playerId, r]));
+    const real = dayState?.myDayContext?.relationships ?? [];
+    const byId = new Map(real.map((r) => [r.playerId, r]));
     return players
       .filter((p) => p.id !== currentPlayer?.id && !p.eliminated)
       .map((p) => ({
         playerId: p.id,
         name: p.name,
         level: byId.get(p.id)?.level ?? 0,
+        progress: byId.get(p.id)?.progress ?? 0,
       }))
       .sort((a, b) => b.level - a.level);
-  }, [players, currentPlayer?.id, realRelationships]);
+  }, [players, currentPlayer?.id, dayState?.myDayContext?.relationships]);
 
   /* ---- state ------------------------------------------------------- */
   const [selections, setSelections] = useState<SelectionRecord>(initialSelections);
@@ -363,7 +363,7 @@ export default function DayView({
   const [timer, setTimer] = useState(dayState?.daySecondsRemaining ?? DAY_DURATION_SECONDS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [statsPopup, setStatsPopup] = useState<{ player: Player; rect: DOMRect } | null>(null);
+  const [statsPopup, setStatsPopup] = useState<{ player: Player; rect: DOMRect; relationship: Relationship | null } | null>(null);
   // relationships always show top 3, no toggle needed
   const [infoPopup, setInfoPopup] = useState<
     | { type: "major"; name: string; rect: DOMRect }
@@ -886,9 +886,10 @@ export default function DayView({
                     <button
                       key={p.id}
                       className="flex items-center gap-2 shrink-0 text-left cursor-pointer"
-                      onClick={(e) =>
-                        setStatsPopup({ player: p, rect: e.currentTarget.getBoundingClientRect() })
-                      }
+                      onClick={(e) => {
+                        const rel = relationships.find((r) => r.playerId === p.id) ?? null;
+                        setStatsPopup({ player: p, rect: e.currentTarget.getBoundingClientRect(), relationship: rel });
+                      }}
                     >
                       <div
                         className={`relative w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-white transition ${
@@ -1090,6 +1091,7 @@ export default function DayView({
         <PlayerStatsPopup
           player={statsPopup.player}
           rect={statsPopup.rect}
+          relationship={statsPopup.relationship}
           onClose={() => setStatsPopup(null)}
         />
       )}
@@ -1142,10 +1144,12 @@ function getStatBucket(
 function PlayerStatsPopup({
   player,
   rect,
+  relationship,
   onClose,
 }: {
   player: Player;
   rect: DOMRect;
+  relationship: Relationship | null;
   onClose: () => void;
 }) {
   const stats = {
@@ -1159,6 +1163,32 @@ function PlayerStatsPopup({
 
   const left = rect.left + rect.width / 2;
   const top = rect.bottom + 8;
+
+  const relWord =
+    relationship === null
+      ? "Stranger"
+      : relationship.level === 0
+      ? "Stranger"
+      : relationship.level === 1
+      ? "Acquaintance"
+      : relationship.level === 2
+      ? "Friend"
+      : "Soul Mate";
+
+  const nextThreshold =
+    relationship === null || relationship.level === 0
+      ? 1
+      : relationship.level === 1
+      ? 3
+      : relationship.level === 2
+      ? 6
+      : null;
+
+  const currentProgress = relationship?.progress ?? 0;
+  const relProgressPct =
+    nextThreshold !== null && nextThreshold > 0
+      ? Math.min(100, (currentProgress / nextThreshold) * 100)
+      : 100;
 
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
@@ -1232,6 +1262,33 @@ function PlayerStatsPopup({
             );
           })}
         </div>
+
+        {/* Relationship progress */}
+        {!isGoner && (
+          <div className="mt-3 pt-3 border-t border-card-border">
+            <p className="text-[10px] uppercase tracking-widest text-muted mb-1.5">
+              Relationship
+            </p>
+            <p className="text-xs font-bold text-paper mb-1">
+              Lv {relationship?.level ?? 0} - {relWord}
+            </p>
+            {nextThreshold !== null ? (
+              <>
+                <div className="h-1.5 bg-background rounded-full overflow-hidden mb-1">
+                  <div
+                    className="h-full rounded-full bg-[#F3E5AB]"
+                    style={{ width: `${relProgressPct}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted">
+                  {currentProgress}/{nextThreshold} socializing together
+                </p>
+              </>
+            ) : (
+              <p className="text-[10px] text-[#F3E5AB]">Max level reached</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
