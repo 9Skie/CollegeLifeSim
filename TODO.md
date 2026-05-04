@@ -6,8 +6,6 @@
 
 ## 🔴 CRITICAL — Game Balance / Backend Truth
 
-- [ ] **Homework quota tracker** — 4 Studies/week goal is still UI-only. End-of-week Academics penalty is not applied in resolution yet (`0 studies = -2.0`, `1 = -1.5`, `2 = -1.0`, `3 = -0.5`, `4+ = 0`).
-
 ---
 
 ## 🟠 MAJOR SYSTEMS — Stubbed or Missing
@@ -32,7 +30,7 @@
 - [ ] **Mutual-confirm bonuses** — Design says shared actions get relationship-level multipliers. Code only has "ditched" penalty, no positive scaling.
 
 ### Study Together
-- [ ] **Missing entirely** — Design defines a targetable "Study Together" action (Academics +0.75, Social +0.5, requires mutual confirm). Only solo "study" exists.
+- [ ] **Not planned** — keeping only solo `study`; `Study Together` is not being implemented.
 
 ### Wildcard Deck
 - [ ] **21-card deck not implemented** — Design specifies 6 big-pos / 6 small-pos / 3 neutral / 3 small-neg / 3 big-neg. Code pulls from 6 hardcoded private events.
@@ -61,7 +59,6 @@
 
 ## 🟢 UI / POLISH — Frontend
 
-- [ ] **Exam day hardcoded to wrong days** — Design: Day 14 (Week 2 Friday) and Day 21 (Week 3 Friday). Code: Day 12 and Day 19.
 - [ ] **Exam mechanics wrong** — Design uses outcome roll with Effective Exam Wellbeing = (Academics + Wellbeing) / 2. Code uses simple threshold scoring with no roll.
 - [ ] **Daily highlights are placeholder** — `generateDailyHighlights()` uses a tiny hardcoded pool. Design's ~300-line flavor pool doesn't exist.
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
@@ -106,6 +103,8 @@
 - [x] Repetition decay display in ResolutionView
 - [x] Server-side setup rolls (major, traits, class schedule assigned by backend)
 - [x] Auto-fill on timeout — missing day actions auto-generated, flagged with `autoFilled`
+- [x] Homework quota penalty — weekly Academics penalty now applied on missed study quota
+- [x] Weekly missed-class penalty replaces per-slot skip penalty
 - [x] Spectator mode for eliminated players
 - [x] Score multiplier / trait effect labels in setup + day view
 - [x] Other players' stats shown as buckets (Empty/Low/Average/High) not exact numbers

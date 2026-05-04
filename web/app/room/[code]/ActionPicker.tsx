@@ -245,14 +245,6 @@ export default function ActionPicker({
                           : level === 2
                           ? "Friend"
                           : "Soul Mate";
-                      const range =
-                        level === 0
-                          ? "0"
-                          : level === 1
-                          ? "1-2"
-                          : level === 2
-                          ? "3-5"
-                          : "6+";
                       return (
                         <button
                           key={p.id}
@@ -265,7 +257,7 @@ export default function ActionPicker({
                         >
                           <span className="block">{p.name}</span>
                           <span className="block text-[10px] opacity-60 font-normal">
-                            {word} ({range})
+                            Lv {level} - {word}
                             {bonus > 0 && ` · +${bonus}`}
                           </span>
                         </button>

@@ -348,7 +348,7 @@ export default function DayView({
     // Build full list: real data + level 0 for anyone missing
     const byId = new Map(realRelationships.map((r) => [r.playerId, r]));
     return players
-      .filter((p) => p.id !== currentPlayer?.id)
+      .filter((p) => p.id !== currentPlayer?.id && !p.eliminated)
       .map((p) => ({
         playerId: p.id,
         name: p.name,
@@ -786,7 +786,7 @@ export default function DayView({
             Relationships
           </p>
           <div className="space-y-2">
-            {relationships.map((r) => {
+            {relationships.slice(0, 3).map((r) => {
               const bonus = getRelationshipBonusAmount(r.level);
               const word =
                 r.level === 0
@@ -796,14 +796,6 @@ export default function DayView({
                   : r.level === 2
                   ? "Friend"
                   : "Soul Mate";
-              const range =
-                r.level === 0
-                  ? "0"
-                  : r.level === 1
-                  ? "1-2"
-                  : r.level === 2
-                  ? "3-5"
-                  : "6+";
               return (
                 <div key={r.playerId} className="flex items-center gap-2">
                   <div
@@ -821,7 +813,7 @@ export default function DayView({
                     }`}
                     title={bonus > 0 ? `+${bonus} bonus when together` : "No bonus yet"}
                   >
-                    {word} ({range})
+                    Lv {r.level} - {word}
                     {bonus > 0 && ` +${bonus}`}
                   </span>
                 </div>
