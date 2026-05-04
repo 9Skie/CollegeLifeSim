@@ -47,12 +47,8 @@ export type EnsuredDayPhaseResult = {
   currentResolution: StoredResolution | null;
 };
 
-function hashString(str: string): number {
-  let hash = 0;
-  for (let index = 0; index < str.length; index += 1) {
-    hash = str.charCodeAt(index) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+function pickRandom<T>(items: T[]) {
+  return items[Math.floor(Math.random() * items.length)];
 }
 
 function getDaySlotContext(
@@ -116,17 +112,14 @@ function buildAutoSelectionForSlot({
     actions.push("sleep", "work");
   }
 
-  const actionId = actions[hashString(`${roomCode}:${currentDay}:${player.id}:${slot}:action`) % actions.length];
+  const actionId = pickRandom(actions);
 
   if (actionId !== "socialize") {
     return { actionId };
   }
 
-  const target =
-    activeOtherPlayers[
-      hashString(`${roomCode}:${currentDay}:${player.id}:${slot}:target`) % activeOtherPlayers.length
-    ];
-  const spend = (hashString(`${roomCode}:${currentDay}:${player.id}:${slot}:spend`) % 3) as
+  const target = pickRandom(activeOtherPlayers);
+  const spend = Math.floor(Math.random() * 3) as
     | 0
     | 1
     | 2;

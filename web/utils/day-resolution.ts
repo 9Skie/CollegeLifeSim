@@ -42,6 +42,8 @@ export type StoredResolution = {
     netChange: Stats;
     slotResults: SlotResolution[];
     autoFilled?: boolean;
+    homeworkPenalty?: number;
+    classPenalty?: number;
   };
   highlights: ResolutionHighlight[];
 };
@@ -75,12 +77,8 @@ const DAILY_DECAY: Stats = {
   money: -0.5,
 };
 
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+function randomPercent() {
+  return Math.floor(Math.random() * 100);
 }
 
 function toNumber(value: number | string | null | undefined, fallback: number) {
@@ -164,6 +162,36 @@ function getOutcomeMultiplier(tier: "bad" | "normal" | "good") {
   if (tier === "bad") return 0.75;
   if (tier === "good") return 1.25;
   return 1;
+}
+
+function getHomeworkPenalty(studyCount: number) {
+  if (studyCount >= 4) return 0;
+  if (studyCount === 3) return 0.5;
+  if (studyCount === 2) return 1;
+  if (studyCount === 1) return 1.5;
+  return 2;
+}
+
+function getMissedClassPenalty(missedClassCount: number) {
+  if (missedClassCount >= 3) return 1.5;
+  if (missedClassCount === 2) return 1;
+  if (missedClassCount === 1) return 0.5;
+  return 0;
+}
+
+function hasScheduledClass(
+  classSchedule: Array<{ day: number; slot: "morning" | "afternoon" }>,
+  day: number,
+  slot: string
+) {
+  if (slot !== "morning" && slot !== "afternoon") {
+    return false;
+  }
+
+  const currentDayIndex = (day - 1) % 7;
+  return classSchedule.some(
+    (entry) => entry.day === currentDayIndex && entry.slot === slot
+  );
 }
 
 function getDailyDecayForTraits(
@@ -501,10 +529,6 @@ function calculateSlotGain(
       break;
   }
 
-  if (hasClass && actionId !== "class") {
-    gain.academics -= 0.5;
-  }
-
   return roundStats(gain);
 }
 
@@ -594,11 +618,25 @@ export function resolveDayForRoom({
   }
 
   const priorWeeklyStudiesByPlayer = new Map<string, number>();
+  const priorWeeklyClassesByPlayer = new Map<string, number>();
   for (const row of weeklyActionHistory) {
-    if (row.action !== "study") continue;
-    priorWeeklyStudiesByPlayer.set(
+    if (row.action === "study") {
+      priorWeeklyStudiesByPlayer.set(
+        row.player_id,
+        (priorWeeklyStudiesByPlayer.get(row.player_id) || 0) + 1
+      );
+      continue;
+    }
+
+    if (row.action !== "class") continue;
+
+    const player = playerById.get(row.player_id);
+    const classSchedule = Array.isArray(player?.class_schedule) ? player.class_schedule : [];
+    if (!hasScheduledClass(classSchedule, row.day, row.slot)) continue;
+
+    priorWeeklyClassesByPlayer.set(
       row.player_id,
-      (priorWeeklyStudiesByPlayer.get(row.player_id) || 0) + 1
+      (priorWeeklyClassesByPlayer.get(row.player_id) || 0) + 1
     );
   }
 
@@ -659,6 +697,7 @@ export function resolveDayForRoom({
     let luckyUsed = false;
     const actionCounts = new Map<string, number>();
     let weeklyStudyCountSoFar = priorWeeklyStudiesByPlayer.get(player.id) || 0;
+    let weeklyClassesAttendedSoFar = priorWeeklyClassesByPlayer.get(player.id) || 0;
 
     const slotResults: SlotResolution[] = DAY_SLOTS.map((slot) => {
       const selection = selections[slot];
@@ -700,9 +739,8 @@ export function resolveDayForRoom({
         typeof selection.targetId === "string" &&
         !matched;
 
-      const seedValue = hashString(`${player.name}:${roomCode}:day:${currentDay}:${slot}`) % 100;
-      const secondarySeed =
-        hashString(`${player.name}:${roomCode}:day:${currentDay}:${slot}:neg`) % 100;
+      const seedValue = randomPercent();
+      const secondarySeed = randomPercent();
 
       let tier = adjustOutcomeTierForPositiveTrait({
         tier: toOutcomeTier(seedValue, baselineWellbeing),
@@ -776,6 +814,10 @@ export function resolveDayForRoom({
         weeklyStudyCountSoFar += 1;
       }
 
+      if (selection.actionId === "class" && hasClass) {
+        weeklyClassesAttendedSoFar += 1;
+      }
+
       resolvedActionRows.push({
         room_code: roomCode,
         day: currentDay,
@@ -829,9 +871,14 @@ export function resolveDayForRoom({
     const giftSocial = socialGifts.get(player.id) || 0;
     const fomoPenalty =
       negTrait === "FOMO" && anyoneSocializedToday && !hadSocializeToday ? 0.5 : 0;
+    const isEndOfWeek = currentDayIndex === 6;
+    const homeworkPenalty = isEndOfWeek ? getHomeworkPenalty(weeklyStudyCountSoFar) : 0;
+    const classesScheduledThisWeek = classSchedule.length;
+    const missedClassCount = Math.max(0, classesScheduledThisWeek - weeklyClassesAttendedSoFar);
+    const classPenalty = isEndOfWeek ? getMissedClassPenalty(missedClassCount) : 0;
 
     const newStats = normalizeStats({
-      academics: oldStats.academics + netChange.academics,
+      academics: oldStats.academics + netChange.academics - homeworkPenalty - classPenalty,
       social: oldStats.social + netChange.social + giftSocial,
       wellbeing:
         oldStats.wellbeing +
@@ -840,6 +887,24 @@ export function resolveDayForRoom({
         fomoPenalty,
       money: oldStats.money + netChange.money,
     });
+
+    const highlights = [...buildFallbackHighlights(player.name, slotResults)];
+
+    if (homeworkPenalty > 0) {
+      highlights.unshift({
+        text: `${player.name} missed the weekly homework quota and lost ${homeworkPenalty.toFixed(2)} Academics.`,
+        icon: "📚",
+        color: "#d99f4f",
+      });
+    }
+
+    if (classPenalty > 0) {
+      highlights.unshift({
+        text: `${player.name} missed ${missedClassCount} class${missedClassCount === 1 ? "" : "es"} this week and lost ${classPenalty.toFixed(2)} Academics.`,
+        icon: "🎓",
+        color: "#d99f4f",
+      });
+    }
 
     resolutions.push({
       room_code: roomCode,
@@ -852,8 +917,10 @@ export function resolveDayForRoom({
         totalGain: roundedTotalGain,
         netChange: roundStats(subtractStats(newStats, oldStats)),
         slotResults,
+        homeworkPenalty,
+        classPenalty,
       },
-      highlights: buildFallbackHighlights(player.name, slotResults),
+      highlights,
     });
   }
 

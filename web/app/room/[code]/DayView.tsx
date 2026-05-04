@@ -262,14 +262,6 @@ function calculateDayGains(
     }
   }
 
-  // Skip-class penalty
-  if (hasClassMorning && selections.morning?.actionId !== "class") {
-    gain.academics -= 0.5;
-  }
-  if (hasClassAfternoon && selections.afternoon?.actionId !== "class") {
-    gain.academics -= 0.5;
-  }
-
   gain.academics = quantizeQuarter(gain.academics);
   gain.social = quantizeQuarter(gain.social);
   gain.wellbeing = quantizeQuarter(gain.wellbeing);
@@ -1527,7 +1519,6 @@ function SlotCard({
   const spendLabel =
     selection?.spend === 1 ? "· Coffee" : selection?.spend === 2 ? "· Food" : "";
 
-  const skippingClass = hasClass && selection?.actionId !== "class";
   const effectText = selection
     ? getActionEffect(selection.actionId, slot, selection.spend)
     : "";
@@ -1561,11 +1552,7 @@ function SlotCard({
             </span>
           )}
           {selection ? (
-            skippingClass ? (
-              <span className="text-xs text-accent font-medium">⚠️ Skip</span>
-            ) : (
-              <span className="text-xs font-medium" style={{ color: "#F3E5AB" }}>Set</span>
-            )
+            <span className="text-xs font-medium" style={{ color: "#F3E5AB" }}>Set</span>
           ) : (
             <span className="text-xs text-muted">Choose…</span>
           )}
@@ -1602,11 +1589,7 @@ function SlotCard({
                 {selection.code}
               </p>
             )}
-            {skippingClass && (
-              <p className="text-xs text-accent mt-1">
-                Skipping class — Academics −0.5
-              </p>
-            )}
+
           </div>
         </div>
       ) : (

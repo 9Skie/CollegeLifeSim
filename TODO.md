@@ -6,9 +6,7 @@
 
 ## 🔴 CRITICAL — Game Balance / Backend Truth
 
-- [ ] **No true randomness** — Outcome rolls, events, class schedules, dummy actions all use `hashString()`. Design calls for actual RNG (`Math.random()` server-side, seeded per-room).
-- [ ] **Broke penalty missing** — Design says Money clamped at 0 → extra Wellbeing −1.5. Code clamps but never applies the penalty.
-- [ ] **Homework quota tracker** — 4 Studies/week goal is UI-only. The end-of-week penalty is never applied in resolution.
+- [ ] **Homework quota tracker** — 4 Studies/week goal is still UI-only. End-of-week Academics penalty is not applied in resolution yet (`0 studies = -2.0`, `1 = -1.5`, `2 = -1.0`, `3 = -0.5`, `4+ = 0`).
 
 ---
 
@@ -82,6 +80,7 @@
 - [x] "Goner" → "Spectator" label everywhere
 - [x] Auto-fill warning banner in ResolutionView
 - [x] ExamView animation runs once only; vertical list layout
+- [x] Server RNG for day outcome rolls and timeout auto-fill actions
 
 ---
 
