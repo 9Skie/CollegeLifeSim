@@ -25,17 +25,6 @@
 - [ ] **Professor's Favorite** — "Class gives +0.25 extra Social" (hardcoded class values)
 - [ ] **Coupon Clipper** — "Free Socialize uses Coffee-tier effect" (no tier-swap logic)
 
-### Relationships
-- [ ] **Completely mocked** — `DayView.tsx` generates fake `relationships` from `hashString(name + roomCode) % 4`. No `relationships` table is ever queried or updated.
-- [ ] **Mutual-confirm bonuses** — Design says shared actions get relationship-level multipliers. Code only has "ditched" penalty, no positive scaling.
-
-### Study Together
-- [ ] **Not planned** — keeping only solo `study`; `Study Together` is not being implemented.
-
-### Wildcard Deck
-- [ ] **21-card deck not implemented** — Design specifies 6 big-pos / 6 small-pos / 3 neutral / 3 small-neg / 3 big-neg. Code pulls from 6 hardcoded private events.
-- [ ] **Code input does nothing** — `ActionPicker` lets you type a code, but `day-resolution.ts` ignores `selection.code`. No validation, no redemption.
-
 ### Public Events
 - [ ] **Decorative only** — 10 hardcoded events show in banners but their modifiers are never applied in resolution. `day-resolution.ts` doesn't read public events at all.
 
