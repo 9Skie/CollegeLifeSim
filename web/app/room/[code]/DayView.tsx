@@ -672,11 +672,9 @@ export default function DayView({
           </div>
 
           {/* Preview disclaimer */}
-          {allFilled && (
-            <p className="mt-3 text-[11px] text-muted leading-relaxed">
-              preview only — no rng included
-            </p>
-          )}
+          <p className="mt-3 text-[11px] text-muted leading-relaxed">
+            preview only — no rng included
+          </p>
 
           {/* Warnings — full tags, only when needed */}
           {(() => {
@@ -797,7 +795,7 @@ export default function DayView({
                   ? "Acquaintance"
                   : r.level === 2
                   ? "Friend"
-                  : "Close Friend";
+                  : "Soul Mate";
               return (
                 <div key={r.playerId} className="flex items-center gap-2">
                   <div

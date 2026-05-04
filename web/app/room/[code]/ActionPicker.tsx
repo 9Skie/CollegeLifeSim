@@ -244,7 +244,7 @@ export default function ActionPicker({
                           ? "Acquaintance"
                           : level === 2
                           ? "Friend"
-                          : "Close Friend";
+                          : "Soul Mate";
                       return (
                         <button
                           key={p.id}
