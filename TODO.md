@@ -1,6 +1,6 @@
 # College Life Sim — What's Missing / TODO
 
-> Last updated: 2026-05-02
+> Last updated: 2026-05-04
 
 ---
 
@@ -14,10 +14,7 @@
 - [ ] **Resilient** — "First time Wellbeing hits 0, set to 1 instead" (no elimination-save hook)
 - [ ] **Connected** — "Start with 1 free event code" (no code-dealing system)
 - [ ] **Loose Lips** — "Codes auto-leak" (no code-dealing system)
-- [ ] **Hot-Headed** — "Mismatched actions cost relationship progress" (no relationship progress system)
-- [ ] **Heartbreaker** — "Cannot reach Relationship Lvl 3" (no relationship levels)
 - [ ] **Forgetful** — "1 class per week auto-skipped" (no auto-skip logic)
-- [ ] **Phone Addict** — "Wildcard never pulls positive" (no wildcard deck)
 - [ ] **Burnout-Prone** — "Studying 2 days in a row → Wellbeing −1" (no consecutive-day tracking)
 - [ ] **Influencer** — "At Social ≥ 7, gain +0.25 Social passive each day" (no daily passive hook)
 - [ ] **Optimist** — "Wellbeing decay −0.25 instead of −0.75" (hardcoded decay; no trait hook)
@@ -53,34 +50,33 @@
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
 - [ ] **Calendar does not highlight class days** — Visual schedule exists but class days aren't marked.
 
-### ✅ UI — Recently Fixed
-- [x] Day preview disclaimer added ("Preview only — actual results depend on traits, events, wildcard rolls, and outcome multipliers")
-- [x] ExamView wellbeing change is dynamic (was hardcoded `+1.00`)
-- [x] Player stat popups use real server data (removed `mockStats` fallback)
-- [x] Spectator mode built and wired (`SpectatorView` + polling logic)
-- [x] Score multiplier labels in CharacterSetup and DayView info popups
-- [x] Other players see stat buckets instead of exact scores
-- [x] Trait compatibility rules expanded (20+ incompatible pairs)
-- [x] ResolutionView warnings card with emoji boxes
-- [x] Discrete bar widths for other players' stat buckets
-- [x] "Goner" → "Spectator" label everywhere
-- [x] Auto-fill warning banner in ResolutionView
-- [x] ExamView animation runs once only; vertical list layout
-- [x] Server RNG for day outcome rolls and timeout auto-fill actions
-
 ---
 
-## 🔵 DATA MODEL (Tables exist in schema but unused)
+## 🔵 DATA MODEL
 
 | Table | Status |
 |-------|--------|
-| `relationships` | Never queried or updated |
+| `relationships` | ✅ Queried and updated by backend; frontend displays real levels + progress |
+| `wildcard_decks` | ✅ Backend draws real cards; frontend renders actual title/description/effects |
 | `events` | Never used — events are client-side hardcoded arrays |
 | `resolutions.highlights` | Only populated with generic fallback text |
 
 ---
 
-## ✅ RECENTLY FIXED
+## ✅ RECENTLY FIXED (this session)
+
+- [x] Relationships — fully wired to real backend data with level/progress tracking
+- [x] Relationship popup on player card click shows tier progress (0/1, 0/2, 0/3)
+- [x] Wildcard ResolutionView renders real drawn card (title, emoji, description, effectSummary)
+- [x] Wildcard/event initialization self-resilient to missing DB tables
+- [x] Relationship bonus shown in DayView slot preview and ActionPicker target buttons
+- [x] localStorage cleanup on Leave Room, browser close, and game end
+- [x] Drowsy warning counts as real warning (−1.5 Wellbeing like others)
+- [x] Skip-class frontend warning removed (backend handles weekly penalty)
+- [x] End-of-week penalty text unbolded
+- [x] Preview disclaimer removed
+
+## ✅ RECENTLY FIXED (prior sessions)
 
 - [x] Work available at night
 - [x] Critical wellbeing warning no longer snowballs penalty
