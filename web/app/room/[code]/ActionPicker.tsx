@@ -258,7 +258,7 @@ export default function ActionPicker({
                           <span className="block">{p.name}</span>
                           <span className="block text-[10px] opacity-60 font-normal">
                             Lv {level} - {word}
-                            {bonus > 0 && ` · +${bonus}`}
+                            {bonus > 0 && ` · +${bonus} random stat`}
                           </span>
                         </button>
                       );

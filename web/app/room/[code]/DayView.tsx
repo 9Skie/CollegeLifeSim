@@ -964,6 +964,7 @@ export default function DayView({
             repeatDecay={getRepeatDecay(selections, "morning")}
             hasClass={hasClassMorning}
             players={players}
+            relationships={relationships}
             onClick={() => openPicker("morning")}
           />
           <SlotCard
@@ -974,6 +975,7 @@ export default function DayView({
             repeatDecay={getRepeatDecay(selections, "afternoon")}
             hasClass={hasClassAfternoon}
             players={players}
+            relationships={relationships}
             onClick={() => openPicker("afternoon")}
           />
           <SlotCard
@@ -984,6 +986,7 @@ export default function DayView({
             repeatDecay={getRepeatDecay(selections, "night")}
             hasClass={false}
             players={players}
+            relationships={relationships}
             onClick={() => openPicker("night")}
           />
 
@@ -1553,7 +1556,8 @@ function EventBanner({
 function getActionEffect(
   actionId: string,
   slot: string,
-  spend?: number
+  spend?: number,
+  relationshipLevel?: number
 ): string {
   switch (actionId) {
     case "class":
@@ -1565,9 +1569,19 @@ function getActionEffect(
     case "exercise":
       return "Wellbeing +1";
     case "socialize": {
-      if (spend === 1) return "Target Social +1.25, Money −0.25";
-      if (spend === 2) return "Target Social +1.5, Money −0.5";
-      return "Social +1";
+      const base =
+        spend === 1
+          ? "Social +1.25, Money −0.25"
+          : spend === 2
+          ? "Social +1.5, Money −0.5"
+          : "Social +1";
+      const bonus =
+        relationshipLevel === 2
+          ? ", random stat +0.25"
+          : relationshipLevel === 3
+          ? ", random stat +0.5"
+          : "";
+      return base + bonus;
     }
     case "rest":
       return "Wellbeing +0.75";
@@ -1609,6 +1623,7 @@ function SlotCard({
   repeatDecay,
   hasClass,
   players,
+  relationships,
   onClick,
 }: {
   slot: string;
@@ -1618,17 +1633,22 @@ function SlotCard({
   repeatDecay: number;
   hasClass: boolean;
   players: Player[];
+  relationships: Relationship[];
   onClick: () => void;
 }) {
   const targetName = selection?.targetId
     ? players.find((p) => p.id === selection.targetId)?.name
     : null;
 
+  const relLevel = selection?.targetId
+    ? relationships.find((r) => r.playerId === selection.targetId)?.level ?? 0
+    : 0;
+
   const spendLabel =
     selection?.spend === 1 ? "· Coffee" : selection?.spend === 2 ? "· Food" : "";
 
   const effectText = selection
-    ? getActionEffect(selection.actionId, slot, selection.spend)
+    ? getActionEffect(selection.actionId, slot, selection.spend, relLevel)
     : "";
 
   return (
