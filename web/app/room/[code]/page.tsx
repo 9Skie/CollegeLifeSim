@@ -100,6 +100,12 @@ export default function RoomPage() {
     const storedId = localStorage.getItem("cls.playerId");
     if (storedId) setMyId(storedId);
 
+    // Clear storage on browser close / tab close
+    const handleBeforeUnload = () => {
+      clearGameStorage();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     const fetchRoom = async () => {
       try {
         const activePlayerId = localStorage.getItem("cls.playerId") || storedId;
@@ -162,8 +168,16 @@ export default function RoomPage() {
     const interval = shouldPoll ? setInterval(fetchRoom, 3000) : null;
     return () => {
       if (interval) clearInterval(interval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [code, currentDay, phase, isSpectator]);
+
+  // Clear storage when game ends
+  useEffect(() => {
+    if (phase === "end") {
+      clearGameStorage();
+    }
+  }, [phase]);
 
   /* ------------------------------------------------------------------ */
   const isHost = myId === hostId;
@@ -270,8 +284,17 @@ export default function RoomPage() {
     }
   };
 
+  const clearGameStorage = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cls.playerId");
+      localStorage.removeItem("cls.name");
+      localStorage.removeItem("cls.role");
+      localStorage.removeItem("cls.roomCode");
+    }
+  };
+
   const leaveRoom = () => {
-    // TODO: broadcast leave to server
+    clearGameStorage();
     router.push("/");
   };
 
