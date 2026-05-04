@@ -606,7 +606,9 @@ export default function ResolutionView({
                 }`}
               >
                 <p className="text-[10px] uppercase tracking-widest text-accent mb-2">
-                  Warnings −{penalty.toFixed(1)} Wellbeing
+                  {penalty > 0
+                    ? `Warnings −${penalty.toFixed(1)} Wellbeing`
+                    : "Drowsy"}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {warns.map((w) => (
