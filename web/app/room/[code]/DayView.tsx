@@ -796,6 +796,14 @@ export default function DayView({
                   : r.level === 2
                   ? "Friend"
                   : "Soul Mate";
+              const range =
+                r.level === 0
+                  ? "0"
+                  : r.level === 1
+                  ? "1-2"
+                  : r.level === 2
+                  ? "3-5"
+                  : "6+";
               return (
                 <div key={r.playerId} className="flex items-center gap-2">
                   <div
@@ -813,7 +821,7 @@ export default function DayView({
                     }`}
                     title={bonus > 0 ? `+${bonus} bonus when together` : "No bonus yet"}
                   >
-                    {word}
+                    {word} ({range})
                     {bonus > 0 && ` +${bonus}`}
                   </span>
                 </div>
