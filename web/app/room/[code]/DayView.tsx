@@ -787,7 +787,6 @@ export default function DayView({
           </p>
           <div className="space-y-2">
             {relationships.slice(0, 3).map((r) => {
-              const bonus = getRelationshipBonusAmount(r.level);
               const word =
                 r.level === 0
                   ? "Stranger"
@@ -809,12 +808,10 @@ export default function DayView({
                     className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       r.level === 0
                         ? "bg-muted/20 text-muted"
-                        : "bg-accent-soft/10 text-accent-soft"
+                        : "bg-[#F3E5AB]/10 text-[#F3E5AB]"
                     }`}
-                    title={bonus > 0 ? `+${bonus} bonus when together` : "No bonus yet"}
                   >
                     Lv {r.level} - {word}
-                    {bonus > 0 && ` +${bonus}`}
                   </span>
                 </div>
               );
@@ -1175,6 +1172,15 @@ function PlayerStatsPopup({
       ? "Friend"
       : "Soul Mate";
 
+  const nextRelWord =
+    relationship === null || relationship.level === 0
+      ? "Acquaintance"
+      : relationship.level === 1
+      ? "Friend"
+      : relationship.level === 2
+      ? "Soul Mate"
+      : null;
+
   const tierPrev =
     relationship === null || relationship.level === 0
       ? 0
@@ -1290,7 +1296,7 @@ function PlayerStatsPopup({
                   />
                 </div>
                 <p className="text-[10px] text-muted">
-                  {doneInTier}/{tierNext} socializing together
+                  {doneInTier}/{tierNext} to Lv {(relationship?.level ?? 0) + 1} - {nextRelWord}
                 </p>
               </>
             ) : (
