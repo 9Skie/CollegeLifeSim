@@ -344,7 +344,8 @@ export async function ensureDayPhaseResolved({
         supabase,
         roomCode: room.code,
       });
-      const { drawnCards, nextDeck } = drawWildcardCardsFromDeck({
+      const { drawnCards, nextDeck } = await drawWildcardCardsFromDeck({
+        supabase,
         deck,
         count: wildcardDrawOrder.length,
       });

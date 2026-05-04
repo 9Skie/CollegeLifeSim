@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { wildcardCards, type WildcardCard } from "@/data/wildcards";
+import type { WildcardCard, WildcardStat } from "@/data/wildcards";
 
 export type WildcardDeckRow = {
   room_code: string;
@@ -18,12 +18,59 @@ function shuffle<T>(items: T[]) {
   return output;
 }
 
-export function buildShuffledWildcardDeck() {
-  return shuffle(wildcardCards.map((card) => card.id));
+export async function loadWildcardDefs(supabase: SupabaseClient): Promise<WildcardCard[]> {
+  const { data, error } = await supabase
+    .from("wildcard_defs")
+    .select("id, tier, type, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata");
+
+  if (error || !data) {
+    throw error || new Error("Failed to load wildcard definitions");
+  }
+
+  return data.map((row) => ({
+    id: row.id as string,
+    tier: row.tier as WildcardCard["tier"],
+    type: row.type as WildcardCard["type"],
+    title: row.title as string,
+    emoji: row.emoji as string,
+    description: row.description as string,
+    effectSummary: row.effect_summary as string,
+    duration: row.duration as WildcardCard["duration"],
+    targetStats: Array.isArray(row.target_stats) ? (row.target_stats as WildcardStat[]) : [],
+    immediate: (row.immediate as Record<string, number>) || {},
+    future: (row.future as WildcardCard["future"]) || null,
+  }));
 }
 
-export function getWildcardCardById(cardId: string) {
-  return wildcardCards.find((card) => card.id === cardId) ?? null;
+export async function buildShuffledWildcardDeck(supabase: SupabaseClient) {
+  const defs = await loadWildcardDefs(supabase);
+  return shuffle(defs.map((card) => card.id));
+}
+
+export async function getWildcardCardById(supabase: SupabaseClient, cardId: string): Promise<WildcardCard | null> {
+  const { data, error } = await supabase
+    .from("wildcard_defs")
+    .select("id, tier, type, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata")
+    .eq("id", cardId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    id: data.id as string,
+    tier: data.tier as WildcardCard["tier"],
+    type: data.type as WildcardCard["type"],
+    title: data.title as string,
+    emoji: data.emoji as string,
+    description: data.description as string,
+    effectSummary: data.effect_summary as string,
+    duration: data.duration as WildcardCard["duration"],
+    targetStats: Array.isArray(data.target_stats) ? (data.target_stats as WildcardStat[]) : [],
+    immediate: (data.immediate as Record<string, number>) || {},
+    future: (data.future as WildcardCard["future"]) || null,
+  };
 }
 
 export async function ensureWildcardDeckForRoom({
@@ -49,11 +96,13 @@ export async function ensureWildcardDeckForRoom({
       return existingDeck;
     }
 
+    const drawPile = await buildShuffledWildcardDeck(supabase);
+
     const { data: deck, error: deckError } = await supabase
       .from("wildcard_decks")
       .insert({
         room_code: roomCode,
-        draw_pile: buildShuffledWildcardDeck(),
+        draw_pile: drawPile,
         discard_pile: [],
       })
       .select("room_code")
@@ -109,16 +158,18 @@ export async function loadWildcardDeckForRoom({
   return normalizeDeckRow(data);
 }
 
-export function drawWildcardCardsFromDeck({
+export async function drawWildcardCardsFromDeck({
+  supabase,
   deck,
   count,
 }: {
+  supabase: SupabaseClient;
   deck: WildcardDeckRow;
   count: number;
-}): {
+}): Promise<{
   drawnCards: WildcardCard[];
   nextDeck: WildcardDeckRow;
-} {
+}> {
   let drawPile = [...deck.draw_pile];
   let discardPile = [...deck.discard_pile];
   const drawnCards: WildcardCard[] = [];
@@ -138,7 +189,7 @@ export function drawWildcardCardsFromDeck({
       throw new Error("Failed to draw wildcard card");
     }
 
-    const card = getWildcardCardById(nextCardId);
+    const card = await getWildcardCardById(supabase, nextCardId);
     if (!card) {
       throw new Error(`Unknown wildcard card id: ${nextCardId}`);
     }
