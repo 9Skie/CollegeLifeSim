@@ -5,6 +5,7 @@ import {
   buildDebugDummyPlayers,
   isExplicitDebugRoom,
 } from "@/utils/debug-room";
+import { ensureWildcardDeckForRoom } from "@/utils/wildcard-deck";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
@@ -93,6 +94,8 @@ export async function POST(request: Request) {
     if (hostUpdateError || !updatedRoom) {
       return NextResponse.json({ error: "Failed to assign room host" }, { status: 500 });
     }
+
+    await ensureWildcardDeckForRoom({ supabase, roomCode: code });
 
     if (debugBootstrap) {
       const { error: dummyInsertError } = await supabase

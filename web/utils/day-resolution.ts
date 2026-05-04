@@ -11,6 +11,8 @@ import {
   pickRelationshipBonusStat,
   type RelationshipRow,
 } from "@/utils/relationships";
+import type { WildcardCard } from "@/data/wildcards";
+import type { WildcardImmediateEffect } from "@/data/wildcards";
 
 export type Stats = {
   academics: number;
@@ -36,6 +38,15 @@ export type SlotResolution = {
   baseGain: Stats;
   finalGain: Stats;
   ditched: boolean;
+  wildcardCard?: {
+    id: string;
+    tier: WildcardCard["tier"];
+    type: WildcardCard["type"];
+    title: string;
+    emoji: string;
+    description: string;
+    effectSummary: string;
+  } | null;
 };
 
 export type StoredResolution = {
@@ -117,6 +128,15 @@ function normalizeStats(stats: Stats): Stats {
 
 function emptyStats(): Stats {
   return { academics: 0, social: 0, wellbeing: 0, money: 0 };
+}
+
+function wildcardImmediateToStats(immediate: WildcardImmediateEffect): Stats {
+  return roundStats({
+    academics: immediate.academics ?? 0,
+    social: immediate.social ?? 0,
+    wellbeing: immediate.wellbeing ?? 0,
+    money: immediate.money ?? 0,
+  });
 }
 
 function addStats(a: Stats, b: Stats): Stats {
@@ -588,6 +608,7 @@ export function resolveDayForRoom({
   dayActions,
   weeklyActionHistory = [],
   relationshipRows = [],
+  wildcardAssignments = [],
 }: {
   roomCode: string;
   currentDay: number;
@@ -600,9 +621,20 @@ export function resolveDayForRoom({
     slot: string;
   }>;
   relationshipRows?: RelationshipRow[];
+  wildcardAssignments?: Array<{
+    playerId: string;
+    slot: DaySlot;
+    card: WildcardCard;
+  }>;
 }) {
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
+  const wildcardAssignmentByKey = new Map(
+    wildcardAssignments.map((assignment) => [
+      `${assignment.playerId}:${assignment.slot}`,
+      assignment.card,
+    ])
+  );
   const rawStatsByPlayer = new Map(
     players.map((player) => [
       player.id,
@@ -812,6 +844,53 @@ export function resolveDayForRoom({
           baseGain: emptyStats(),
           finalGain: emptyStats(),
           ditched: false,
+          wildcardCard: null,
+        };
+      }
+
+      const wildcardCard =
+        selection.actionId === "wildcard"
+          ? wildcardAssignmentByKey.get(`${player.id}:${slot}`) ?? null
+          : null;
+
+      if (selection.actionId === "wildcard") {
+        const wildcardGain = wildcardCard
+          ? wildcardImmediateToStats(wildcardCard.immediate)
+          : emptyStats();
+
+        resolvedActionRows.push({
+          room_code: roomCode,
+          day: currentDay,
+          slot,
+          player_id: player.id,
+          action: selection.actionId,
+          target_id: null,
+          money_spent: 0,
+          outcome_tier: null,
+        });
+
+        return {
+          slot,
+          actionId: selection.actionId,
+          targetId: null,
+          targetName: null,
+          hasClass,
+          outcomeTier: null,
+          multiplier: 1,
+          baseGain: wildcardGain,
+          finalGain: wildcardGain,
+          ditched: false,
+          wildcardCard: wildcardCard
+            ? {
+                id: wildcardCard.id,
+                tier: wildcardCard.tier,
+                type: wildcardCard.type,
+                title: wildcardCard.title,
+                emoji: wildcardCard.emoji,
+                description: wildcardCard.description,
+                effectSummary: wildcardCard.effectSummary,
+              }
+            : null,
         };
       }
 
@@ -934,6 +1013,17 @@ export function resolveDayForRoom({
         baseGain,
         finalGain,
         ditched,
+        wildcardCard: wildcardCard
+          ? {
+              id: wildcardCard.id,
+              tier: wildcardCard.tier,
+              type: wildcardCard.type,
+              title: wildcardCard.title,
+              emoji: wildcardCard.emoji,
+              description: wildcardCard.description,
+              effectSummary: wildcardCard.effectSummary,
+            }
+          : null,
       };
     });
 

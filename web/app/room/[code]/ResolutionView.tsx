@@ -37,6 +37,27 @@ const PRIVATE_EVENT_POOL = [
   { id: "p6", name: "Insider Internship", code: "INTERN-06", flavor: "Your advisor forwarded an email with the subject 'URGENT — not a mass email.'", effect: "Money +1.75", color: "#f0a868", icon: "💼" },
 ];
 
+function tierToColor(tier: string): string {
+  switch (tier) {
+    case "really_bad": return "#d94f4f";
+    case "bad": return "#f0a868";
+    case "normal": return "#F3E5AB";
+    case "good": return "#5b8c5a";
+    case "really_good": return "#4fd9c9";
+    default: return "#F3E5AB";
+  }
+}
+
+type WildcardDisplay = {
+  id: string;
+  tier: string;
+  type: string;
+  title: string;
+  emoji: string;
+  description: string;
+  effectSummary: string;
+};
+
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -336,11 +357,11 @@ export default function ResolutionView({
     return null;
   }, [selections]);
 
-  const wildcardEvent = useMemo(() => {
+  const wildcardCard = useMemo<WildcardDisplay | null>(() => {
     if (!wildcardSlot) return null;
-    const idx = hashString(`${myName}:${roomCode}:day:${currentDay}:wildcard`) % PRIVATE_EVENT_POOL.length;
-    return PRIVATE_EVENT_POOL[idx];
-  }, [currentDay, wildcardSlot, myName, roomCode]);
+    const slotResult = resolvedSlotResults.find((r) => r.slot === wildcardSlot);
+    return slotResult?.wildcardCard ?? null;
+  }, [wildcardSlot, resolvedSlotResults]);
 
   /* ---- sequential fade-in + landing states ------------------------- */
   const [showSlots, setShowSlots] = useState(false);
@@ -379,7 +400,7 @@ export default function ResolutionView({
         morningOI,
         afternoonOI,
         nightOI,
-        wildcardEvent,
+        wildcardCard,
         players,
       });
     } catch {
@@ -391,7 +412,7 @@ export default function ResolutionView({
         { text: "A freshman got lost in the STEM building for 3 hours.", icon: "🏗️", color: "#8a8579" },
       ];
     }
-  }, [currentResolution?.highlights, myName, selections, morningOI, afternoonOI, nightOI, wildcardEvent, players]);
+  }, [currentResolution?.highlights, myName, selections, morningOI, afternoonOI, nightOI, wildcardCard, players]);
 
   const slotData = [
     { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: resolvedMorning?.hasClass ?? hasClassMorning, sel: selections.morning, gain: resolvedMorning?.finalGain ?? morningGain, oi: morningOI, ditched: resolvedMorning?.ditched ?? false, repeatDecay: getRepeatDecay(selections, "morning") },
@@ -569,7 +590,7 @@ export default function ResolutionView({
           })}
 
           {/* Wildcard */}
-          {wildcardSlot && wildcardEvent && (
+          {wildcardSlot && wildcardCard && (
             <div
               className={`rounded-2xl border border-card-border bg-card p-5 transition-all duration-500 ${
                 showWildcard ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
@@ -578,9 +599,12 @@ export default function ResolutionView({
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-lg">🃏</span>
                 <span className="font-bold text-paper">Wildcard</span>
+                <span className="text-xs text-muted ml-auto">
+                  {wildcardCard.tier.replace("_", " ")}
+                </span>
               </div>
               <div className="flex justify-center">
-                <CardFlip event={wildcardEvent} show={showWildcard} />
+                <CardFlip card={wildcardCard} show={showWildcard} />
               </div>
             </div>
           )}
@@ -776,7 +800,7 @@ function generateDailyHighlights({
   morningOI,
   afternoonOI,
   nightOI,
-  wildcardEvent,
+  wildcardCard,
   players,
 }: {
   myName: string;
@@ -784,7 +808,7 @@ function generateDailyHighlights({
   morningOI: number;
   afternoonOI: number;
   nightOI: number;
-  wildcardEvent: (typeof PRIVATE_EVENT_POOL)[0] | null;
+  wildcardCard: WildcardDisplay | null;
   players: Player[];
 }) {
   const out: Highlight[] = [];
@@ -832,12 +856,12 @@ function generateDailyHighlights({
     }
   }
 
-  // Wildcard highlight — neutral (vanilla)
-  if (wildcardEvent) {
+  // Wildcard highlight — color based on tier
+  if (wildcardCard) {
     out.push({
-      text: `${myName} stumbled into ${wildcardEvent.name.toLowerCase()}.`,
-      icon: wildcardEvent.icon,
-      color: "#F3E5AB",
+      text: `${myName} drew ${wildcardCard.title}.`,
+      icon: wildcardCard.emoji,
+      color: tierToColor(wildcardCard.tier),
     });
   }
 
@@ -930,13 +954,14 @@ function SlotRoulette({
 // Card flip
 
 function CardFlip({
-  event,
+  card,
   show,
 }: {
-  event: (typeof PRIVATE_EVENT_POOL)[0];
+  card: WildcardDisplay;
   show: boolean;
 }) {
   const [flipped, setFlipped] = useState(false);
+  const color = tierToColor(card.tier);
 
   useEffect(() => {
     if (!show) return;
@@ -976,41 +1001,38 @@ function CardFlip({
         <div
           className="absolute inset-0 rounded-2xl border-2 flex flex-col overflow-hidden"
           style={{
-            backgroundColor: event.color + "08",
-            borderColor: event.color + "40",
+            backgroundColor: color + "08",
+            borderColor: color + "40",
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
         >
-          <div className="h-1.5 w-full" style={{ backgroundColor: event.color }} />
+          <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
           <div className="p-4 flex-1 flex flex-col">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">{event.icon}</span>
+              <span className="text-xl">{card.emoji}</span>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: event.color }}>
-                  Private Event
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
+                  {card.type === "gimmick" ? "Gimmick" : "Stat Card"} · {card.tier.replace("_", " ")}
                 </p>
-                <h3 className="text-sm font-bold text-paper leading-tight">{event.name}</h3>
+                <h3 className="text-sm font-bold text-paper leading-tight">{card.title}</h3>
               </div>
             </div>
             <p className="text-xs text-paper/70 leading-relaxed mb-3 flex-1">
-              {event.flavor}
+              {card.description}
             </p>
             <div
               className="rounded-lg p-2.5 border"
               style={{
-                backgroundColor: event.color + "10",
-                borderColor: event.color + "20",
+                backgroundColor: color + "10",
+                borderColor: color + "20",
               }}
             >
               <p className="text-[10px] text-muted mb-0.5">Effect</p>
-              <p className="text-xs font-semibold" style={{ color: event.color }}>
-                {event.effect}
+              <p className="text-xs font-semibold" style={{ color }}>
+                {card.effectSummary}
               </p>
             </div>
-            <p className="text-[10px] text-muted font-mono mt-2 text-center">
-              {event.code}
-            </p>
           </div>
         </div>
       </div>

@@ -8,6 +8,11 @@ import type { StoredResolution } from "@/utils/day-resolution";
 import { resolveDayForRoom } from "@/utils/day-resolution";
 import type { RelationshipRow } from "@/utils/relationships";
 import { isDayExpired } from "@/utils/day-timing";
+import {
+  drawWildcardCardsFromDeck,
+  loadWildcardDeckForRoom,
+  saveWildcardDeckForRoom,
+} from "@/utils/wildcard-deck";
 
 type RoomRecord = {
   code: string;
@@ -38,6 +43,12 @@ type DayActionRow = {
   action: string;
   target_id: string | null;
   money_spent: number | string | null;
+};
+
+type WildcardAssignment = {
+  playerId: string;
+  slot: "morning" | "afternoon" | "night";
+  card: import("@/data/wildcards").WildcardCard;
 };
 
 export type EnsuredDayPhaseResult = {
@@ -314,6 +325,38 @@ export async function ensureDayPhaseResolved({
     throw weeklyHistoryError;
   }
 
+  const wildcardDrawOrder = dayActions
+    .filter((row) => row.action === "wildcard")
+    .slice()
+    .sort((left, right) => {
+      const slotOrder = DAY_SLOTS.indexOf(left.slot as (typeof DAY_SLOTS)[number]) -
+        DAY_SLOTS.indexOf(right.slot as (typeof DAY_SLOTS)[number]);
+      if (slotOrder !== 0) return slotOrder;
+      return players.findIndex((player) => player.id === left.player_id) -
+        players.findIndex((player) => player.id === right.player_id);
+    });
+
+  let wildcardAssignments: WildcardAssignment[] = [];
+
+  if (wildcardDrawOrder.length > 0) {
+    const deck = await loadWildcardDeckForRoom({
+      supabase,
+      roomCode: room.code,
+    });
+    const { drawnCards, nextDeck } = drawWildcardCardsFromDeck({
+      deck,
+      count: wildcardDrawOrder.length,
+    });
+
+    wildcardAssignments = wildcardDrawOrder.map((row, index) => ({
+      playerId: row.player_id,
+      slot: row.slot as "morning" | "afternoon" | "night",
+      card: drawnCards[index],
+    }));
+
+    await saveWildcardDeckForRoom({ supabase, deck: nextDeck });
+  }
+
   const resolvedDay = resolveDayForRoom({
     roomCode: room.code,
     currentDay: room.current_day,
@@ -321,6 +364,7 @@ export async function ensureDayPhaseResolved({
     dayActions,
     weeklyActionHistory: weeklyActionHistory || [],
     relationshipRows: (relationshipRows || []) as RelationshipRow[],
+    wildcardAssignments,
   });
 
   resolvedDay.resolutions = resolvedDay.resolutions.map((resolution) => ({
