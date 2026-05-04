@@ -726,36 +726,55 @@ export default function DayView({
             ))}
           </div>
           <div className="space-y-2">
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted">Classes this week</span>
-                <span className="text-paper font-medium">
-                  {classesAttended} / {classesThisWeek}
-                </span>
-              </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all duration-300"
-                  style={{
-                    width: `${(classesAttended / Math.max(1, classesThisWeek)) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted">Studies this week</span>
-                <span className="text-paper font-medium">
-                  {studiesThisWeek} / {studyGoal}
-                </span>
-              </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all duration-300"
-                  style={{ width: `${(studiesThisWeek / Math.max(1, studyGoal)) * 100}%` }}
-                />
-              </div>
-            </div>
+            {(() => {
+              const missedClasses = Math.max(0, classesThisWeek - classesAttended);
+              const classPenalty = missedClasses >= 3 ? 1.5 : missedClasses === 2 ? 1 : missedClasses === 1 ? 0.5 : 0;
+              const studyPenalty = studiesThisWeek >= 4 ? 0 : studiesThisWeek === 3 ? 0.5 : studiesThisWeek === 2 ? 1 : studiesThisWeek === 1 ? 1.5 : 2;
+              return (
+                <>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted">Classes this week</span>
+                      <span className="text-paper font-medium">
+                        {classesAttended} / {classesThisWeek}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-background rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent transition-all duration-300"
+                        style={{
+                          width: `${(classesAttended / Math.max(1, classesThisWeek)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    {classPenalty > 0 && (
+                      <p className="text-[10px] text-accent">
+                        End-of-week penalty: <span className="font-bold">−{classPenalty.toFixed(1)} Academics</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted">Studies this week</span>
+                      <span className="text-paper font-medium">
+                        {studiesThisWeek} / {studyGoal}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-background rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent transition-all duration-300"
+                        style={{ width: `${(studiesThisWeek / Math.max(1, studyGoal)) * 100}%` }}
+                      />
+                    </div>
+                    {studyPenalty > 0 && (
+                      <p className="text-[10px] text-accent">
+                        End-of-week penalty: <span className="font-bold">−{studyPenalty.toFixed(1)} Academics</span>
+                      </p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </section>
 

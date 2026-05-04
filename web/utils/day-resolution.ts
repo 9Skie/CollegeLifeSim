@@ -42,8 +42,6 @@ export type StoredResolution = {
     netChange: Stats;
     slotResults: SlotResolution[];
     autoFilled?: boolean;
-    homeworkPenalty?: number;
-    classPenalty?: number;
   };
   highlights: ResolutionHighlight[];
 };
@@ -888,24 +886,6 @@ export function resolveDayForRoom({
       money: oldStats.money + netChange.money,
     });
 
-    const highlights = [...buildFallbackHighlights(player.name, slotResults)];
-
-    if (homeworkPenalty > 0) {
-      highlights.unshift({
-        text: `${player.name} missed the weekly homework quota and lost ${homeworkPenalty.toFixed(2)} Academics.`,
-        icon: "📚",
-        color: "#d99f4f",
-      });
-    }
-
-    if (classPenalty > 0) {
-      highlights.unshift({
-        text: `${player.name} missed ${missedClassCount} class${missedClassCount === 1 ? "" : "es"} this week and lost ${classPenalty.toFixed(2)} Academics.`,
-        icon: "🎓",
-        color: "#d99f4f",
-      });
-    }
-
     resolutions.push({
       room_code: roomCode,
       day: currentDay,
@@ -917,10 +897,8 @@ export function resolveDayForRoom({
         totalGain: roundedTotalGain,
         netChange: roundStats(subtractStats(newStats, oldStats)),
         slotResults,
-        homeworkPenalty,
-        classPenalty,
       },
-      highlights,
+      highlights: buildFallbackHighlights(player.name, slotResults),
     });
   }
 
