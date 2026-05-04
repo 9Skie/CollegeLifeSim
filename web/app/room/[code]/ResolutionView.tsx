@@ -38,14 +38,9 @@ const PRIVATE_EVENT_POOL = [
 ];
 
 function tierToColor(tier: string): string {
-  switch (tier) {
-    case "really_bad": return "#d94f4f";
-    case "bad": return "#f0a868";
-    case "normal": return "#F3E5AB";
-    case "good": return "#5b8c5a";
-    case "really_good": return "#4fd9c9";
-    default: return "#F3E5AB";
-  }
+  if (tier === "really_bad" || tier === "bad") return "#d94f4f";
+  if (tier === "good" || tier === "really_good") return "#5b8c5a";
+  return "#F3E5AB";
 }
 
 type WildcardDisplay = {

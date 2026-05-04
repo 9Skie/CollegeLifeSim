@@ -52,6 +52,29 @@ CREATE TABLE IF NOT EXISTS wildcard_decks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Wildcard definitions (permanent catalog)
+CREATE TABLE IF NOT EXISTS wildcard_defs (
+  id TEXT PRIMARY KEY,
+  tier TEXT NOT NULL CHECK (
+    tier IN ('really_bad', 'bad', 'normal', 'good', 'really_good')
+  ),
+  type TEXT NOT NULL CHECK (
+    type IN ('stat', 'gimmick')
+  ),
+  title TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  description TEXT NOT NULL,
+  effect_summary TEXT NOT NULL,
+  duration TEXT NOT NULL CHECK (
+    duration IN ('immediate', 'next_action', 'next_day', 'next_two_actions', 'until_triggered', 'instant')
+  ),
+  target_stats JSONB NOT NULL DEFAULT '[]'::jsonb,
+  immediate JSONB NOT NULL DEFAULT '{}'::jsonb,
+  future JSONB,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Public event definitions (permanent catalog)
 CREATE TABLE IF NOT EXISTS public_event_defs (
   id TEXT PRIMARY KEY,
@@ -135,6 +158,7 @@ ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wildcard_decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wildcard_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public_event_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private_event_defs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE day_actions ENABLE ROW LEVEL SECURITY;
@@ -146,6 +170,7 @@ CREATE POLICY "Allow read rooms" ON rooms FOR SELECT USING (true);
 CREATE POLICY "Allow read players" ON players FOR SELECT USING (true);
 CREATE POLICY "Allow read relationships" ON relationships FOR SELECT USING (true);
 CREATE POLICY "Allow read wildcard_decks" ON wildcard_decks FOR SELECT USING (true);
+CREATE POLICY "Allow read wildcard_defs" ON wildcard_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read public_event_defs" ON public_event_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read private_event_defs" ON private_event_defs FOR SELECT USING (true);
 CREATE POLICY "Allow read day_actions" ON day_actions FOR SELECT USING (true);
@@ -157,6 +182,7 @@ CREATE POLICY "Allow all rooms" ON rooms FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all players" ON players FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all relationships" ON relationships FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all wildcard_decks" ON wildcard_decks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all wildcard_defs" ON wildcard_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all public_event_defs" ON public_event_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all private_event_defs" ON private_event_defs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all day_actions" ON day_actions FOR ALL USING (true) WITH CHECK (true);
