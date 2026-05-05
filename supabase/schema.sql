@@ -187,43 +187,110 @@ ALTER TABLE room_public_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_private_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resolutions ENABLE ROW LEVEL SECURITY;
 
--- Allow read access to all (game uses room code as auth)
-CREATE POLICY "Allow read rooms" ON rooms FOR SELECT USING (true);
-CREATE POLICY "Allow read players" ON players FOR SELECT USING (true);
-CREATE POLICY "Allow read relationships" ON relationships FOR SELECT USING (true);
-CREATE POLICY "Allow read wildcard_decks" ON wildcard_decks FOR SELECT USING (true);
-CREATE POLICY "Allow read wildcard_defs" ON wildcard_defs FOR SELECT USING (true);
-CREATE POLICY "Allow read public_event_defs" ON public_event_defs FOR SELECT USING (true);
-CREATE POLICY "Allow read private_event_defs" ON private_event_defs FOR SELECT USING (true);
-CREATE POLICY "Allow read day_actions" ON day_actions FOR SELECT USING (true);
-CREATE POLICY "Allow read events" ON events FOR SELECT USING (true);
-CREATE POLICY "Allow read room_public_events" ON room_public_events FOR SELECT USING (true);
-CREATE POLICY "Allow read room_private_events" ON room_private_events FOR SELECT USING (true);
-CREATE POLICY "Allow read resolutions" ON resolutions FOR SELECT USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rooms' AND policyname = 'Allow read rooms') THEN
+    CREATE POLICY "Allow read rooms" ON rooms FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'players' AND policyname = 'Allow read players') THEN
+    CREATE POLICY "Allow read players" ON players FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'relationships' AND policyname = 'Allow read relationships') THEN
+    CREATE POLICY "Allow read relationships" ON relationships FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'wildcard_decks' AND policyname = 'Allow read wildcard_decks') THEN
+    CREATE POLICY "Allow read wildcard_decks" ON wildcard_decks FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'wildcard_defs' AND policyname = 'Allow read wildcard_defs') THEN
+    CREATE POLICY "Allow read wildcard_defs" ON wildcard_defs FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'public_event_defs' AND policyname = 'Allow read public_event_defs') THEN
+    CREATE POLICY "Allow read public_event_defs" ON public_event_defs FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'private_event_defs' AND policyname = 'Allow read private_event_defs') THEN
+    CREATE POLICY "Allow read private_event_defs" ON private_event_defs FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'day_actions' AND policyname = 'Allow read day_actions') THEN
+    CREATE POLICY "Allow read day_actions" ON day_actions FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'events' AND policyname = 'Allow read events') THEN
+    CREATE POLICY "Allow read events" ON events FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'room_public_events' AND policyname = 'Allow read room_public_events') THEN
+    CREATE POLICY "Allow read room_public_events" ON room_public_events FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'room_private_events' AND policyname = 'Allow read room_private_events') THEN
+    CREATE POLICY "Allow read room_private_events" ON room_private_events FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'resolutions' AND policyname = 'Allow read resolutions') THEN
+    CREATE POLICY "Allow read resolutions" ON resolutions FOR SELECT USING (true);
+  END IF;
 
--- Allow insert/update for game operations (we'll use service role for mutations)
-CREATE POLICY "Allow all rooms" ON rooms FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all players" ON players FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all relationships" ON relationships FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all wildcard_decks" ON wildcard_decks FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all wildcard_defs" ON wildcard_defs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all public_event_defs" ON public_event_defs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all private_event_defs" ON private_event_defs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all day_actions" ON day_actions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all events" ON events FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all room_public_events" ON room_public_events FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all room_private_events" ON room_private_events FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all resolutions" ON resolutions FOR ALL USING (true) WITH CHECK (true);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rooms' AND policyname = 'Allow all rooms') THEN
+    CREATE POLICY "Allow all rooms" ON rooms FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'players' AND policyname = 'Allow all players') THEN
+    CREATE POLICY "Allow all players" ON players FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'relationships' AND policyname = 'Allow all relationships') THEN
+    CREATE POLICY "Allow all relationships" ON relationships FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'wildcard_decks' AND policyname = 'Allow all wildcard_decks') THEN
+    CREATE POLICY "Allow all wildcard_decks" ON wildcard_decks FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'wildcard_defs' AND policyname = 'Allow all wildcard_defs') THEN
+    CREATE POLICY "Allow all wildcard_defs" ON wildcard_defs FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'public_event_defs' AND policyname = 'Allow all public_event_defs') THEN
+    CREATE POLICY "Allow all public_event_defs" ON public_event_defs FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'private_event_defs' AND policyname = 'Allow all private_event_defs') THEN
+    CREATE POLICY "Allow all private_event_defs" ON private_event_defs FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'day_actions' AND policyname = 'Allow all day_actions') THEN
+    CREATE POLICY "Allow all day_actions" ON day_actions FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'events' AND policyname = 'Allow all events') THEN
+    CREATE POLICY "Allow all events" ON events FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'room_public_events' AND policyname = 'Allow all room_public_events') THEN
+    CREATE POLICY "Allow all room_public_events" ON room_public_events FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'room_private_events' AND policyname = 'Allow all room_private_events') THEN
+    CREATE POLICY "Allow all room_private_events" ON room_private_events FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'resolutions' AND policyname = 'Allow all resolutions') THEN
+    CREATE POLICY "Allow all resolutions" ON resolutions FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
--- Enable Realtime for all tables
-ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
-ALTER PUBLICATION supabase_realtime ADD TABLE players;
-ALTER PUBLICATION supabase_realtime ADD TABLE wildcard_decks;
-ALTER PUBLICATION supabase_realtime ADD TABLE day_actions;
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
-ALTER PUBLICATION supabase_realtime ADD TABLE room_public_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE room_private_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE resolutions;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'rooms') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'players') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE players;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'wildcard_decks') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE wildcard_decks;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'day_actions') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE day_actions;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'events') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE events;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'room_public_events') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE room_public_events;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'room_private_events') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE room_private_events;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'resolutions') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE resolutions;
+  END IF;
+END $$;
 
 -- Wildcard card definitions (100 cards)
 INSERT INTO wildcard_defs (id, tier, type, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata) VALUES

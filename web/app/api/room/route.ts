@@ -100,12 +100,42 @@ export async function POST(request: Request) {
     await initializeRoomEventSelections({ supabase, roomCode: code });
 
     if (debugBootstrap) {
-      const { error: dummyInsertError } = await supabase
+      const { data: insertedDummies, error: dummyInsertError } = await supabase
         .from("players")
-        .insert(buildDebugDummyPlayers(code));
+        .insert(buildDebugDummyPlayers(code))
+        .select("id");
 
       if (dummyInsertError) {
         return NextResponse.json({ error: "Failed to create debug players" }, { status: 500 });
+      }
+
+      const allowedPlayerIds = new Set([
+        player.id,
+        ...(insertedDummies || []).map((dummy) => dummy.id as string),
+      ]);
+
+      const { data: roomPlayers, error: roomPlayersError } = await supabase
+        .from("players")
+        .select("id")
+        .eq("room_code", code);
+
+      if (roomPlayersError) {
+        return NextResponse.json({ error: "Failed to verify debug room roster" }, { status: 500 });
+      }
+
+      const extraPlayerIds = (roomPlayers || [])
+        .map((roomPlayer) => roomPlayer.id as string)
+        .filter((roomPlayerId) => !allowedPlayerIds.has(roomPlayerId));
+
+      if (extraPlayerIds.length > 0) {
+        const { error: cleanupError } = await supabase
+          .from("players")
+          .delete()
+          .in("id", extraPlayerIds);
+
+        if (cleanupError) {
+          return NextResponse.json({ error: "Failed to clean debug room duplicates" }, { status: 500 });
+        }
       }
     }
 

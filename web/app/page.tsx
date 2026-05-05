@@ -21,6 +21,7 @@ export default function HomePage() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [debugBuilding, setDebugBuilding] = useState(false);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +83,13 @@ export default function HomePage() {
   };
 
   const onDebugBuild = async () => {
+    if (debugBuilding) {
+      return;
+    }
+
     const trimmed = name.trim() || "You";
     setError(null);
+    setDebugBuilding(true);
 
     try {
       const createRes = await fetch("/api/room", {
@@ -105,6 +111,8 @@ export default function HomePage() {
       router.push("/room/TEST");
     } catch {
       setError("Network error. Try again.");
+    } finally {
+      setDebugBuilding(false);
     }
   };
 
@@ -159,9 +167,10 @@ export default function HomePage() {
           <div className="mt-4 text-center">
             <button
               onClick={onDebugBuild}
+              disabled={debugBuilding}
               className="text-xs text-muted hover:text-paper transition uppercase tracking-widest"
             >
-              Debug Build
+              {debugBuilding ? "Building Debug Room..." : "Debug Build"}
             </button>
           </div>
         )}
