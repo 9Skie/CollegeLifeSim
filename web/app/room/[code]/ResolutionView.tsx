@@ -119,6 +119,15 @@ function getActionEffect(id: string, spend?: number): string {
   }
 }
 
+function formatGain(gain: { academics: number; social: number; wellbeing: number; money: number }): string {
+  const parts: string[] = [];
+  if (gain.academics !== 0) parts.push(`Academics ${gain.academics >= 0 ? "+" : ""}${gain.academics.toFixed(2).replace(/\.00$/, "").replace(/\.0$/, "")}`);
+  if (gain.social !== 0) parts.push(`Social ${gain.social >= 0 ? "+" : ""}${gain.social.toFixed(2).replace(/\.00$/, "").replace(/\.0$/, "")}`);
+  if (gain.wellbeing !== 0) parts.push(`Wellbeing ${gain.wellbeing >= 0 ? "+" : ""}${gain.wellbeing.toFixed(2).replace(/\.00$/, "").replace(/\.0$/, "")}`);
+  if (gain.money !== 0) parts.push(`Money ${gain.money >= 0 ? "+" : ""}${gain.money.toFixed(2).replace(/\.00$/, "").replace(/\.0$/, "")}`);
+  return parts.join(", ") || "No change";
+}
+
 function toOutcomeIndexFromWellbeing(seedValue: number, wellbeing: number) {
   const clampedWellbeing = Math.min(10, Math.max(0, wellbeing));
   const shift = (clampedWellbeing - 5) * 4;
@@ -271,6 +280,35 @@ export default function ResolutionView({
   const resolvedMorning = resolvedSlotResults.find((slot) => slot.slot === "morning");
   const resolvedAfternoon = resolvedSlotResults.find((slot) => slot.slot === "afternoon");
   const resolvedNight = resolvedSlotResults.find((slot) => slot.slot === "night");
+
+  /* ---- relationship bonus (global, applied after slot gains) ------- */
+  const relationshipBonus = useMemo(() => {
+    if (!currentResolution?.changes?.totalGain || resolvedSlotResults.length === 0) {
+      return null;
+    }
+    const slotSum = resolvedSlotResults.reduce(
+      (sum, r) => ({
+        academics: sum.academics + r.finalGain.academics,
+        social: sum.social + r.finalGain.social,
+        wellbeing: sum.wellbeing + r.finalGain.wellbeing,
+        money: sum.money + r.finalGain.money,
+      }),
+      { academics: 0, social: 0, wellbeing: 0, money: 0 }
+    );
+    const total = currentResolution.changes.totalGain;
+    const bonus = {
+      academics: total.academics - slotSum.academics,
+      social: total.social - slotSum.social,
+      wellbeing: total.wellbeing - slotSum.wellbeing,
+      money: total.money - slotSum.money,
+    };
+    const hasBonus =
+      Math.abs(bonus.academics) > 0.001 ||
+      Math.abs(bonus.social) > 0.001 ||
+      Math.abs(bonus.wellbeing) > 0.001 ||
+      Math.abs(bonus.money) > 0.001;
+    return hasBonus ? bonus : null;
+  }, [currentResolution?.changes?.totalGain, resolvedSlotResults]);
 
   const fallbackAllocated = useMemo(() => {
     try {
@@ -536,10 +574,24 @@ export default function ResolutionView({
                             {s.sel.spend === 2 && " · Food"}
                           </p>
                           <p className="text-xs text-muted">
-                            {getActionEffect(s.sel.actionId, s.sel.spend)}
+                            {resolvedSlotResults.length > 0
+                              ? formatGain(s.gain as { academics: number; social: number; wellbeing: number; money: number })
+                              : getActionEffect(s.sel.actionId, s.sel.spend)}
                           </p>
                           {targetName && (
                             <p className="text-xs text-muted">with {targetName}</p>
+                          )}
+                          {s.sel.actionId === "socialize" && relationshipBonus && (
+                            <p className="text-[10px] text-[#5b8c5a]">
+                              {(() => {
+                                const parts: string[] = [];
+                                if (relationshipBonus.academics !== 0) parts.push(`Academics +${relationshipBonus.academics}`);
+                                if (relationshipBonus.social !== 0) parts.push(`Social +${relationshipBonus.social}`);
+                                if (relationshipBonus.wellbeing !== 0) parts.push(`Wellbeing +${relationshipBonus.wellbeing}`);
+                                if (relationshipBonus.money !== 0) parts.push(`Money +${relationshipBonus.money}`);
+                                return parts.length > 0 ? `+${parts.join(", +")} friendship bonus` : null;
+                              })()}
+                            </p>
                           )}
                         </div>
 
