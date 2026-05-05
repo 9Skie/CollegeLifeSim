@@ -408,7 +408,7 @@ export default function ResolutionView({
       else setShowStats(true);
     }, 3600);
     const t3 = setTimeout(() => setShowStats(true), wildcardSlot ? 4400 : 3600);
-    const t4 = setTimeout(() => setShowHighlights(true), wildcardSlot ? 5200 : 4400);
+    const t4 = setTimeout(() => setShowHighlights(true), 600);
     return () => [t1, r1, r2, r3, t1b, t2, t3, t4].forEach(clearTimeout);
   }, [wildcardSlot]);
 
