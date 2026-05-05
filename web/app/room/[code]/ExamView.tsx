@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
 
 const GRADE_RANK: Record<ExamGrade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
@@ -63,10 +63,11 @@ export default function ExamView({
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
   const [showButton, setShowButton] = useState(false);
   const [continuing, setContinuing] = useState(false);
+  const didAnimate = useRef(false);
 
   useEffect(() => {
-    setVisibleCards([]);
-    setShowButton(false);
+    if (didAnimate.current || sortedResults.length === 0) return;
+    didAnimate.current = true;
 
     const timers: NodeJS.Timeout[] = [];
     const total = myResult ? 1 + sortedResults.length : sortedResults.length;
@@ -111,87 +112,104 @@ export default function ExamView({
 
     return (
       <div
-        className={`rounded-2xl border bg-card flex flex-col items-center text-center transition-all duration-500 ${
+        className={`rounded-2xl border bg-card flex items-center transition-all duration-500 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         } ${isMe ? "border-[#F3E5AB]/60" : "border-card-border"}`}
-        style={isHero ? { padding: "1.75rem" } : { padding: "1rem" }}
+        style={isHero ? { padding: "1.75rem", flexDirection: "column", textAlign: "center" } : { padding: "0.875rem 1rem" }}
       >
-        <div
-          className={`rounded-full flex items-center justify-center font-bold text-white mb-3 ${
-            isHero ? "w-16 h-16 text-lg" : "w-10 h-10 text-xs"
-          }`}
-          style={{ backgroundColor: color }}
-        >
-          {getInitials(result.playerName)}
-        </div>
-        <p
-          className={`font-semibold text-paper mb-1 ${
-            isHero ? "text-lg" : "text-sm"
-          }`}
-        >
-          {result.playerName}
-          {isMe && (
-            <span className="ml-1.5 text-[10px] font-bold text-[#F3E5AB] uppercase tracking-wider">
-              You
-            </span>
-          )}
-        </p>
-
-        <div
-          className={`rounded-full flex items-center justify-center font-black mb-3 ${
-            isHero ? "w-20 h-20 text-3xl" : "w-14 h-14 text-xl"
-          }`}
-          style={{
-            backgroundColor: gradeColor + "18",
-            border: `2px solid ${gradeColor}50`,
-            color: gradeColor,
-          }}
-        >
-          {result.grade}
-        </div>
-
-        <div className={`w-full space-y-1 ${isHero ? "text-sm" : "text-[11px]"}`}>
-          <div className="flex justify-between">
-            <span className="text-muted">Academics</span>
-            <span className="text-paper font-medium">
-              {result.oldAcademics.toFixed(2)}
-              {result.academicsChange !== 0 && (
-                <span
-                  className="ml-1 font-bold"
-                  style={{
-                    color: result.academicsChange > 0 ? "#5b8c5a" : "#d94f4f",
-                  }}
-                >
-                  {result.academicsChange > 0 ? "+" : ""}
-                  {result.academicsChange.toFixed(2)}
-                </span>
-              )}
-              <span className="text-paper font-bold ml-1">
-                → {result.newAcademics.toFixed(2)}
+        {isHero ? (
+          <>
+            <div
+              className="rounded-full flex items-center justify-center font-bold text-white mb-3 w-16 h-16 text-lg"
+              style={{ backgroundColor: color }}
+            >
+              {getInitials(result.playerName)}
+            </div>
+            <p className="font-semibold text-paper mb-1 text-lg">
+              {result.playerName}
+              <span className="ml-1.5 text-[10px] font-bold text-[#F3E5AB] uppercase tracking-wider">
+                You
               </span>
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted">Wellbeing</span>
-            <span className="text-paper font-medium">
-              {result.oldWellbeing.toFixed(2)}
-              {result.wellbeingChange !== 0 && (
-                <span
-                  className="font-bold ml-1"
-                  style={{
-                    color: result.wellbeingChange > 0 ? "#5b8c5a" : "#d94f4f",
-                  }}
-                >
-                  {result.wellbeingChange > 0 ? "+" : ""}
-                  {result.wellbeingChange.toFixed(2)}
+            </p>
+            <div
+              className="rounded-full flex items-center justify-center font-black mb-3 w-20 h-20 text-3xl"
+              style={{
+                backgroundColor: gradeColor + "18",
+                border: `2px solid ${gradeColor}50`,
+                color: gradeColor,
+              }}
+            >
+              {result.grade}
+            </div>
+            <div className="w-full space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted">Academics</span>
+                <span className="text-paper font-medium">
+                  {result.oldAcademics.toFixed(2)}
+                  {result.academicsChange !== 0 && (
+                    <span
+                      className="ml-1 font-bold"
+                      style={{ color: result.academicsChange > 0 ? "#5b8c5a" : "#d94f4f" }}
+                    >
+                      {result.academicsChange > 0 ? "+" : ""}
+                      {result.academicsChange.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-paper font-bold ml-1">
+                    → {result.newAcademics.toFixed(2)}
+                  </span>
                 </span>
-              )}
-              <span className="text-paper font-bold ml-1">
-                → {result.newWellbeing.toFixed(2)}
-              </span>
-            </span>
-          </div>
-        </div>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Wellbeing</span>
+                <span className="text-paper font-medium">
+                  {result.oldWellbeing.toFixed(2)}
+                  {result.wellbeingChange !== 0 && (
+                    <span
+                      className="font-bold ml-1"
+                      style={{ color: result.wellbeingChange > 0 ? "#5b8c5a" : "#d94f4f" }}
+                    >
+                      {result.wellbeingChange > 0 ? "+" : ""}
+                      {result.wellbeingChange.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-paper font-bold ml-1">
+                    → {result.newWellbeing.toFixed(2)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div
+              className="rounded-full flex items-center justify-center font-bold text-white shrink-0 w-10 h-10 text-xs"
+              style={{ backgroundColor: color }}
+            >
+              {getInitials(result.playerName)}
+            </div>
+            <div className="ml-3 flex-1 min-w-0">
+              <p className="font-semibold text-paper text-sm truncate">
+                {result.playerName}
+                {isMe && (
+                  <span className="ml-1.5 text-[10px] font-bold text-[#F3E5AB] uppercase tracking-wider">
+                    You
+                  </span>
+                )}
+              </p>
+            </div>
+            <div
+              className="rounded-full flex items-center justify-center font-black shrink-0 ml-3 w-12 h-12 text-lg"
+              style={{
+                backgroundColor: gradeColor + "18",
+                border: `2px solid ${gradeColor}50`,
+                color: gradeColor,
+              }}
+            >
+              {result.grade}
+            </div>
+          </>
+        )}
       </div>
     );
   }
