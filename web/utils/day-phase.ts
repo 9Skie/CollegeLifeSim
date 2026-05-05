@@ -339,27 +339,23 @@ export async function ensureDayPhaseResolved({
   let wildcardAssignments: WildcardAssignment[] = [];
 
   if (wildcardDrawOrder.length > 0) {
-    try {
-      const deck = await loadWildcardDeckForRoom({
-        supabase,
-        roomCode: room.code,
-      });
-      const { drawnCards, nextDeck } = await drawWildcardCardsFromDeck({
-        supabase,
-        deck,
-        count: wildcardDrawOrder.length,
-      });
+    const deck = await loadWildcardDeckForRoom({
+      supabase,
+      roomCode: room.code,
+    });
+    const { drawnCards, nextDeck } = await drawWildcardCardsFromDeck({
+      supabase,
+      deck,
+      count: wildcardDrawOrder.length,
+    });
 
-      wildcardAssignments = wildcardDrawOrder.map((row, index) => ({
-        playerId: row.player_id,
-        slot: row.slot as "morning" | "afternoon" | "night",
-        card: drawnCards[index],
-      }));
+    wildcardAssignments = wildcardDrawOrder.map((row, index) => ({
+      playerId: row.player_id,
+      slot: row.slot as "morning" | "afternoon" | "night",
+      card: drawnCards[index],
+    }));
 
-      await saveWildcardDeckForRoom({ supabase, deck: nextDeck });
-    } catch (deckError) {
-      console.warn("Wildcard deck unavailable, skipping wildcard draws:", deckError);
-    }
+    await saveWildcardDeckForRoom({ supabase, deck: nextDeck });
   }
 
   const resolvedDay = resolveDayForRoom({

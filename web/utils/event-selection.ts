@@ -42,87 +42,84 @@ export async function initializeRoomEventSelections({
   supabase: SupabaseClient;
   roomCode: string;
 }) {
-  try {
-    const { data: existingPublicRows, error: existingPublicError } = await supabase
-      .from("room_public_events")
-      .select("day")
-      .eq("room_code", roomCode);
+  const { data: existingPublicRows, error: existingPublicError } = await supabase
+    .from("room_public_events")
+    .select("day")
+    .eq("room_code", roomCode);
 
-    if (existingPublicError) {
-      console.warn("initializeRoomEventSelections: room_public_events query failed, table may not exist yet:", existingPublicError.message);
-      return;
-    }
+  if (existingPublicError) {
+    throw existingPublicError;
+  }
 
-    const { data: existingPrivateRows, error: existingPrivateError } = await supabase
-      .from("room_private_events")
-      .select("day")
-      .eq("room_code", roomCode);
+  const { data: existingPrivateRows, error: existingPrivateError } = await supabase
+    .from("room_private_events")
+    .select("day")
+    .eq("room_code", roomCode);
 
-    if (existingPrivateError) {
-      console.warn("initializeRoomEventSelections: room_private_events query failed, table may not exist yet:", existingPrivateError.message);
-      return;
-    }
+  if (existingPrivateError) {
+    throw existingPrivateError;
+  }
 
-    if ((existingPublicRows || []).length > 0 || (existingPrivateRows || []).length > 0) {
-      return;
-    }
-
-    const { data: publicDefs, error: publicDefsError } = await supabase
-      .from("public_event_defs")
-      .select("id");
-
-    if (publicDefsError || !publicDefs) {
-      console.warn("initializeRoomEventSelections: public_event_defs query failed, table may not exist yet:", publicDefsError?.message);
-      return;
-    }
-
-    const { data: privateDefs, error: privateDefsError } = await supabase
-      .from("private_event_defs")
-      .select("id");
-
-    if (privateDefsError || !privateDefs) {
-      console.warn("initializeRoomEventSelections: private_event_defs query failed, table may not exist yet:", privateDefsError?.message);
-      return;
-    }
-
-    const publicCount = Math.min(PUBLIC_EVENT_COUNT, publicDefs.length, getEligibleEventDays().length);
-    const privateCount = Math.min(PRIVATE_EVENT_COUNT, privateDefs.length, getEligibleEventDays().length);
-    const publicDays = pickUniqueDays(publicCount);
-    const privateDays = pickUniqueDays(privateCount);
-    const selectedPublicDefs = shuffle(publicDefs as EventDefinition[]).slice(0, publicCount);
-    const selectedPrivateDefs = shuffle(privateDefs as EventDefinition[]).slice(0, privateCount);
-
-    if (publicCount > 0) {
-      const { error: publicInsertError } = await supabase.from("room_public_events").insert(
-        publicDays.map((day, index) => ({
-          room_code: roomCode,
-          day,
-          public_event_id: selectedPublicDefs[index].id,
-        }))
-      );
-
-      if (publicInsertError) {
-        console.warn("initializeRoomEventSelections: room_public_events insert failed, table may not exist yet:", publicInsertError.message);
-        return;
-      }
-    }
-
-    if (privateCount > 0) {
-      const { error: privateInsertError } = await supabase.from("room_private_events").insert(
-        privateDays.map((day, index) => ({
-          room_code: roomCode,
-          day,
-          private_event_id: selectedPrivateDefs[index].id,
-        }))
-      );
-
-      if (privateInsertError) {
-        console.warn("initializeRoomEventSelections: room_private_events insert failed, table may not exist yet:", privateInsertError.message);
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn("initializeRoomEventSelections: unexpected error, tables may not exist yet:", err instanceof Error ? err.message : err);
+  if ((existingPublicRows || []).length > 0 || (existingPrivateRows || []).length > 0) {
     return;
+  }
+
+  const { data: publicDefs, error: publicDefsError } = await supabase
+    .from("public_event_defs")
+    .select("id");
+
+  if (publicDefsError || !publicDefs) {
+    throw publicDefsError || new Error("Failed to load public event definitions");
+  }
+
+  const { data: privateDefs, error: privateDefsError } = await supabase
+    .from("private_event_defs")
+    .select("id");
+
+  if (privateDefsError || !privateDefs) {
+    throw privateDefsError || new Error("Failed to load private event definitions");
+  }
+
+  if (publicDefs.length < 50) {
+    throw new Error(`Public event definitions incomplete: expected 50 rows, found ${publicDefs.length}`);
+  }
+
+  if (privateDefs.length < 50) {
+    throw new Error(`Private event definitions incomplete: expected 50 rows, found ${privateDefs.length}`);
+  }
+
+  const publicCount = Math.min(PUBLIC_EVENT_COUNT, getEligibleEventDays().length);
+  const privateCount = Math.min(PRIVATE_EVENT_COUNT, getEligibleEventDays().length);
+  const publicDays = pickUniqueDays(publicCount);
+  const privateDays = pickUniqueDays(privateCount);
+  const selectedPublicDefs = shuffle(publicDefs as EventDefinition[]).slice(0, publicCount);
+  const selectedPrivateDefs = shuffle(privateDefs as EventDefinition[]).slice(0, privateCount);
+
+  if (publicCount > 0) {
+    const { error: publicInsertError } = await supabase.from("room_public_events").insert(
+      publicDays.map((day, index) => ({
+        room_code: roomCode,
+        day,
+        public_event_id: selectedPublicDefs[index].id,
+      }))
+    );
+
+    if (publicInsertError) {
+      throw publicInsertError;
+    }
+  }
+
+  if (privateCount > 0) {
+    const { error: privateInsertError } = await supabase.from("room_private_events").insert(
+      privateDays.map((day, index) => ({
+        room_code: roomCode,
+        day,
+        private_event_id: selectedPrivateDefs[index].id,
+      }))
+    );
+
+    if (privateInsertError) {
+      throw privateInsertError;
+    }
   }
 }

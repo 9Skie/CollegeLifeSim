@@ -27,6 +27,10 @@ export async function loadWildcardDefs(supabase: SupabaseClient): Promise<Wildca
     throw error || new Error("Failed to load wildcard definitions");
   }
 
+  if (data.length < 100) {
+    throw new Error(`Wildcard definitions incomplete: expected 100 rows, found ${data.length}`);
+  }
+
   return data.map((row) => ({
     id: row.id as string,
     tier: row.tier as WildcardCard["tier"],
@@ -79,49 +83,51 @@ export async function ensureWildcardDeckForRoom({
 }: {
   supabase: SupabaseClient;
   roomCode: string;
-}): Promise<{ room_code: string } | null> {
-  try {
-    const { data: existingDeck, error: existingDeckError } = await supabase
-      .from("wildcard_decks")
-      .select("room_code")
-      .eq("room_code", roomCode)
-      .maybeSingle();
+}): Promise<{ room_code: string }> {
+  const { data: existingDeck, error: existingDeckError } = await supabase
+    .from("wildcard_decks")
+    .select("room_code, draw_pile, discard_pile")
+    .eq("room_code", roomCode)
+    .maybeSingle();
 
-    if (existingDeckError) {
-      console.warn("ensureWildcardDeckForRoom: query failed, table may not exist yet:", existingDeckError.message);
-      return null;
-    }
-
-    if (existingDeck) {
-      return existingDeck;
-    }
-
-    const drawPile = await buildShuffledWildcardDeck(supabase);
-
-    const { data: deck, error: deckError } = await supabase
-      .from("wildcard_decks")
-      .insert({
-        room_code: roomCode,
-        draw_pile: drawPile,
-        discard_pile: [],
-      })
-      .select("room_code")
-      .single();
-
-    if (deckError) {
-      console.warn("ensureWildcardDeckForRoom: insert failed, table may not exist yet:", deckError.message);
-      return null;
-    }
-
-    if (!deck) {
-      return null;
-    }
-
-    return deck;
-  } catch (err) {
-    console.warn("ensureWildcardDeckForRoom: unexpected error, table may not exist yet:", err instanceof Error ? err.message : err);
-    return null;
+  if (existingDeckError) {
+    throw existingDeckError;
   }
+
+  if (existingDeck) {
+    const drawPile = Array.isArray(existingDeck.draw_pile) ? (existingDeck.draw_pile as string[]) : [];
+    const discardPile = Array.isArray(existingDeck.discard_pile) ? (existingDeck.discard_pile as string[]) : [];
+    if (drawPile.length === 0 && discardPile.length === 0) {
+      const newDrawPile = await buildShuffledWildcardDeck(supabase);
+      const { error: updateError } = await supabase
+        .from("wildcard_decks")
+        .update({ draw_pile: newDrawPile, discard_pile: [], updated_at: new Date().toISOString() })
+        .eq("room_code", roomCode);
+
+      if (updateError) {
+        throw updateError;
+      }
+    }
+    return { room_code: existingDeck.room_code };
+  }
+
+  const drawPile = await buildShuffledWildcardDeck(supabase);
+
+  const { data: deck, error: deckError } = await supabase
+    .from("wildcard_decks")
+    .insert({
+      room_code: roomCode,
+      draw_pile: drawPile,
+      discard_pile: [],
+    })
+    .select("room_code")
+    .single();
+
+  if (deckError || !deck) {
+    throw deckError || new Error("Failed to initialize wildcard deck");
+  }
+
+  return deck;
 }
 
 function normalizeDeckRow(row: {
