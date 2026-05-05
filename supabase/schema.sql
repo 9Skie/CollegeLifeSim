@@ -90,8 +90,16 @@ CREATE TABLE IF NOT EXISTS public_event_defs (
 );
 
 -- Migrate: add action_modifiers if table exists without it
-ALTER TABLE public_event_defs
-  ADD COLUMN IF NOT EXISTS action_modifiers JSONB NOT NULL DEFAULT '{}'::jsonb;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'public_event_defs' AND column_name = 'action_modifiers'
+  ) THEN
+    ALTER TABLE public_event_defs
+      ADD COLUMN action_modifiers JSONB NOT NULL DEFAULT '{}'::jsonb;
+  END IF;
+END $$;
 
 -- Private event definitions (permanent catalog)
 CREATE TABLE IF NOT EXISTS private_event_defs (
