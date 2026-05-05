@@ -6,7 +6,7 @@ import CharacterSetup, { CharacterSetupResult } from "./CharacterSetup";
 import DayView from "./DayView";
 import ResolutionView from "./ResolutionView";
 import ExamView from "./ExamView";
-import WeekResolutionView from "./WeekResolutionView";
+
 import SpectatorView from "./SpectatorView";
 import EliminationScreen from "./EliminationScreen";
 import EndScreen from "./EndScreen";
@@ -35,7 +35,7 @@ type Player = {
   created_at?: string;
 };
 
-type GamePhase = "lobby" | "setup" | "day" | "resolution" | "week_resolution" | "exam" | "end";
+type GamePhase = "lobby" | "setup" | "day" | "resolution" | "exam" | "end";
 
 export default function RoomPage() {
   const params = useParams();
@@ -108,8 +108,7 @@ export default function RoomPage() {
             prev === "lobby" ||
             (prev === "setup" && ["day", "resolution", "exam"].includes(data.room.current_phase)) ||
             (prev === "day" && data.room.current_phase === "resolution") ||
-            (prev === "resolution" && ["day", "week_resolution", "exam"].includes(data.room.current_phase)) ||
-            (prev === "week_resolution" && ["day", "exam"].includes(data.room.current_phase)) ||
+            (prev === "resolution" && ["day", "exam"].includes(data.room.current_phase)) ||
             (prev === "exam" && ["day", "end"].includes(data.room.current_phase))
               ? (data.room.current_phase as GamePhase)
               : prev
@@ -217,60 +216,6 @@ export default function RoomPage() {
   };
 
   const startNextDay = async () => {
-    if (!myId) {
-      throw new Error("Missing player identity");
-    }
-
-    const isEndOfWeek = currentDay === 7 || currentDay === 14;
-    if (isEndOfWeek) {
-      const res = await fetch(`/api/room/${code}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId: myId,
-          currentPhase: "week_resolution",
-          status: "week_resolution",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to advance to week summary");
-      }
-      setRoomStatus(data.room.status);
-      setPhase(data.room.current_phase || "week_resolution");
-      return;
-    }
-
-    const nextDay = currentDay + 1;
-    const isExamDay = nextDay === 12 || nextDay === 19;
-    const nextPhase = isExamDay ? "exam" : "day";
-
-    const res = await fetch(`/api/room/${code}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        playerId: myId,
-        currentPhase: nextPhase,
-        status: nextPhase,
-        currentDay: nextDay,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to start next day");
-    }
-
-    setCurrentDay(data.room.current_day || nextDay);
-    setRoomStatus(data.room.status);
-    setDaySelections(createEmptySelectionRecord());
-    setDayState(null);
-    setCurrentResolution(null);
-    setCurrentExamResults(null);
-    setPhase(data.room.current_phase || nextPhase);
-  };
-
-  const continueFromWeekResolution = async () => {
     if (!myId) {
       throw new Error("Missing player identity");
     }
@@ -556,22 +501,6 @@ export default function RoomPage() {
           currentResolution={currentResolution}
           isHost={isHost}
           onNextDay={startNextDay}
-        />
-      </div>
-    );
-  }
-
-  if (phase === "week_resolution") {
-    return (
-      <div className="flex-1 flex overflow-hidden">
-        <WeekResolutionView
-          roomCode={code}
-          currentDay={currentDay}
-          playerId={myId ?? ""}
-          myName={myName}
-          players={players}
-          isHost={isHost}
-          onContinue={continueFromWeekResolution}
         />
       </div>
     );

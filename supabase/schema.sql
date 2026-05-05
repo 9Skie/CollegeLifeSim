@@ -7,10 +7,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Rooms table
 CREATE TABLE IF NOT EXISTS rooms (
   code TEXT PRIMARY KEY,
-  status TEXT NOT NULL DEFAULT 'lobby' CHECK (status IN ('lobby', 'setup', 'day', 'resolution', 'week_resolution', 'exam', 'end')),
+  status TEXT NOT NULL DEFAULT 'lobby' CHECK (status IN ('lobby', 'setup', 'day', 'resolution', 'exam', 'end')),
   host_id UUID,
   current_day INTEGER NOT NULL DEFAULT 1,
-  current_phase TEXT NOT NULL DEFAULT 'lobby' CHECK (current_phase IN ('lobby', 'setup', 'day', 'resolution', 'week_resolution', 'exam', 'end')),
+  current_phase TEXT NOT NULL DEFAULT 'lobby' CHECK (current_phase IN ('lobby', 'setup', 'day', 'resolution', 'exam', 'end')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

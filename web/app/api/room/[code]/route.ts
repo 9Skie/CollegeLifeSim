@@ -11,7 +11,6 @@ const ALLOWED_PHASES = new Set([
   "setup",
   "day",
   "resolution",
-  "week_resolution",
   "exam",
   "end",
 ]);
@@ -21,7 +20,6 @@ const ALLOWED_STATUSES = new Set([
   "setup",
   "day",
   "resolution",
-  "week_resolution",
   "exam",
   "end",
 ]);
