@@ -1431,12 +1431,7 @@ function getActionEffect(
     case "exercise":
       return "Wellbeing +1";
     case "socialize": {
-      const base =
-        spend === 1
-          ? "Social +1.25, Money −0.25"
-          : spend === 2
-          ? "Social +1.5, Money −0.5"
-          : "Social +1";
+      const base = "Social +1";
       const bonus =
         relationshipLevel === 2
           ? ", random stat +0.25"

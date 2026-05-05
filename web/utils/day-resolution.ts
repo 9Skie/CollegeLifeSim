@@ -777,6 +777,7 @@ export function resolveDayForRoom({
     money_spent: number;
     outcome_tier: "bad" | "normal" | "good" | null;
   }> = [];
+  const consumedEffectIds = new Set<string>();
 
   for (const player of players) {
     if (player.eliminated) {
@@ -948,7 +949,8 @@ export function resolveDayForRoom({
       if (ditched) {
         baseGain = roundStats({
           ...baseGain,
-          social: baseGain.social * 0.5,
+          social: 0.5,
+          money: 0,
         });
       }
 
