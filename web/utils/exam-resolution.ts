@@ -3,7 +3,6 @@ export type ExamGrade = "A" | "B" | "C" | "D" | "F";
 export type ExamResult = {
   playerId: string;
   playerName: string;
-  avatarEmoji?: string | null;
   grade: ExamGrade;
   academicsChange: number;
   oldAcademics: number;
@@ -49,7 +48,6 @@ export function resolveExamForRoom({
   players: Array<{
     id: string;
     name: string;
-    avatar_emoji?: string | null;
     academics?: number | string | null;
     wellbeing?: number | string | null;
     eliminated?: boolean | null;
@@ -98,7 +96,6 @@ export function resolveExamForRoom({
     results.push({
       playerId: player.id,
       playerName: player.name,
-      avatarEmoji: player.avatar_emoji,
       grade,
       academicsChange,
       oldAcademics,

@@ -25,10 +25,3 @@ export function getAvatarColor(name: string): string {
 export function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
-
-export function getAvatarContent(player: {
-  name: string;
-  avatar_emoji?: string | null;
-}): string {
-  return player.avatar_emoji || getInitials(player.name);
-}

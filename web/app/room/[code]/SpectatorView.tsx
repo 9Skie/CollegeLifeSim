@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { StoredResolution } from "@/utils/day-resolution";
 
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
-import { hashString, getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
+import { hashString, getAvatarColor, getInitials } from "@/utils/player-avatar";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -12,7 +12,6 @@ import { hashString, getAvatarColor, getAvatarContent } from "@/utils/player-ava
 type Player = {
   id: string;
   name: string;
-  avatar_emoji?: string | null;
   eliminated?: boolean;
   academics?: number | string | null;
   social?: number | string | null;
@@ -268,7 +267,7 @@ function SpectatorDayView({
                     className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {getAvatarContent(player)}
+                    {getInitials(player.name)}
                   </div>
                   <span className="text-xs font-medium text-paper">
                     {player.name}
@@ -324,7 +323,7 @@ function SpectatorDayView({
                       className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
                       style={{ backgroundColor: color }}
                     >
-                      {getAvatarContent(player)}
+                      {getInitials(player.name)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate text-paper">
@@ -498,7 +497,7 @@ function PlayerResultCard({
           }`}
           style={{ backgroundColor: color }}
         >
-          {getAvatarContent(player)}
+          {getInitials(player.name)}
         </div>
         <div className="flex-1 min-w-0">
           <p
@@ -746,7 +745,7 @@ function ExamResultCard({ result }: { result: ExamResult }) {
         className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white mb-3"
         style={{ backgroundColor: color }}
       >
-        {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
+        {getInitials(result.playerName)}
       </div>
       <p className="text-sm font-semibold text-paper mb-1">
         {result.playerName}
@@ -808,7 +807,7 @@ function EliminatedExamCard({ result }: { result: ExamResult }) {
         className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-white mb-3 grayscale opacity-50"
         style={{ backgroundColor: color }}
       >
-        {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
+        {getInitials(result.playerName)}
       </div>
       <p className="text-lg font-semibold text-paper mb-1">
         {result.playerName}

@@ -49,7 +49,7 @@ export async function GET(
     const { data: players, error: playersError } = await supabase
       .from("players")
       .select(
-        "id, name, avatar_emoji, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated, created_at"
+        "id, name, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated, created_at"
       )
       .eq("room_code", code)
       .order("created_at", { ascending: true });
@@ -221,7 +221,7 @@ export async function PATCH(
       const { data: roomPlayers, error: roomPlayersError } = await supabase
         .from("players")
         .select(
-          "id, room_code, name, avatar_emoji, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated, created_at"
+          "id, room_code, name, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated, created_at"
         )
         .eq("room_code", code)
         .order("created_at", { ascending: true });

@@ -13,6 +13,10 @@ import {
 } from "@/utils/relationships";
 import type { WildcardCard } from "@/data/wildcards";
 import type { WildcardImmediateEffect } from "@/data/wildcards";
+import {
+  extractInterestingEvents,
+  eventsToHighlights,
+} from "@/data/highlights";
 
 export type Stats = {
   academics: number;
@@ -420,48 +424,7 @@ function calculateSlotGain(
   return roundStats(gain);
 }
 
-function buildFallbackHighlights(playerName: string, slotResults: SlotResolution[]) {
-  const highlights: ResolutionHighlight[] = [];
 
-  for (const slotResult of slotResults) {
-    if (!slotResult.actionId || !slotResult.outcomeTier) {
-      continue;
-    }
-
-    if (slotResult.ditched && slotResult.targetName) {
-      highlights.push({
-        text: `${playerName} tried to make plans with ${slotResult.targetName}, but got ditched.`,
-        icon: "💔",
-        color: "#d94f4f",
-      });
-      continue;
-    }
-
-    if (slotResult.outcomeTier === "good") {
-      highlights.push({
-        text: `${playerName} had a strong ${slotResult.slot} ${slotResult.actionId.toLowerCase()} session.`,
-        icon: "✨",
-        color: "#5b8c5a",
-      });
-    } else if (slotResult.outcomeTier === "bad") {
-      highlights.push({
-        text: `${playerName}'s ${slotResult.slot} ${slotResult.actionId.toLowerCase()} did not go to plan.`,
-        icon: "🥀",
-        color: "#d94f4f",
-      });
-    }
-  }
-
-  if (highlights.length === 0) {
-    highlights.push({
-      text: `${playerName} wrapped up the day without any major drama.`,
-      icon: "🍃",
-      color: "#8a8579",
-    });
-  }
-
-  return highlights.slice(0, 5);
-}
 
 export function resolveDayForRoom({
   roomCode,
@@ -960,8 +923,43 @@ export function resolveDayForRoom({
         netChange: roundStats(subtractStats(newStats, oldStats)),
         slotResults,
       },
-      highlights: buildFallbackHighlights(player.name, slotResults),
+      highlights: [], // filled globally below
     });
+  }
+
+  // --- Global campus highlights (shared by all players) ---
+  const globalEvents = extractInterestingEvents({
+    roomCode,
+    currentDay,
+    players: players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      pos_trait: p.pos_trait,
+      neg_trait: p.neg_trait,
+    })),
+    resolutions,
+    relationshipUpdates: Array.from(changedRelationshipKeys).map((relationshipKey) => {
+      const state = relationshipState.get(relationshipKey)!;
+      return {
+        room_code: roomCode,
+        player_a: state.playerA,
+        player_b: state.playerB,
+        progress: state.progress,
+        level: state.level,
+      };
+    }),
+    publicEvent: publicEvent
+      ? { effectType: publicEvent.effectType, actionModifiers: publicEvent.actionModifiers }
+      : null,
+  });
+
+  const globalHighlights = eventsToHighlights(
+    globalEvents,
+    `${roomCode}:${currentDay}`
+  );
+
+  for (const resolution of resolutions) {
+    resolution.highlights = globalHighlights;
   }
 
   return {

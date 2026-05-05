@@ -9,7 +9,7 @@ import ExamView from "./ExamView";
 import WeekResolutionView from "./WeekResolutionView";
 import SpectatorView from "./SpectatorView";
 import EliminationScreen from "./EliminationScreen";
-import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
+import { getAvatarColor, getInitials } from "@/utils/player-avatar";
 
 import {
   createEmptySelectionRecord,
@@ -30,7 +30,6 @@ type Player = {
   wellbeing?: number;
   money?: number;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
-  avatar_emoji?: string | null;
   eliminated?: boolean;
   created_at?: string;
 };
@@ -138,7 +137,7 @@ export default function RoomPage() {
     // the day resolves (or when currentDay changes). Everyone else polls
     // every 3s. Spectators in resolution/exam also poll every 3s.
     const shouldPoll = !isSpectator || phase !== "day";
-    const interval = shouldPoll ? setInterval(fetchRoom, 3000) : null;
+    const interval = shouldPoll ? setInterval(fetchRoom, 1000) : null;
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -653,7 +652,7 @@ export default function RoomPage() {
                       }`}
                       style={{ backgroundColor: color }}
                     >
-                      {getAvatarContent(player)}
+                      {getInitials(player.name)}
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold truncate ${isGoner ? "text-muted line-through" : "text-paper"}`}>
@@ -762,7 +761,7 @@ function PlayerStatsPopup({
   const isGoner = player.eliminated;
 
   const color = getAvatarColor(player.name);
-  const avatarContent = getAvatarContent(player);
+  const avatarContent = getInitials(player.name);
 
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>

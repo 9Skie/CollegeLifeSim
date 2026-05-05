@@ -20,7 +20,7 @@ function generateCode(): string {
 
 export async function POST(request: Request) {
   try {
-    const { name, code: rawClientCode, debugRoom, avatarEmoji } = await request.json();
+    const { name, code: rawClientCode, debugRoom } = await request.json();
     if (!name || typeof name !== "string" || name.length < 1 || name.length > 20) {
       return NextResponse.json({ error: "Name must be 1–20 characters" }, { status: 400 });
     }
@@ -79,7 +79,6 @@ export async function POST(request: Request) {
       .insert({
         room_code: code,
         name,
-        avatar_emoji: typeof avatarEmoji === "string" && avatarEmoji.trim() ? avatarEmoji.trim() : null,
       })
       .select()
       .single();

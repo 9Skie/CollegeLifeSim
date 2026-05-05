@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
-import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
+import { getAvatarColor, getInitials } from "@/utils/player-avatar";
 
 const GRADE_RANK: Record<ExamGrade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
 const GRADE_COLORS: Record<ExamGrade, string> = {
@@ -103,7 +103,7 @@ export default function ExamView({
               className="rounded-full flex items-center justify-center font-bold text-white mb-3 w-16 h-16 text-lg"
               style={{ backgroundColor: color }}
             >
-              {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
+              {getInitials(result.playerName)}
             </div>
             <p className="font-semibold text-paper mb-1 text-lg">
               {result.playerName}
@@ -166,7 +166,7 @@ export default function ExamView({
               className="rounded-full flex items-center justify-center font-bold text-white shrink-0 w-10 h-10 text-xs"
               style={{ backgroundColor: color }}
             >
-              {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
+              {getInitials(result.playerName)}
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="font-semibold text-paper text-sm truncate">

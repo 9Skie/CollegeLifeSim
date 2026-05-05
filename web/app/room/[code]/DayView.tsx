@@ -19,7 +19,7 @@ import {
 import type { RoomDayState, RoomEvent } from "@/utils/room-day-state";
 import { DAY_DURATION_SECONDS } from "@/utils/day-timing";
 import { getRelationshipBonusAmount } from "@/utils/relationships";
-import { hashString, getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
+import { hashString, getAvatarColor, getInitials } from "@/utils/player-avatar";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -35,10 +35,9 @@ type Player = {
   wellbeing?: number;
   money?: number;
   eliminated?: boolean;
-  avatar_emoji?: string | null;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
 };
-type Relationship = { playerId: string; name: string; avatar_emoji?: string | null; level: number; progress: number };
+type Relationship = { playerId: string; name: string; level: number; progress: number };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -194,7 +193,6 @@ export default function DayView({
       .map((p) => ({
         playerId: p.id,
         name: p.name,
-        avatar_emoji: p.avatar_emoji,
         level: byId.get(p.id)?.level ?? 0,
         progress: byId.get(p.id)?.progress ?? 0,
       }))
@@ -640,7 +638,7 @@ export default function DayView({
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                     style={{ backgroundColor: getAvatarColor(r.name) }}
                   >
-                    {getAvatarContent(r)}
+                    {getInitials(r.name)}
                   </div>
                   <span className="text-sm text-paper">{r.name}</span>
                   <span
@@ -685,7 +683,7 @@ export default function DayView({
                     }`}
                     style={{ backgroundColor: color }}
                   >
-                    {getAvatarContent(me)}
+                    {getInitials(me.name)}
                     {me.status === "done" && !isGoner && (
                       <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                         <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
@@ -733,7 +731,7 @@ export default function DayView({
                         }`}
                         style={{ backgroundColor: color }}
                       >
-                        {getAvatarContent(p)}
+                        {getInitials(p.name)}
                         {p.status === "done" && !isGoner && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                             <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
@@ -1068,7 +1066,7 @@ function PlayerStatsPopup({
             }`}
             style={{ backgroundColor: color }}
           >
-            {getAvatarContent(player)}
+            {getInitials(player.name)}
           </div>
           <div>
             <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>

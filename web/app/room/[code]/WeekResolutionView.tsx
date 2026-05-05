@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { StoredResolution } from "@/utils/day-resolution";
-import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
+import { getAvatarColor, getInitials } from "@/utils/player-avatar";
 
-type Player = { id: string; name: string; avatar_emoji?: string | null; eliminated?: boolean };
+type Player = { id: string; name: string; eliminated?: boolean };
 
 type RelationshipRow = {
   player_a: string;
@@ -356,7 +356,7 @@ export default function WeekResolutionView({
                       className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                       style={{ backgroundColor: color }}
                     >
-                      {getAvatarContent(rel)}
+                      {getInitials(rel.name)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-paper">{rel.name}</p>

@@ -1,6 +1,6 @@
 # College Life Sim — What's Missing / TODO
 
-> Last updated: 2026-05-04
+> Last updated: 2026-05-05
 
 ---
 
@@ -8,47 +8,19 @@
 
 ---
 
-## 🟠 MAJOR SYSTEMS — Stubbed or Missing
-
-### Traits (~20 of 25 have code hooks; rest are flavor-only)
-- [ ] **Resilient** — "First time Wellbeing hits 0, set to 1 instead" (no elimination-save hook)
-- [ ] **Connected** — "Start with 1 free event code" (no code-dealing system)
-- [ ] **Loose Lips** — "Codes auto-leak" (no code-dealing system)
-- [ ] **Forgetful** — "1 class per week auto-skipped" (no auto-skip logic)
-- [ ] **Burnout-Prone** — "Studying 2 days in a row → Wellbeing −1" (no consecutive-day tracking)
-- [ ] **Influencer** — "At Social ≥ 7, gain +0.25 Social passive each day" (no daily passive hook)
-- [ ] **Optimist** — "Wellbeing decay −0.25 instead of −0.75" (hardcoded decay; no trait hook)
-- [ ] **Self Care** — "Rest and Sleep give +0.25 extra Wellbeing" (hardcoded rest/sleep values)
-- [ ] **Professor's Favorite** — "Class gives +0.25 extra Social" (hardcoded class values)
-- [ ] **Coupon Clipper** — "Free Socialize uses Coffee-tier effect" (no tier-swap logic)
-
-### Public Events
-- [ ] **Decorative only** — 10 hardcoded events show in banners but their modifiers are never applied in resolution. `day-resolution.ts` doesn't read public events at all.
-
-### Private Events
-- [ ] **Only 6 hardcoded** — Design calls for 20 with prerequisite checks and one-hop sharing. Codes are never dealt to players.
-
-### Achievements & Endgame
-- [ ] **Completely missing** — Design has 15 hidden achievements and major-weighted final scoring. No tracking, no end screen. `"end"` phase exists in types but has no render branch.
-
----
-
 ## 🟡 MULTIPLAYER / SYNC
 
 - [ ] **No real-time** — 3-second polling only. Design planned Supabase Realtime channels.
-- [ ] **Leave room doesn't notify server** — `// TODO: broadcast leave to server`. Players remain in DB forever.
 - [ ] **Race condition on day resolution** — Last-submission trigger has no transaction lock. Double-resolve possible.
 - [ ] **Host-only phase control** — If host leaves, the room is stuck. No host migration.
-- [ ] **Dummy players inject fake data into real games** — `dummyPlayers.ts` auto-submits if names match. Should be debug-only or removed.
 
 ---
 
 ## 🟢 UI / POLISH — Frontend
 
 - [ ] **Exam mechanics wrong** — Design uses outcome roll with Effective Exam Wellbeing = (Academics + Wellbeing) / 2. Code uses simple threshold scoring with no roll.
-- [ ] **Daily highlights are placeholder** — `generateDailyHighlights()` uses a tiny hardcoded pool. Design's ~300-line flavor pool doesn't exist.
+- [ ] **Daily highlights are placeholder** — `extractInterestingEvents` picks real events but all text is simple templates (e.g. "X had a great study session"). No rich flavor-text generator or design's ~300-line pool.
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
-- [ ] **Calendar does not highlight class days** — Visual schedule exists but class days aren't marked.
 
 ---
 
@@ -59,7 +31,7 @@
 | `relationships` | ✅ Queried and updated by backend; frontend displays real levels + progress |
 | `wildcard_decks` | ✅ Backend draws real cards; frontend renders actual title/description/effects |
 | `events` | Never used — events are client-side hardcoded arrays |
-| `resolutions.highlights` | Only populated with generic fallback text |
+| `resolutions.highlights` | `extractInterestingEvents` parses resolution data but generates simple template text from a pool of 20 messages |
 
 ---
 

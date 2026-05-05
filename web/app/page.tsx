@@ -19,7 +19,6 @@ export default function HomePage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("home");
   const [name, setName] = useState("");
-  const [avatarEmoji, setAvatarEmoji] = useState("😶");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [debugBuilding, setDebugBuilding] = useState(false);
@@ -34,7 +33,7 @@ export default function HomePage() {
       const res = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, avatarEmoji }),
+        body: JSON.stringify({ name: trimmed }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -42,7 +41,6 @@ export default function HomePage() {
       }
       if (typeof window !== "undefined") {
         localStorage.setItem("cls.name", trimmed);
-        localStorage.setItem("cls.avatarEmoji", avatarEmoji);
         localStorage.setItem("cls.role", "host");
         localStorage.setItem("cls.playerId", data.player.id);
         localStorage.setItem("cls.roomCode", data.room.code);
@@ -66,7 +64,7 @@ export default function HomePage() {
       const res = await fetch(`/api/room/${cleanCode}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmedName, avatarEmoji }),
+        body: JSON.stringify({ name: trimmedName }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -74,7 +72,6 @@ export default function HomePage() {
       }
       if (typeof window !== "undefined") {
         localStorage.setItem("cls.name", trimmedName);
-        localStorage.setItem("cls.avatarEmoji", avatarEmoji);
         localStorage.setItem("cls.role", "player");
         localStorage.setItem("cls.playerId", data.player.id);
         localStorage.setItem("cls.roomCode", cleanCode);
@@ -98,7 +95,7 @@ export default function HomePage() {
       const createRes = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed, code: "TEST", debugRoom: true, avatarEmoji }),
+        body: JSON.stringify({ name: trimmed, code: "TEST", debugRoom: true }),
       });
       const createData = await createRes.json();
       if (!createRes.ok) {
@@ -107,7 +104,6 @@ export default function HomePage() {
 
       if (typeof window !== "undefined") {
         localStorage.setItem("cls.name", trimmed);
-        localStorage.setItem("cls.avatarEmoji", avatarEmoji);
         localStorage.setItem("cls.role", "host");
         localStorage.setItem("cls.playerId", createData.player.id);
         localStorage.setItem("cls.roomCode", "TEST");
@@ -196,7 +192,6 @@ export default function HomePage() {
               maxLength={20}
               className="w-full rounded-lg bg-background border border-card-border px-4 py-3 text-paper placeholder:text-muted focus:outline-none focus:border-accent"
             />
-            <EmojiPicker value={avatarEmoji} onChange={setAvatarEmoji} />
             {error && <p className="mt-3 text-sm text-accent">{error}</p>}
             <div className="mt-6 flex gap-3">
               <button
@@ -244,7 +239,6 @@ export default function HomePage() {
               maxLength={20}
               className="mt-4 w-full rounded-lg bg-background border border-card-border px-4 py-3 text-paper placeholder:text-muted focus:outline-none focus:border-accent-soft"
             />
-            <EmojiPicker value={avatarEmoji} onChange={setAvatarEmoji} />
             {error && <p className="mt-3 text-sm text-accent">{error}</p>}
             <div className="mt-6 flex gap-3">
               <button
@@ -279,47 +273,5 @@ export default function HomePage() {
         </footer>
       </div>
     </main>
-  );
-}
-
-const EMOJI_POOL = [
-  "😀","😎","🤓","🥳","😴","🤠","👻","👽",
-  "🤖","💀","🐱","🐶","🦊","🐼","🐨","🐯",
-  "🦁","🐷","🐸","🐙","🦄","🐲","🌵","🌲",
-  "🌸","🌙","⭐","🔥","💧","❄️","⚡","🍕",
-  "🍔","🍣","🍦","🍩","☕","🎸","🎮","🎲",
-  "🏀","⚽","🏈","🎨","🎭","🚀","🛸","🗿",
-];
-
-function EmojiPicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (emoji: string) => void;
-}) {
-  return (
-    <div className="mt-3">
-      <p className="text-[10px] uppercase tracking-widest text-muted mb-2">Pick an avatar</p>
-      <div className="flex flex-wrap gap-1.5">
-        {EMOJI_POOL.map((emoji) => {
-          const selected = value === emoji;
-          return (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => onChange(emoji)}
-              className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition ${
-                selected
-                  ? "bg-accent/20 border border-accent"
-                  : "bg-background border border-transparent hover:border-card-border"
-              }`}
-            >
-              {emoji}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }

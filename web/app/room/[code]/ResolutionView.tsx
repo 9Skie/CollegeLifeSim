@@ -412,32 +412,21 @@ export default function ResolutionView({
     return () => [t1, r1, r2, r3, t1b, t2, t3, t4].forEach(clearTimeout);
   }, [wildcardSlot]);
 
-  /* ---- daily highlights (dummy) ---------------------------------- */
-  const highlights = useMemo(() => {
+  /* ---- campus highlights (global, from server) ------------------- */
+  const highlights = useMemo<Highlight[]>(() => {
     if (currentResolution?.highlights?.length) {
       return currentResolution.highlights as Highlight[];
     }
-
-    try {
-      return generateDailyHighlights({
-        myName,
-        selections,
-        morningOI,
-        afternoonOI,
-        nightOI,
-        wildcardCard,
-        players,
-      });
-    } catch {
-      return [
-        { text: "Campus was quiet today.", icon: "🍃", color: "#8a8579" },
-        { text: "The dining hall ran out of pizza again.", icon: "🍕", color: "#8a8579" },
-        { text: "Someone left a mysterious note in the library.", icon: "📝", color: "#8a8579" },
-        { text: "The squirrels are getting bolder.", icon: "🐿️", color: "#8a8579" },
-        { text: "A freshman got lost in the STEM building for 3 hours.", icon: "🏗️", color: "#8a8579" },
-      ];
-    }
-  }, [currentResolution?.highlights, myName, selections, morningOI, afternoonOI, nightOI, wildcardCard, players]);
+    // Fallback while waiting for server resolution
+    return [
+      { text: "Campus was quiet today.", icon: "🍃", color: "#8a8579" },
+      { text: "The dining hall ran out of pizza again.", icon: "🍕", color: "#8a8579" },
+      { text: "Someone left a mysterious note in the library.", icon: "📝", color: "#8a8579" },
+      { text: "The squirrels are getting bolder.", icon: "🐿️", color: "#8a8579" },
+      { text: "A freshman got lost in the STEM building for 3 hours.", icon: "🏗️", color: "#8a8579" },
+      { text: "The campus ducks have returned to the quad.", icon: "🦆", color: "#8a8579" },
+    ];
+  }, [currentResolution?.highlights]);
 
   const slotData = [
     { key: "morning" as const, label: "Morning", icon: "☀️", hasClass: resolvedMorning?.hasClass ?? hasClassMorning, sel: selections.morning, gain: resolvedMorning?.finalGain ?? morningGain, oi: morningOI, ditched: resolvedMorning?.ditched ?? false, repeatDecay: getRepeatDecay(selections, "morning") },
@@ -841,112 +830,9 @@ export default function ResolutionView({
 }
 
 /* ------------------------------------------------------------------ */
-// Daily highlights generator (dummy / placeholder)
+// Highlight type (shared by server-generated global highlights)
 
 type Highlight = { text: string; icon: string; color: string };
-
-function generateDailyHighlights({
-  myName,
-  selections,
-  morningOI,
-  afternoonOI,
-  nightOI,
-  wildcardCard,
-  players,
-}: {
-  myName: string;
-  selections: Record<string, Selection | null>;
-  morningOI: number;
-  afternoonOI: number;
-  nightOI: number;
-  wildcardCard: WildcardDisplay | null;
-  players: Player[];
-}) {
-  const out: Highlight[] = [];
-
-  const others = players.filter((p) => p.name !== myName);
-  const randOther = () =>
-    others.length > 0
-      ? others[hashString(myName + "rand") % others.length].name
-      : "someone";
-
-  // Slot highlights — Bad (red) / Good (green)
-  const slotInfo = [
-    { label: "morning", sel: selections.morning, oi: morningOI, icon: "☀️" },
-    { label: "afternoon", sel: selections.afternoon, oi: afternoonOI, icon: "🌤" },
-    { label: "night", sel: selections.night, oi: nightOI, icon: "🌙" },
-  ];
-
-  for (const s of slotInfo) {
-    if (!s.sel) continue;
-    const action = getActionLabel(s.sel.actionId);
-    const targetName = s.sel.targetId
-      ? players.find((p) => p.id === s.sel?.targetId)?.name
-      : null;
-
-    if (s.oi === 0) {
-      const lines = [
-        `${myName} tried to ${action.toLowerCase()}, but the universe had other plans.`,
-        `${myName}'s ${action.toLowerCase()} session went off the rails.`,
-        `Nothing about ${myName}'s ${action.toLowerCase()} went right today.`,
-      ];
-      out.push({ text: lines[hashString(myName + s.label) % lines.length], icon: s.icon, color: "#d94f4f" });
-    } else if (s.oi === 2) {
-      const lines = targetName
-        ? [
-            `${myName} and ${targetName} absolutely crushed their ${action.toLowerCase()}.`,
-            `${myName} and ${targetName} had a magical ${action.toLowerCase()} session.`,
-            `${targetName} and ${myName} were in perfect sync during ${action.toLowerCase()}.`,
-          ]
-        : [
-            `${myName} had an incredible ${action.toLowerCase()} session.`,
-            `${myName} absolutely crushed it during ${action.toLowerCase()}.`,
-            `${myName}'s ${action.toLowerCase()} was the highlight of the day.`,
-          ];
-      out.push({ text: lines[hashString(myName + s.label) % lines.length], icon: s.icon, color: "#5b8c5a" });
-    }
-  }
-
-  // Wildcard highlight — color based on tier
-  if (wildcardCard) {
-    out.push({
-      text: `${myName} drew ${wildcardCard.title}.`,
-      icon: wildcardCard.emoji,
-      color: tierToColor(wildcardCard.tier),
-    });
-  }
-
-  // Generic campus events — mixed sentiment colors
-  const generic: Highlight[] = [
-    { text: `${randOther()} was spotted crying in the library at 2am.`, icon: "😢", color: "#d94f4f" },
-    { text: `The dining hall ran out of pizza. Again.`, icon: "🍕", color: "#F3E5AB" },
-    { text: `A squirrel stole ${randOther()}'s bagel. No one intervened.`, icon: "🐿️", color: "#F3E5AB" },
-    { text: `The STEM building elevator got stuck for 20 minutes.`, icon: "🏗️", color: "#F3E5AB" },
-    { text: `${randOther()} showed up to class in pajamas. Respect.`, icon: "😴", color: "#5b8c5a" },
-    { text: `Someone started a rumor that the final got cancelled. It didn't.`, icon: "📢", color: "#d94f4f" },
-    { text: `The campus Wi-Fi went down during registration. Chaos ensued.`, icon: "📶", color: "#d94f4f" },
-    { text: `${randOther()} lost their ID card for the third time this week.`, icon: "🪪", color: "#d94f4f" },
-    { text: `A stray cat has taken up residence in the humanities building.`, icon: "🐈", color: "#5b8c5a" },
-    { text: `${randOther()} accidentally replied-all to a department email.`, icon: "📧", color: "#F3E5AB" },
-    { text: `Free donuts appeared in the student lounge. No questions asked.`, icon: "🍩", color: "#5b8c5a" },
-    { text: `The coffee shop started accepting dining dollars again.`, icon: "☕", color: "#5b8c5a" },
-  ];
-
-  // Shuffle generics deterministically
-  const shuffled = generic
-    .map((g, i) => ({ ...g, sortKey: hashString(myName + "campus" + i) }))
-    .sort((a, b) => a.sortKey - b.sortKey)
-    .map(({ sortKey: _, ...rest }) => rest);
-
-  while (out.length < 6 && shuffled.length > 0) {
-    const next = shuffled.shift()!;
-    if (!out.some((o) => o.text === next.text)) {
-      out.push(next);
-    }
-  }
-
-  return out.slice(0, 6);
-}
 
 /* ------------------------------------------------------------------ */
 // Vertical roulette (right side of each slot)
