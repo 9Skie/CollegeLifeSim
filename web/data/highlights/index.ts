@@ -28,6 +28,7 @@ import {
   RELATIONSHIP_FRIEND_MESSAGES,
   RELATIONSHIP_SOULMATE_MESSAGES,
   DITCHING_MESSAGES,
+  PRIVATE_EVENT_MESSAGES,
   STAT_CRASH_MESSAGES,
   STAT_SWING_MESSAGES,
 } from "./messages/events";
@@ -45,6 +46,7 @@ export type InterestingEventType =
   | "stat_drama"
   | "elimination"
   | "relationship_up"
+  | "private_event"
   | "general";
 
 export type InterestingEvent = {
@@ -109,6 +111,10 @@ export type HighlightContext = {
     effectType: string;
     actionModifiers: Record<string, Record<string, number>>;
   } | null;
+  privateEvent: {
+    name: string;
+    holders: string[];
+  } | null;
 };
 
 // ------------------------------------------------------------------
@@ -122,6 +128,7 @@ const PRIORITY = {
   ditched: 70,
   wildcard: 65,
   public_event_major: 60,
+  private_event: 58,
   bad_action: 55,
   good_action: 50,
   stat_drama_crash: 45,
@@ -208,7 +215,20 @@ export function extractInterestingEvents(ctx: HighlightContext): InterestingEven
     }
   }
 
-  // --- 3. Action outcomes (good/bad/ditched/wildcard) + stat drama ---
+  // --- 3. Private events ---
+  if (ctx.privateEvent) {
+    for (const holderId of ctx.privateEvent.holders) {
+      events.push({
+        type: "private_event",
+        priority: PRIORITY.private_event,
+        playerName: nameOf(holderId),
+        playerId: holderId,
+        contextHint: `${nameOf(holderId)} received private event: ${ctx.privateEvent.name}`,
+      });
+    }
+  }
+
+  // --- 4. Action outcomes (good/bad/ditched/wildcard) + stat drama ---
   for (const res of ctx.resolutions) {
     const playerName = nameOf(res.player_id);
 
@@ -462,6 +482,14 @@ export function eventsToHighlights(
           target: ev.targetName ?? "someone",
         });
         icon = "🥀"; color = "#d94f4f";
+        break;
+      }
+
+      case "private_event": {
+        text = formatMessage(pickOne(PRIVATE_EVENT_MESSAGES, `${seed}:priv:${ev.playerId}`), {
+          name: ev.playerName,
+        });
+        icon = "🎟"; color = "#5b8c5a";
         break;
       }
 

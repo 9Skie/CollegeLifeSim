@@ -84,6 +84,7 @@ export function buildSelectionRecordFromRows(
     action: string;
     target_id: string | null;
     money_spent: number | string | null;
+    event_code?: string | null;
   }>
 ): SelectionRecord {
   const selections = createEmptySelectionRecord();
@@ -98,6 +99,7 @@ export function buildSelectionRecordFromRows(
       actionId: row.action,
       targetId: row.target_id ?? undefined,
       ...(spend !== undefined ? { spend } : {}),
+      ...(row.event_code ? { code: row.event_code } : {}),
     };
   }
 

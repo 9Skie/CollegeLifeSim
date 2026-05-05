@@ -43,6 +43,7 @@ type DayActionRow = {
   action: string;
   target_id: string | null;
   money_spent: number | string | null;
+  event_code?: string | null;
 };
 
 type WildcardAssignment = {
@@ -380,6 +381,36 @@ export async function ensureDayPhaseResolved({
     }
   }
 
+  const { data: privateEventRow } = await supabase
+    .from("room_private_events")
+    .select("private_event_id, assigned_holder_ids")
+    .eq("room_code", room.code)
+    .eq("day", room.current_day)
+    .maybeSingle();
+
+  let privateEvent: {
+    effectType: string;
+    rewardPayload: Record<string, number>;
+    holders: string[];
+    name: string;
+  } | null = null;
+
+  if (privateEventRow) {
+    const { data: privDef } = await supabase
+      .from("private_event_defs")
+      .select("id, title, effect_type, reward_payload")
+      .eq("id", (privateEventRow as { private_event_id?: string }).private_event_id)
+      .single();
+    if (privDef) {
+      privateEvent = {
+        effectType: privDef.effect_type as string,
+        rewardPayload: (privDef.reward_payload as Record<string, number>) || {},
+        holders: (privateEventRow as { assigned_holder_ids?: string[] }).assigned_holder_ids ?? [],
+        name: privDef.title as string,
+      };
+    }
+  }
+
   const resolvedDay = resolveDayForRoom({
     roomCode: room.code,
     currentDay: room.current_day,
@@ -389,6 +420,7 @@ export async function ensureDayPhaseResolved({
     relationshipRows: (relationshipRows || []) as RelationshipRow[],
     wildcardAssignments,
     publicEvent,
+    privateEvent,
   });
 
   resolvedDay.resolutions = resolvedDay.resolutions.map((resolution) => ({

@@ -13,6 +13,38 @@ export const MAJORS = [
 
 export type MajorName = (typeof MAJORS)[number];
 
+export type MajorWeights = {
+  academics: number;
+  social: number;
+  wellbeing: number;
+  money: number;
+};
+
+export const MAJOR_WEIGHTS: Record<string, MajorWeights> = {
+  "Computer Science": { academics: 4, social: 1, wellbeing: 2, money: 3 },
+  Business: { academics: 2, social: 3, wellbeing: 2, money: 3 },
+  "Pre-Med": { academics: 4, social: 1, wellbeing: 4, money: 1 },
+  "Arts / Media": { academics: 1, social: 4, wellbeing: 3, money: 2 },
+  Psychology: { academics: 3, social: 3, wellbeing: 2, money: 2 },
+  Engineering: { academics: 4, social: 1, wellbeing: 2, money: 3 },
+  Communications: { academics: 2, social: 4, wellbeing: 2, money: 2 },
+  Education: { academics: 3, social: 2, wellbeing: 3, money: 2 },
+  "Environmental Science": { academics: 3, social: 2, wellbeing: 3, money: 2 },
+  Undecided: { academics: 2.5, social: 2.5, wellbeing: 2.5, money: 2.5 },
+};
+
+export function getWeightedScore(
+  player: { academics?: number; social?: number; wellbeing?: number; money?: number; major?: string | null }
+): number {
+  const w = MAJOR_WEIGHTS[player.major ?? "Undecided"] ?? MAJOR_WEIGHTS.Undecided;
+  return (
+    (player.academics ?? 0) * w.academics +
+    (player.social ?? 0) * w.social +
+    (player.wellbeing ?? 0) * w.wellbeing +
+    (player.money ?? 0) * w.money
+  );
+}
+
 export const MAJOR_DATA: Record<string, { focus: string; weights: string }> = {
   "Computer Science": {
     focus: "Heavy on Academics and Money. You grind code by day and side-projects by night.",

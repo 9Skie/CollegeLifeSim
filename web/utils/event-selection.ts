@@ -38,9 +38,11 @@ function pickUniqueDays(count: number) {
 export async function initializeRoomEventSelections({
   supabase,
   roomCode,
+  playerIds = [],
 }: {
   supabase: SupabaseClient;
   roomCode: string;
+  playerIds?: string[];
 }) {
   const { data: existingPublicRows, error: existingPublicError } = await supabase
     .from("room_public_events")
@@ -110,11 +112,15 @@ export async function initializeRoomEventSelections({
   }
 
   if (privateCount > 0) {
+    const holderCount = Math.max(1, Math.ceil(playerIds.length / 3));
+    const selectedHolders = shuffle([...playerIds]).slice(0, holderCount);
+
     const { error: privateInsertError } = await supabase.from("room_private_events").insert(
       privateDays.map((day, index) => ({
         room_code: roomCode,
         day,
         private_event_id: selectedPrivateDefs[index].id,
+        assigned_holder_ids: selectedHolders,
       }))
     );
 

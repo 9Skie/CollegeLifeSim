@@ -170,6 +170,7 @@ export async function POST(
         action: selection.actionId,
         target_id: selection.targetId ?? null,
         money_spent: getMoneySpentFromSelection(selection),
+        event_code: selection.actionId === "wildcard" && selection.code ? selection.code : null,
       };
     });
 

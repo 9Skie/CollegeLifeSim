@@ -37,6 +37,7 @@ type DayActionRow = {
   action: string;
   target_id: string | null;
   money_spent: number | string | null;
+  event_code?: string | null;
 };
 
 export type PlayerDayStatus = {
@@ -52,6 +53,7 @@ export type RoomEvent = {
   effectType?: string;
   actionModifiers?: Record<string, Record<string, number>>;
   code?: string;
+  isHolder?: boolean;
 };
 
 export type RoomDayState = {
@@ -193,7 +195,7 @@ export async function loadRoomDayState(
       .maybeSingle(),
     supabase
       .from("room_private_events")
-      .select("private_event_id")
+      .select("private_event_id, assigned_holder_ids")
       .eq("room_code", code)
       .eq("day", currentDay)
       .maybeSingle(),
@@ -230,6 +232,7 @@ export async function loadRoomDayState(
       .eq("id", privateEventRow.private_event_id)
       .single();
     if (privDef) {
+      const holderIds = (privateEventRow as { assigned_holder_ids?: string[] }).assigned_holder_ids ?? [];
       privateEvent = {
         id: privDef.id as string,
         name: privDef.title as string,
@@ -240,6 +243,7 @@ export async function loadRoomDayState(
           privDef.reward_payload as Record<string, unknown> | null
         ),
         code: `${privDef.code_prefix as string}-${String(currentDay).padStart(2, "0")}`,
+        isHolder: playerId ? holderIds.includes(playerId) : false,
       };
     }
   }

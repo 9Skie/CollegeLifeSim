@@ -51,6 +51,7 @@ export default function RoomPage() {
   const [currentResolution, setCurrentResolution] = useState<StoredResolution | null>(null);
   const [allResolutions, setAllResolutions] = useState<StoredResolution[] | null>(null);
   const [currentExamResults, setCurrentExamResults] = useState<ExamResult[] | null>(null);
+  const [actionHistory, setActionHistory] = useState<Array<{ player_id: string; action: string; day: number; slot: string }> | null>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [hostId, setHostId] = useState<string | null>(null);
   const [currentDay, setCurrentDay] = useState(1);
@@ -103,6 +104,7 @@ export default function RoomPage() {
         setCurrentResolution(data.currentResolution || null);
         setAllResolutions(data.allResolutions || null);
         setCurrentExamResults(data.currentExamResults || null);
+        setActionHistory(data.actionHistory || null);
         if (data.room.current_phase) {
           setPhase((prev) =>
             prev === "lobby" ||
@@ -525,6 +527,7 @@ export default function RoomPage() {
       <EndScreen
         players={players}
         currentPlayer={currentPlayer}
+        actionHistory={actionHistory || []}
         onReturnHome={leaveRoom}
       />
     );

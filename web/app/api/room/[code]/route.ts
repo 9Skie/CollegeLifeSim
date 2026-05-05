@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { ensureDayPhaseResolved } from "@/utils/day-phase";
 import { resolveExamForRoom } from "@/utils/exam-resolution";
+import { initializeRoomEventSelections } from "@/utils/event-selection";
 import { loadRoomDayState } from "@/utils/room-day-state";
 import { ensureSetupRollsForPlayers } from "@/utils/setup-roll";
 import { ensureWildcardDeckForRoom } from "@/utils/wildcard-deck";
@@ -93,6 +94,29 @@ export async function GET(
     const effectiveRoom = ensuredDay.room;
     const effectivePlayers = ensuredDay.players;
 
+    // --- Deal private event holders for the current day ---
+    if (effectiveRoom.current_phase === "day") {
+      const { data: privRow } = await supabase
+        .from("room_private_events")
+        .select("day, assigned_holder_ids")
+        .eq("room_code", code)
+        .eq("day", effectiveRoom.current_day)
+        .maybeSingle();
+
+      if (privRow && (!privRow.assigned_holder_ids || (privRow.assigned_holder_ids as string[]).length === 0)) {
+        const activePlayers = effectivePlayers.filter((p) => !p.eliminated);
+        const holderCount = Math.min(3, Math.max(1, Math.floor(activePlayers.length * 0.4)));
+        const shuffled = [...activePlayers].sort(() => Math.random() - 0.5);
+        const holders = shuffled.slice(0, holderCount).map((p) => p.id);
+
+        await supabase
+          .from("room_private_events")
+          .update({ assigned_holder_ids: holders })
+          .eq("room_code", code)
+          .eq("day", effectiveRoom.current_day);
+      }
+    }
+
     const dayState = await loadRoomDayState(
       supabase,
       code,
@@ -106,6 +130,7 @@ export async function GET(
     let currentResolution = ensuredDay.currentResolution;
     let allResolutions = ensuredDay.allResolutions;
     let currentExamResults = null;
+    let actionHistory = null;
 
     if (effectiveRoom.current_phase === "resolution" && !allResolutions) {
       const { data: allRes } = await supabase
@@ -129,6 +154,16 @@ export async function GET(
       }).results;
     }
 
+    if (effectiveRoom.current_phase === "end") {
+      const { data: actionRows, error: actionError } = await supabase
+        .from("day_actions")
+        .select("player_id, action, day, slot")
+        .eq("room_code", code);
+      if (!actionError) {
+        actionHistory = actionRows || [];
+      }
+    }
+
     return NextResponse.json({
       room: effectiveRoom,
       players: effectivePlayers,
@@ -136,6 +171,7 @@ export async function GET(
       currentResolution,
       allResolutions,
       currentExamResults,
+      actionHistory,
     });
   } catch (err) {
     console.error("GET /api/room/[code] error:", err);
@@ -211,6 +247,15 @@ export async function PATCH(
 
     if (currentPhase === "day") {
       await ensureWildcardDeckForRoom({ supabase, roomCode: code });
+      const { data: roomPlayers } = await supabase
+        .from("players")
+        .select("id")
+        .eq("room_code", code);
+      await initializeRoomEventSelections({
+        supabase,
+        roomCode: code,
+        playerIds: (roomPlayers || []).map((p) => p.id as string),
+      });
     }
 
     let updatedPlayers = null;

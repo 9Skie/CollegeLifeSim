@@ -137,6 +137,34 @@ export const STAT_CRASH_MESSAGES: string[] = [
   "{name} hit {stat} zero. Not a metaphor. Actually zero.",
 ];
 
+// ------------------------------------------------------------------
+// Private Event Messages — 15
+// Template vars: {name}
+// ------------------------------------------------------------------
+
+export const PRIVATE_EVENT_MESSAGES: string[] = [
+  "{name} got a whispered invite and actually showed up. Smart move.",
+  "{name} stumbled into something exclusive and left better off.",
+  "{name} was in the right place at the right time. Campus karma.",
+  "{name} caught a lucky break today. Nobody saw it coming.",
+  "{name} got access to something most people never hear about.",
+  "{name} followed a rumor and it actually paid off.",
+  "{name} ended up somewhere they shouldn't be, and it worked out.",
+  "{name} got the kind of insider edge that changes a whole week.",
+  "{name} walked into a room and walked out ahead.",
+  "{name} found a backdoor to success and took it.",
+  "{name} heard about it through a friend of a friend. Classic.",
+  "{name} got invited to the kind of thing people lie about getting invited to.",
+  "{name} pulled off a small miracle today. Just for them.",
+  "{name} got lucky, but probably earned it too.",
+  "{name} is having one of those days where everything just lines up.",
+];
+
+// ------------------------------------------------------------------
+// Stat Swing Messages — 15
+// Template vars: {name}, {stat}
+// ------------------------------------------------------------------
+
 export const STAT_SWING_MESSAGES: string[] = [
   "{name}'s {stat} just had the wildest swing of the semester.",
   "{name} experienced a {stat} rollercoaster today. Buckle up.",

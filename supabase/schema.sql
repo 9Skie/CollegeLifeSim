@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS day_actions (
   target_id UUID REFERENCES players(id) ON DELETE SET NULL,
   money_spent NUMERIC(4,2) DEFAULT 0,
   outcome_tier TEXT CHECK (outcome_tier IN ('bad', 'normal', 'good')),
+  event_code TEXT,
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (room_code, day, slot, player_id)
 );
@@ -180,6 +181,7 @@ CREATE TABLE IF NOT EXISTS room_private_events (
   room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
   day INTEGER NOT NULL,
   private_event_id TEXT NOT NULL,
+  assigned_holder_ids TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (room_code, day),
   FOREIGN KEY (private_event_id) REFERENCES private_event_defs(id)

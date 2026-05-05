@@ -64,6 +64,7 @@ export type StoredResolution = {
     netChange: Stats;
     slotResults: SlotResolution[];
     autoFilled?: boolean;
+    privateEventBonus?: Stats | null;
   };
   highlights: ResolutionHighlight[];
 };
@@ -88,6 +89,7 @@ type DayActionRow = {
   action: string;
   target_id: string | null;
   money_spent: number | string | null;
+  event_code?: string | null;
 };
 
 const DAILY_DECAY: Stats = {
@@ -435,6 +437,7 @@ export function resolveDayForRoom({
   relationshipRows = [],
   wildcardAssignments = [],
   publicEvent,
+  privateEvent,
 }: {
   roomCode: string;
   currentDay: number;
@@ -455,6 +458,12 @@ export function resolveDayForRoom({
   publicEvent?: {
     effectType: string;
     actionModifiers: Record<string, Record<string, number>>;
+  } | null;
+  privateEvent?: {
+    effectType: string;
+    rewardPayload: Record<string, number>;
+    holders: string[];
+    name: string;
   } | null;
 }) {
   const currentDayIndex = (currentDay - 1) % 7;
@@ -899,16 +908,27 @@ export function resolveDayForRoom({
     const missedClassCount = Math.max(0, classesScheduledThisWeek - weeklyClassesAttendedSoFar);
     const classPenalty = isEndOfWeek ? getMissedClassPenalty(missedClassCount) : 0;
 
+    let privateEventBonus: Stats | null = null;
+    if (privateEvent?.holders.includes(player.id)) {
+      privateEventBonus = {
+        academics: toNumber(privateEvent.rewardPayload.academics, 0),
+        social: toNumber(privateEvent.rewardPayload.social, 0),
+        wellbeing: toNumber(privateEvent.rewardPayload.wellbeing, 0),
+        money: toNumber(privateEvent.rewardPayload.money, 0),
+      };
+    }
+
     const newStats = normalizeStats({
-      academics: oldStats.academics + netChange.academics - homeworkPenalty - classPenalty,
-      social: oldStats.social + netChange.social + giftSocial,
+      academics: oldStats.academics + netChange.academics - homeworkPenalty - classPenalty + (privateEventBonus?.academics ?? 0),
+      social: oldStats.social + netChange.social + giftSocial + (privateEventBonus?.social ?? 0),
       wellbeing:
         oldStats.wellbeing +
         netChange.wellbeing -
         (hadRestOrSleep ? 0 : 1.5) -
         fomoPenalty +
-        cheerfulBonus,
-      money: oldStats.money + netChange.money,
+        cheerfulBonus +
+        (privateEventBonus?.wellbeing ?? 0),
+      money: oldStats.money + netChange.money + (privateEventBonus?.money ?? 0),
     });
 
     resolutions.push({
@@ -922,6 +942,7 @@ export function resolveDayForRoom({
         totalGain: roundedTotalGain,
         netChange: roundStats(subtractStats(newStats, oldStats)),
         slotResults,
+        privateEventBonus,
       },
       highlights: [], // filled globally below
     });
@@ -950,6 +971,9 @@ export function resolveDayForRoom({
     }),
     publicEvent: publicEvent
       ? { effectType: publicEvent.effectType, actionModifiers: publicEvent.actionModifiers }
+      : null,
+    privateEvent: privateEvent
+      ? { name: privateEvent.name, holders: privateEvent.holders }
       : null,
   });
 

@@ -899,7 +899,7 @@ export default function DayView({
           players={players}
           currentPlayerId={currentPlayer?.id ?? null}
           relationships={relationships}
-          heldCodes={privateEvent ? [{ code: privateEvent.code ?? "", name: privateEvent.name }] : []}
+          heldCodes={privateEvent?.isHolder && privateEvent.code ? [{ code: privateEvent.code, name: privateEvent.name }] : []}
           usedWildcard={usedWildcardToday}
           currentSelection={selections[pickingSlot]}
           onSelect={(sel) => {
