@@ -363,8 +363,6 @@ export default function ResolutionView({
   const [rouletteShows, setRouletteShows] = useState([false, false, false]);
   const [slotsLanded, setSlotsLanded] = useState(false);
   const [showWildcard, setShowWildcard] = useState(false);
-  const [showShuffling, setShowShuffling] = useState(false);
-  const [showCardFace, setShowCardFace] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   const [visibleHighlights, setVisibleHighlights] = useState<number[]>([]);
@@ -383,21 +381,6 @@ export default function ResolutionView({
     const t4 = setTimeout(() => setShowHighlights(true), wildcardSlot ? 5200 : 4400);
     return () => [t1, r1, r2, r3, t1b, t2, t3, t4].forEach(clearTimeout);
   }, [wildcardSlot]);
-
-  useEffect(() => {
-    if (!showWildcard) {
-      setShowShuffling(false);
-      setShowCardFace(false);
-      return;
-    }
-    setShowShuffling(true);
-    setShowCardFace(false);
-    const tShuffle = setTimeout(() => {
-      setShowShuffling(false);
-      setShowCardFace(true);
-    }, 500);
-    return () => clearTimeout(tShuffle);
-  }, [showWildcard]);
 
   /* ---- daily highlights (dummy) ---------------------------------- */
   const highlights = useMemo(() => {
@@ -609,7 +592,6 @@ export default function ResolutionView({
               }`}
             >
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-lg">🃏</span>
                 <span className="font-bold text-paper">Wildcard</span>
                 {wildcardCard && (
                   <span className="text-xs text-muted ml-auto capitalize">
@@ -618,10 +600,8 @@ export default function ResolutionView({
                 )}
               </div>
               <div className="flex justify-center">
-                {showShuffling ? (
-                  <ShufflingCards show={showShuffling} />
-                ) : wildcardCard ? (
-                  <CardFlip card={wildcardCard} show={showCardFace} />
+                {wildcardCard ? (
+                  <CardFlip card={wildcardCard} show={showWildcard} />
                 ) : (
                   <div className="relative w-56 h-72 rounded-2xl border-2 border-card-border flex flex-col items-center justify-center gap-3 bg-card/50">
                     <div className="w-14 h-14 rounded-full border-2 border-card-border flex items-center justify-center text-2xl">
@@ -978,50 +958,6 @@ function SlotRoulette({
 }
 
 /* ------------------------------------------------------------------ */
-// Shuffling animation
-
-function ShufflingCards({ show }: { show: boolean }) {
-  if (!show) return null;
-  return (
-    <div className="relative w-56 h-72 flex items-center justify-center">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="absolute w-20 h-28 rounded-xl border-2 border-card-border"
-          style={{
-            background: "linear-gradient(135deg, #1a1d24 0%, #0e1014 100%)",
-            animation: `shuffleCard 0.28s ease-in-out ${i * 0.08}s infinite alternate`,
-            transformOrigin: "center bottom",
-            zIndex: 3 - i,
-          }}
-        >
-          <div className="absolute inset-2 rounded-lg border border-dashed border-card-border" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xl opacity-30">🃏</span>
-          </div>
-        </div>
-      ))}
-      <p
-        className="absolute bottom-4 text-xs font-bold uppercase tracking-widest text-muted"
-        style={{ animation: "pulse 1s ease-in-out infinite" }}
-      >
-        Drawing…
-      </p>
-      <style jsx>{`
-        @keyframes shuffleCard {
-          0% {
-            transform: translateX(-28px) rotate(-12deg) scale(0.95);
-          }
-          100% {
-            transform: translateX(28px) rotate(12deg) scale(0.95);
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 // Card flip
 
 function CardFlip({
@@ -1084,7 +1020,7 @@ function CardFlip({
               <span className="text-xl">{card.emoji}</span>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
-                  {card.type === "gimmick" ? "Gimmick" : "Stat Card"} · {card.tier.replace("_", " ")}
+                  {card.tier.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                 </p>
                 <h3 className="text-sm font-bold text-paper leading-tight">{card.title}</h3>
               </div>
