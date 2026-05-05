@@ -4,7 +4,6 @@ import { ensureDayPhaseResolved } from "@/utils/day-phase";
 import { resolveExamForRoom } from "@/utils/exam-resolution";
 import { loadRoomDayState } from "@/utils/room-day-state";
 import { ensureSetupRollsForPlayers } from "@/utils/setup-roll";
-import { ensureWildcardDeckForRoom } from "@/utils/wildcard-deck";
 
 const ALLOWED_PHASES = new Set([
   "lobby",
@@ -207,10 +206,6 @@ export async function PATCH(
 
     if (updateError || !updatedRoom) {
       return NextResponse.json({ error: "Failed to update room" }, { status: 500 });
-    }
-
-    if (currentPhase === "day") {
-      await ensureWildcardDeckForRoom({ supabase, roomCode: code });
     }
 
     let updatedPlayers = null;

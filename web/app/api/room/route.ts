@@ -6,7 +6,6 @@ import {
   isExplicitDebugRoom,
 } from "@/utils/debug-room";
 import { initializeRoomEventSelections } from "@/utils/event-selection";
-import { ensureWildcardDeckForRoom } from "@/utils/wildcard-deck";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
@@ -96,7 +95,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to assign room host" }, { status: 500 });
     }
 
-    await ensureWildcardDeckForRoom({ supabase, roomCode: code });
     await initializeRoomEventSelections({ supabase, roomCode: code });
 
     if (debugBootstrap) {
