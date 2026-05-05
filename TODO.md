@@ -10,7 +10,7 @@
 
 ## 🟢 UI / POLISH — Frontend
 
-- [ ] **End-of-game screen** — `"end"` phase has no UI.
+- [x] **End-of-game screen** — `"end"` phase has no UI.
 
 ---
 

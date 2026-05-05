@@ -450,10 +450,10 @@ export default function ResolutionView({
       <div className="max-w-7xl mx-auto grid grid-cols-[1fr_42rem_1fr] gap-16 items-start">
         {/* Left floating bubbles */}
         <div className="flex flex-col items-end gap-20 pt-40">
-          {[0, 2, 4, 6, 8].map((idx) => {
+          {[0, 2, 4, 6].map((idx) => {
             const h = highlights[idx];
             if (!h) return null;
-            const pads = ["pt-0", "pt-14", "pt-10", "pt-16", "pt-8"];
+            const pads = ["pt-0", "pt-14", "pt-10", "pt-16"];
             const angle = ((hashString(h.text + idx + "L") % 91) - 45) / 2; // -22.5 to +22.5
             return (
               <div
@@ -790,10 +790,10 @@ export default function ResolutionView({
 
         {/* Right floating bubbles */}
         <div className="flex flex-col items-start gap-20 pt-52">
-          {[1, 3, 5, 7, 9].map((idx) => {
+          {[1, 3, 5, 7].map((idx) => {
             const h = highlights[idx];
             if (!h) return null;
-            const pads = ["pt-0", "pt-16", "pt-8", "pt-12", "pt-6"];
+            const pads = ["pt-0", "pt-16", "pt-8", "pt-12"];
             const angle = ((hashString(h.text + idx + "R") % 91) - 45) / 2; // -22.5 to +22.5
             return (
               <div

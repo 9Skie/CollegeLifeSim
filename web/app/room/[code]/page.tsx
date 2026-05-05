@@ -9,6 +9,7 @@ import ExamView from "./ExamView";
 import WeekResolutionView from "./WeekResolutionView";
 import SpectatorView from "./SpectatorView";
 import EliminationScreen from "./EliminationScreen";
+import EndScreen from "./EndScreen";
 import { getAvatarColor, getInitials } from "@/utils/player-avatar";
 
 import {
@@ -143,7 +144,7 @@ export default function RoomPage() {
     };
   }, [code, currentDay, phase, isSpectator]);
 
-  // Clear storage when game ends
+  // Clear game storage once end screen is reached
   useEffect(() => {
     if (phase === "end") {
       clearGameStorage();
@@ -587,6 +588,16 @@ export default function RoomPage() {
           myName={myName}
         />
       </div>
+    );
+  }
+
+  if (phase === "end") {
+    return (
+      <EndScreen
+        players={players}
+        currentPlayer={currentPlayer}
+        onReturnHome={leaveRoom}
+      />
     );
   }
 

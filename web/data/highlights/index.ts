@@ -342,8 +342,8 @@ export function extractInterestingEvents(ctx: HighlightContext): InterestingEven
     }
   }
 
-  // --- 4. General campus (add up to 10 so we always fill the slots) ---
-  for (let i = 0; i < 10; i++) {
+  // --- 4. General campus (add up to 8 so we always fill the slots) ---
+  for (let i = 0; i < 8; i++) {
     events.push({
       type: "general",
       priority: PRIORITY.general,
@@ -365,7 +365,7 @@ export function extractInterestingEvents(ctx: HighlightContext): InterestingEven
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(ev);
-    if (deduped.length >= 10) break;
+    if (deduped.length >= 8) break;
   }
 
   return deduped;
