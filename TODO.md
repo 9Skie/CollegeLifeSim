@@ -8,18 +8,9 @@
 
 ---
 
-## 🟡 MULTIPLAYER / SYNC
-
-- [ ] **No real-time** — 3-second polling only. Design planned Supabase Realtime channels.
-- [ ] **Race condition on day resolution** — Last-submission trigger has no transaction lock. Double-resolve possible.
-- [ ] **Host-only phase control** — If host leaves, the room is stuck. No host migration.
-
----
-
 ## 🟢 UI / POLISH — Frontend
 
 - [ ] **Exam mechanics wrong** — Design uses outcome roll with Effective Exam Wellbeing = (Academics + Wellbeing) / 2. Code uses simple threshold scoring with no roll.
-- [ ] **Daily highlights are placeholder** — `extractInterestingEvents` picks real events but all text is simple templates (e.g. "X had a great study session"). No rich flavor-text generator or design's ~300-line pool.
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
 
 ---
@@ -30,8 +21,6 @@
 |-------|--------|
 | `relationships` | ✅ Queried and updated by backend; frontend displays real levels + progress |
 | `wildcard_decks` | ✅ Backend draws real cards; frontend renders actual title/description/effects |
-| `events` | Never used — events are client-side hardcoded arrays |
-| `resolutions.highlights` | `extractInterestingEvents` parses resolution data but generates simple template text from a pool of 20 messages |
 
 ---
 

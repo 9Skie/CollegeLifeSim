@@ -89,6 +89,10 @@ CREATE TABLE IF NOT EXISTS public_event_defs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Migrate: add action_modifiers if table exists without it
+ALTER TABLE public_event_defs
+  ADD COLUMN IF NOT EXISTS action_modifiers JSONB NOT NULL DEFAULT '{}'::jsonb;
+
 -- Private event definitions (permanent catalog)
 CREATE TABLE IF NOT EXISTS private_event_defs (
   id TEXT PRIMARY KEY,
