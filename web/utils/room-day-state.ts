@@ -44,6 +44,14 @@ export type PlayerDayStatus = {
   status: DaySubmissionStatus;
 };
 
+export type RoomEvent = {
+  id: string;
+  name: string;
+  description: string;
+  effect: string;
+  code?: string;
+};
+
 export type RoomDayState = {
   currentDay: number;
   dayDeadlineAt: string | null;
@@ -65,6 +73,8 @@ export type RoomDayState = {
     studiesThisWeek: number;
     studyGoal: number;
   } | null;
+  publicEvent: RoomEvent | null;
+  privateEvent: RoomEvent | null;
 };
 
 export async function loadRoomDayState(
@@ -171,6 +181,66 @@ export async function loadRoomDayState(
     };
   }
 
+  /* ---- load real public/private events for today ------------------- */
+  const [{ data: publicEventRow }, { data: privateEventRow }] = await Promise.all([
+    supabase
+      .from("room_public_events")
+      .select("public_event_id")
+      .eq("room_code", code)
+      .eq("day", currentDay)
+      .maybeSingle(),
+    supabase
+      .from("room_private_events")
+      .select("private_event_id")
+      .eq("room_code", code)
+      .eq("day", currentDay)
+      .maybeSingle(),
+  ]);
+
+  let publicEvent: RoomEvent | null = null;
+  let privateEvent: RoomEvent | null = null;
+
+  if (publicEventRow) {
+    const { data: pubDef } = await supabase
+      .from("public_event_defs")
+      .select("id, title, description, effect_type, flat_stat_changes, multipliers")
+      .eq("id", publicEventRow.public_event_id)
+      .single();
+    if (pubDef) {
+      publicEvent = {
+        id: pubDef.id as string,
+        name: pubDef.title as string,
+        description: pubDef.description as string,
+        effect: formatPublicEffect(
+          pubDef.effect_type as string,
+          pubDef.flat_stat_changes as Record<string, number> | null,
+          pubDef.multipliers as Record<string, number> | null
+        ),
+      };
+    }
+  }
+
+  if (privateEventRow) {
+    const { data: privDef } = await supabase
+      .from("private_event_defs")
+      .select("id, title, description, effect_type, code_prefix, risk_payload, reward_payload")
+      .eq("id", privateEventRow.private_event_id)
+      .single();
+    if (privDef) {
+      privateEvent = {
+        id: privDef.id as string,
+        name: privDef.title as string,
+        description: privDef.description as string,
+        effect: formatPrivateEffect(
+          privDef.effect_type as string,
+          privDef.risk_payload as Record<string, unknown> | null,
+          privDef.reward_payload as Record<string, unknown> | null
+        ),
+        code: `${privDef.code_prefix as string}-${String(currentDay).padStart(2, "0")}`,
+      };
+    }
+  }
+
   return {
     currentDay,
     dayDeadlineAt: currentPhase === "day" ? getDayDeadlineAt(roomUpdatedAt) : null,
@@ -186,5 +256,61 @@ export async function loadRoomDayState(
     mySelections,
     myDayContext,
     myWeeklyProgress,
+    publicEvent,
+    privateEvent,
   };
+}
+
+function formatPublicEffect(
+  effectType: string,
+  flatChanges: Record<string, number> | null,
+  multipliers: Record<string, number> | null
+): string {
+  const parts: string[] = [];
+  if (flatChanges && Object.keys(flatChanges).length > 0) {
+    parts.push(
+      Object.entries(flatChanges)
+        .map(([stat, val]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} ${val >= 0 ? "+" : ""}${val}`)
+        .join(", ")
+    );
+  }
+  if (multipliers && Object.keys(multipliers).length > 0) {
+    parts.push(
+      Object.entries(multipliers)
+        .map(([action, val]) => `${action.charAt(0).toUpperCase() + action.slice(1)} ×${val}`)
+        .join(", ")
+    );
+  }
+  if (parts.length > 0) return parts.join("; ");
+  switch (effectType) {
+    case "flat_stats":
+      return "Flat stat changes";
+    case "action_multiplier":
+      return "Action effectiveness modified";
+    case "slot_multiplier":
+      return "Slot effectiveness modified";
+    case "daily_decay":
+      return "Daily decay modified";
+    default:
+      return "Mixed effects";
+  }
+}
+
+function formatPrivateEffect(
+  effectType: string,
+  risk: Record<string, unknown> | null,
+  reward: Record<string, unknown> | null
+): string {
+  switch (effectType) {
+    case "risk_reward":
+      return "Risk / Reward choice";
+    case "flat_stats":
+      return "Guaranteed stat changes";
+    case "gimmick":
+      return "Special effect";
+    case "future_effect":
+      return "Delayed effect";
+    default:
+      return "Mixed effects";
+  }
 }

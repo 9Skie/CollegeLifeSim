@@ -16,7 +16,7 @@ import {
   type DaySlot,
   type SelectionRecord,
 } from "@/utils/day-actions";
-import type { RoomDayState } from "@/utils/room-day-state";
+import type { RoomDayState, RoomEvent } from "@/utils/room-day-state";
 import { DAY_DURATION_SECONDS } from "@/utils/day-timing";
 import { getRelationshipBonusAmount } from "@/utils/relationships";
 
@@ -36,15 +36,6 @@ type Player = {
   eliminated?: boolean;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
 };
-type PublicEvent = { name: string; flavor: string; effect: string };
-type PrivateEvent = {
-  id: string;
-  name: string;
-  code: string;
-  flavor: string;
-  effect: string;
-  prereq: string;
-};
 type Relationship = { playerId: string; name: string; level: number; progress: number };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -52,125 +43,6 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 /* ------------------------------------------------------------------ */
 // Event data
 
-const PUBLIC_EVENT_POOL: PublicEvent[] = [
-  {
-    name: "Heatwave",
-    flavor:
-      "The quad is basically a frying pan. Even the squirrels look miserable.",
-    effect: "Exercise effectiveness halved today",
-  },
-  {
-    name: "Cram Season",
-    flavor:
-      "The library is packed, energy-drink cans litter every table, and someone is definitely crying in the stacks.",
-    effect: "Study actions boosted 1.5× today",
-  },
-  {
-    name: "Frat Row Block Party",
-    flavor:
-      "Speakers the size of cars. The bass is rattling windows three blocks away.",
-    effect: "Night Socialize boosted 1.5×",
-  },
-  {
-    name: "Campus Power Outage",
-    flavor:
-      "The lights flickered and died. Half the dorm is outside with flashlights; the other half is already napping.",
-    effect: "Morning Study halved",
-  },
-  {
-    name: "Hiring Spree",
-    flavor:
-      "Every coffee shop and bookstore on campus put up 'Help Wanted' signs overnight.",
-    effect: "Work effectiveness boosted 1.5×",
-  },
-  {
-    name: "Wellness Week",
-    flavor:
-      "Free yoga on the lawn, meditation sessions in the chapel, and somehow the dining hall is serving actual vegetables.",
-    effect: "Rest & Sleep boosted 1.5×",
-  },
-  {
-    name: "Snow Day",
-    flavor:
-      "Two feet of snow. The provost gave up. The dining hall is somehow still open.",
-    effect: "Classes cancelled",
-  },
-  {
-    name: "Flu Outbreak",
-    flavor:
-      "The health center line wraps around the building. Everyone is either sick or pretending to be.",
-    effect: "Wellbeing decay −1.5 today",
-  },
-  {
-    name: "Career Fair",
-    flavor:
-      "Recruiters in matching polos are handing out stress balls and collecting résumés like trading cards.",
-    effect: "Work boosted, also gives Academics",
-  },
-  {
-    name: "Coffee Shop Promo",
-    flavor:
-      "The campus café is running a 'study marathon' deal — unlimited refills if you stay four hours.",
-    effect: "Coffee Socialize cost waived",
-  },
-];
-
-const PRIVATE_EVENT_POOL: PrivateEvent[] = [
-  {
-    id: "p1",
-    name: "Secret Study Group",
-    code: "STUDY-01",
-    flavor:
-      "A grad student posted a cryptic flyer in the STEM building basement. Word is they cracked next week’s problem set.",
-    effect: "Academics +1.75",
-    prereq: "Academics ≥ 3",
-  },
-  {
-    id: "p2",
-    name: "Underground Poker",
-    code: "POKER-02",
-    flavor:
-      "Someone slid a chip under your door with an address and a time. Buy-in is steep, but the pot is steeper.",
-    effect: "Money +3 or −2",
-    prereq: "Money ≥ 2",
-  },
-  {
-    id: "p3",
-    name: "VIP Concert",
-    code: "VIP-03",
-    flavor:
-      "A friend-of-a-friend works venue security and has two backstage passes burning a hole in their pocket.",
-    effect: "Social +1.75, Wellbeing +0.5",
-    prereq: "Social ≥ 3",
-  },
-  {
-    id: "p4",
-    name: "Office Hours Invite",
-    code: "OFFICE-04",
-    flavor:
-      "The professor you’ve been avoiding emailed you directly. Subject line: 'We need to talk.' It might be good.",
-    effect: "Academics +2, costs $25",
-    prereq: "CS / Pre-Med",
-  },
-  {
-    id: "p5",
-    name: "Greek Mixer",
-    code: "GREEK-05",
-    flavor:
-      "A handwritten invitation taped to your dorm door. Dress code: 'try harder than usual.'",
-    effect: "Social +1.75",
-    prereq: "Business / Arts",
-  },
-  {
-    id: "p6",
-    name: "Insider Internship",
-    code: "INTERN-06",
-    flavor:
-      "Your advisor forwarded an email with the subject 'URGENT — not a mass email.' It actually wasn't.",
-    effect: "Money +1.75",
-    prereq: "Academics ≥ 5",
-  },
-];
 
 /* ------------------------------------------------------------------ */
 // Helpers
@@ -330,18 +202,8 @@ export default function DayView({
     return { major, posTrait, negTrait };
   }, [currentPlayer?.major, currentPlayer?.neg_trait, currentPlayer?.pos_trait, myName, roomCode]);
 
-  const publicEvent = useMemo<PublicEvent | null>(
-    () => PUBLIC_EVENT_POOL[seed % PUBLIC_EVENT_POOL.length],
-    [seed]
-  );
-
-  const privateEvents = useMemo<PrivateEvent[]>(() => {
-    const idx1 = seed % PRIVATE_EVENT_POOL.length;
-    const idx2 = (seed + 3) % PRIVATE_EVENT_POOL.length;
-    return idx1 === idx2
-      ? [PRIVATE_EVENT_POOL[idx1]]
-      : [PRIVATE_EVENT_POOL[idx1], PRIVATE_EVENT_POOL[idx2]];
-  }, [seed]);
+  const publicEvent = dayState?.publicEvent ?? null;
+  const privateEvent = dayState?.privateEvent ?? null;
 
   const relationships = useMemo<Relationship[]>(() => {
     const real = dayState?.myDayContext?.relationships ?? [];
@@ -946,8 +808,8 @@ export default function DayView({
                 <p className="text-sm text-muted">No public events today</p>
               </div>
             )}
-            {privateEvents[0] ? (
-              <EventBanner event={privateEvents[0]} type="private" />
+            {privateEvent ? (
+              <EventBanner event={privateEvent} type="private" />
             ) : (
               <div className="rounded-xl border border-dashed border-card-border bg-background/30 p-4 flex items-center justify-center min-h-[100px]">
                 <p className="text-sm text-muted">No private events today</p>
@@ -1057,7 +919,7 @@ export default function DayView({
           players={players}
           currentPlayerId={currentPlayer?.id ?? null}
           relationships={relationships}
-          heldCodes={privateEvents.map((e) => ({ code: e.code, name: e.name }))}
+          heldCodes={privateEvent ? [{ code: privateEvent.code ?? "", name: privateEvent.name }] : []}
           usedWildcard={usedWildcardToday}
           currentSelection={selections[pickingSlot]}
           onSelect={(sel) => {
@@ -1503,7 +1365,7 @@ function EventBanner({
   event,
   type,
 }: {
-  event: PublicEvent | PrivateEvent;
+  event: RoomEvent;
   type: "public" | "private";
 }) {
   const isPublic = type === "public";
@@ -1534,12 +1396,12 @@ function EventBanner({
             {event.name}
           </h3>
           <p className="text-sm text-paper/70 leading-relaxed">
-            {event.flavor}
+            {event.description}
           </p>
           <p className={`text-xs font-semibold mt-2 ${effect}`}>
             Effect: {event.effect}
           </p>
-          {!isPublic && "code" in event && (
+          {!isPublic && event.code && (
             <p className="text-xs text-muted font-mono mt-1">
               Code: {event.code}
             </p>
