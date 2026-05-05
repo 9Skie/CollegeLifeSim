@@ -5,8 +5,6 @@ export type WildcardTier =
   | "good"
   | "really_good";
 
-export type WildcardCardType = "stat" | "gimmick";
-
 export type WildcardStat = "academics" | "social" | "wellbeing" | "money";
 
 export type WildcardActionType =
@@ -78,7 +76,6 @@ export type WildcardFutureEffect =
 export type WildcardCard = {
   id: string;
   tier: WildcardTier;
-  type: WildcardCardType;
   title: string;
   emoji: string;
   description: string;

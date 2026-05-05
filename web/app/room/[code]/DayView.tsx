@@ -19,6 +19,7 @@ import {
 import type { RoomDayState, RoomEvent } from "@/utils/room-day-state";
 import { DAY_DURATION_SECONDS } from "@/utils/day-timing";
 import { getRelationshipBonusAmount } from "@/utils/relationships";
+import { hashString, getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -34,9 +35,10 @@ type Player = {
   wellbeing?: number;
   money?: number;
   eliminated?: boolean;
+  avatar_emoji?: string | null;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
 };
-type Relationship = { playerId: string; name: string; level: number; progress: number };
+type Relationship = { playerId: string; name: string; avatar_emoji?: string | null; level: number; progress: number };
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -46,27 +48,6 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /* ------------------------------------------------------------------ */
 // Helpers
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#d94f4f", "#f0a868", "#5b8c5a", "#4f8cd9",
-    "#d94fb8", "#a17b1a", "#8a8579", "#4fd9c9",
-    "#d96f4f",
-  ];
-  return colors[hashString(name) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
 
 const DAILY_DECAY = {
   academics: -0.5,
@@ -213,6 +194,7 @@ export default function DayView({
       .map((p) => ({
         playerId: p.id,
         name: p.name,
+        avatar_emoji: p.avatar_emoji,
         level: byId.get(p.id)?.level ?? 0,
         progress: byId.get(p.id)?.progress ?? 0,
       }))
@@ -658,7 +640,7 @@ export default function DayView({
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                     style={{ backgroundColor: getAvatarColor(r.name) }}
                   >
-                    {getInitials(r.name)}
+                    {getAvatarContent(r)}
                   </div>
                   <span className="text-sm text-paper">{r.name}</span>
                   <span
@@ -703,7 +685,7 @@ export default function DayView({
                     }`}
                     style={{ backgroundColor: color }}
                   >
-                    {getInitials(me.name)}
+                    {getAvatarContent(me)}
                     {me.status === "done" && !isGoner && (
                       <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                         <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
@@ -751,7 +733,7 @@ export default function DayView({
                         }`}
                         style={{ backgroundColor: color }}
                       >
-                        {getInitials(p.name)}
+                        {getAvatarContent(p)}
                         {p.status === "done" && !isGoner && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-background flex items-center justify-center">
                             <svg className="w-2 h-2 text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
@@ -1086,7 +1068,7 @@ function PlayerStatsPopup({
             }`}
             style={{ backgroundColor: color }}
           >
-            {getInitials(player.name)}
+            {getAvatarContent(player)}
           </div>
           <div>
             <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>

@@ -80,12 +80,12 @@ export async function initializeRoomEventSelections({
     throw privateDefsError || new Error("Failed to load private event definitions");
   }
 
-  if (publicDefs.length < 50) {
-    throw new Error(`Public event definitions incomplete: expected 50 rows, found ${publicDefs.length}`);
+  if (publicDefs.length < 30) {
+    throw new Error(`Public event definitions incomplete: expected 30 rows, found ${publicDefs.length}`);
   }
 
-  if (privateDefs.length < 50) {
-    throw new Error(`Private event definitions incomplete: expected 50 rows, found ${privateDefs.length}`);
+  if (privateDefs.length < 30) {
+    throw new Error(`Private event definitions incomplete: expected 30 rows, found ${privateDefs.length}`);
   }
 
   const publicCount = Math.min(PUBLIC_EVENT_COUNT, getEligibleEventDays().length);

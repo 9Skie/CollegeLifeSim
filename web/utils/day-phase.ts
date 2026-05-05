@@ -358,6 +358,28 @@ export async function ensureDayPhaseResolved({
     await saveWildcardDeckForRoom({ supabase, deck: nextDeck });
   }
 
+  const { data: publicEventRow } = await supabase
+    .from("room_public_events")
+    .select("public_event_id")
+    .eq("room_code", room.code)
+    .eq("day", room.current_day)
+    .maybeSingle();
+
+  let publicEvent = null;
+  if (publicEventRow) {
+    const { data: pubDef } = await supabase
+      .from("public_event_defs")
+      .select("effect_type, action_modifiers")
+      .eq("id", publicEventRow.public_event_id)
+      .single();
+    if (pubDef) {
+      publicEvent = {
+        effectType: pubDef.effect_type as string,
+        actionModifiers: (pubDef.action_modifiers as Record<string, Record<string, number>>) || {},
+      };
+    }
+  }
+
   const resolvedDay = resolveDayForRoom({
     roomCode: room.code,
     currentDay: room.current_day,
@@ -366,6 +388,7 @@ export async function ensureDayPhaseResolved({
     weeklyActionHistory: weeklyActionHistory || [],
     relationshipRows: (relationshipRows || []) as RelationshipRow[],
     wildcardAssignments,
+    publicEvent,
   });
 
   resolvedDay.resolutions = resolvedDay.resolutions.map((resolution) => ({

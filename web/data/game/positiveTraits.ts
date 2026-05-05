@@ -1,128 +1,132 @@
 export const POSITIVE_TRAITS = [
-  "Night Owl",
   "Disciplined",
-  "Charismatic",
-  "Athletic",
-  "Early Bird",
-  "Quick Study",
-  "Lucky",
-  "Networker",
-  "Trust Fund Kid",
-  "Resilient",
-  "Influencer",
+  "Socialite",
+  "Frugal",
+  "Centered",
   "Bookworm",
-  "Gym Rat",
-  "Study Buddy",
-  "Optimist",
-  "Adaptable",
+  "Curious",
+  "Prepared",
+  "Likeable",
   "Hustler",
-  "Connected",
-  "Charmer",
-  "Self Care",
-  "Coupon Clipper",
-  "Calm Sleeper",
-  "Professor's Favorite",
+  "Courteous",
+  "Athletic",
+  "Upbeat",
+  "Rested",
+  "Sleeper",
+  "Reflective",
+  "Dreamer",
+  "Charismatic",
+  "Warm",
+  "Thrifty",
+  "Friendly",
+  "Calm",
+  "Cheerful",
+  "Helpful",
+  "Steady",
+  "Clear-Headed",
 ] as const;
 
 export type PositiveTraitName = (typeof POSITIVE_TRAITS)[number];
 
 export const POSITIVE_TRAIT_DATA: Record<string, { desc: string; effect: string }> = {
-  "Night Owl": {
-    desc: "You thrive after sunset. The later it gets, the sharper you feel.",
-    effect: "Night-slot actions gain +0.5 to their main stat",
-  },
   Disciplined: {
-    desc: "You stay on top of your workload, even on the days when you do nothing flashy.",
+    desc: "Your schoolwork slips more slowly when the day itself is not helping.",
     effect: "Daily Academics decay reduced by 0.25",
   },
-  Charismatic: {
-    desc: "People gravitate toward you. Conversations flow like you scripted them.",
-    effect: "Successful Socialize: +0.25 extra Social",
-  },
-  Athletic: {
-    desc: "You were basically born in a gym. Your body recovers faster than most.",
-    effect: "Exercise gives +0.5 extra Wellbeing",
-  },
-  "Early Bird": {
-    desc: "You're up before the alarm. The morning quiet is where you do your best work.",
-    effect: "Morning-slot actions gain +0.5 to their main stat",
-  },
-  "Quick Study": {
-    desc: "Concepts click fast for you. A single read-through and you get it.",
-    effect: "Good Study outcomes give +0.25 extra Academics",
-  },
-  Lucky: {
-    desc: "Fortune smiles on you more than it should. Bad luck rarely sticks.",
-    effect: "Once per day, the first Bad outcome becomes Normal",
-  },
-  Networker: {
-    desc: "You don't just make friends - you build alliances. Study sessions feel like parties.",
-    effect: "Matched Socialize: +0.25 extra Social",
-  },
-  "Trust Fund Kid": {
-    desc: "Your family cushion means money problems still hurt, but not as fast as they do for everyone else.",
-    effect: "Daily Money decay reduced by 0.25",
-  },
-  Resilient: {
-    desc: "You've been through rough patches before. You know how to bounce back.",
-    effect: "First time Wellbeing would hit 0, set to 1 instead",
-  },
-  Influencer: {
-    desc: "You always seem to stay socially relevant, even when you do not go out of your way to keep it up.",
+  Socialite: {
+    desc: "People do not fall off your radar as quickly as they do for most students.",
     effect: "Daily Social decay reduced by 0.25",
   },
-  Bookworm: {
-    desc: "You genuinely enjoy reading textbooks. Highlighting is therapeutic.",
-    effect: "Solo Study: +0.25 extra Academics",
+  Frugal: {
+    desc: "You are good at making money stretch just a little further.",
+    effect: "Daily Money decay reduced by 0.25",
   },
-  "Gym Rat": {
-    desc: "The gym is your second home. You know everyone's PRs and their deadlift form.",
-    effect: "Exercise also gives +0.25 Social",
-  },
-  "Study Buddy": {
-    desc: "Studying with structure comes naturally to you, and you rarely spiral when you sit down to work.",
-    effect: "Study never rolls Bad",
-  },
-  Optimist: {
-    desc: "You see the glass half-full, even when it's clearly empty. It's a skill.",
+  Centered: {
+    desc: "Stress still hits, but it does not drain you quite as fast.",
     effect: "Daily Wellbeing decay reduced by 0.25",
   },
-  Adaptable: {
-    desc: "Routines bore you. You thrive in chaos and repetition never slows you down.",
-    effect: "Same-day repetition penalty does not apply",
+  Bookworm: {
+    desc: "When you sit down to study, you usually squeeze more out of it than other people do.",
+    effect: "Study gives +0.25 Academics",
+  },
+  Curious: {
+    desc: "Studying leaves you feeling a little more energized instead of just more tired.",
+    effect: "Study gives +0.25 Wellbeing",
+  },
+  Prepared: {
+    desc: "You usually show up to class ready enough to actually get something out of it.",
+    effect: "Class gives +0.25 Academics",
+  },
+  Likeable: {
+    desc: "You come off well in classrooms and group spaces without trying too hard.",
+    effect: "Class gives +0.25 Social",
   },
   Hustler: {
-    desc: "Side gigs, freelancing, reselling - if it pays, you're in. Sleep is for the broke.",
-    effect: "Work gives +0.5 extra Money",
+    desc: "You are good at pulling a little more value out of the same amount of work.",
+    effect: "Work gives +0.25 Money",
   },
-  Connected: {
-    desc: "You know a guy who knows a guy. Information finds you before it finds anyone else.",
-    effect: "Start Wk1 with 1 free private event code",
+  Courteous: {
+    desc: "People tend to respond better to you on the job, and that helps in small ways.",
+    effect: "Work gives +0.25 Social",
   },
-  Charmer: {
-    desc: "You can make a vending-machine conversation feel intimate. Free hangs hit different.",
-    effect: "Free Socialize match treated as Coffee-tier effect",
+  Athletic: {
+    desc: "Your body responds well to movement and effort.",
+    effect: "Exercise gives +0.25 Wellbeing",
   },
-  "Self Care": {
-    desc: "You know how to actually recover. Resting is an investment, not a waste.",
-    effect: "Rest and Sleep give +0.25 extra Wellbeing",
+  Upbeat: {
+    desc: "Working out tends to leave you a little more socially alive afterward.",
+    effect: "Exercise gives +0.25 Social",
   },
-  "Coupon Clipper": {
-    desc: "You somehow always know the hidden deal. Your social plans stretch further on the same budget.",
-    effect: "Free Socialize uses Coffee-tier effect; $25 Socialize uses Food-tier effect",
+  Rested: {
+    desc: "When you rest, the recovery usually lands properly.",
+    effect: "Rest gives +0.25 Wellbeing",
   },
-  "Calm Sleeper": {
-    desc: "When you slow down, you really slow down. Recovery comes naturally to you.",
-    effect: "Rest and Sleep never roll Bad",
+  Sleeper: {
+    desc: "Sleep actually helps you instead of just keeping you functional.",
+    effect: "Sleep gives +0.25 Wellbeing",
   },
-  "Professor's Favorite": {
-    desc: "For whatever reason, the faculty seem to like you. Even showing up earns extra goodwill.",
-    effect: "Class gives +0.25 extra Social",
+  Reflective: {
+    desc: "Quiet recovery time helps your head as much as your body.",
+    effect: "Rest gives +0.25 Academics",
   },
-
-  // Legacy alias for older local/debug saves before the trait was renamed.
-  "Penny-Pincher": {
-    desc: "Your family cushion means money problems still hurt, but not as fast as they do for everyone else.",
-    effect: "Daily Money decay reduced by 0.25",
+  Dreamer: {
+    desc: "A good night of sleep tends to leave you mentally sharper the next day.",
+    effect: "Sleep gives +0.25 Academics",
+  },
+  Charismatic: {
+    desc: "When you do choose to socialize, people usually warm up to you faster.",
+    effect: "Socialize gives +0.25 Social",
+  },
+  Warm: {
+    desc: "Being around people tends to refill you a little instead of only draining you.",
+    effect: "Socialize gives +0.25 Wellbeing",
+  },
+  Thrifty: {
+    desc: "Paid plans cost you a little less because you know how to avoid the worst deal in the room.",
+    effect: "Paid Socialize costs 0.25 less Money",
+  },
+  Friendly: {
+    desc: "When plans match up, they usually land a little better for you.",
+    effect: "Matched Socialize gives +0.25 Social",
+  },
+  Calm: {
+    desc: "You handle low-stat pressure a little better than most people.",
+    effect: "Warning-based Wellbeing penalty reduced by 0.25",
+  },
+  Cheerful: {
+    desc: "If you actually go out when other people do, it tends to lift your mood too.",
+    effect: "If anyone Socializes and you do too that day: Wellbeing +0.25",
+  },
+  Helpful: {
+    desc: "Classroom spaces leave you a little more emotionally settled than usual.",
+    effect: "Class gives +0.25 Wellbeing",
+  },
+  Steady: {
+    desc: "You do not get as drained by work as other people do.",
+    effect: "Work gives +0.25 Wellbeing",
+  },
+  "Clear-Headed": {
+    desc: "Physical activity tends to clear your head instead of just wearing you out.",
+    effect: "Exercise gives +0.25 Academics",
   },
 };

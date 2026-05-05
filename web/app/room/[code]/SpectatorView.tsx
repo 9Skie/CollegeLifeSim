@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { StoredResolution } from "@/utils/day-resolution";
 
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
+import { hashString, getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
 
 /* ------------------------------------------------------------------ */
 // Types
@@ -11,6 +12,7 @@ import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
 type Player = {
   id: string;
   name: string;
+  avatar_emoji?: string | null;
   eliminated?: boolean;
   academics?: number | string | null;
   social?: number | string | null;
@@ -32,33 +34,6 @@ type PublicEvent = { name: string; flavor: string; effect: string };
 
 /* ------------------------------------------------------------------ */
 // Helpers
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#d94f4f",
-    "#f0a868",
-    "#5b8c5a",
-    "#4f8cd9",
-    "#d94fb8",
-    "#a17b1a",
-    "#8a8579",
-    "#4fd9c9",
-    "#d96f4f",
-  ];
-  return colors[hashString(name) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
 
 function getActionLabel(id: string): string {
   const map: Record<string, string> = {
@@ -293,7 +268,7 @@ function SpectatorDayView({
                     className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
                     style={{ backgroundColor: color }}
                   >
-                    {getInitials(player.name)}
+                    {getAvatarContent(player)}
                   </div>
                   <span className="text-xs font-medium text-paper">
                     {player.name}
@@ -310,7 +285,7 @@ function SpectatorDayView({
             Current Standings
           </h2>
           <div className="space-y-3">
-            {[...players]
+            {activePlayers
               .sort((a, b) => {
                 const scoreA =
                   toNumber(a.academics, 0) +
@@ -327,7 +302,6 @@ function SpectatorDayView({
               .map((player, idx) => {
                 const color = getAvatarColor(player.name);
                 const isMe = player.name === myName;
-                const isGoner = player.eliminated;
                 const stats = {
                   academics: toNumber(player.academics, 2),
                   social: toNumber(player.social, 2),
@@ -347,19 +321,13 @@ function SpectatorDayView({
                       {idx + 1}
                     </span>
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0 ${
-                        isGoner ? "grayscale opacity-50" : ""
-                      }`}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
                       style={{ backgroundColor: color }}
                     >
-                      {getInitials(player.name)}
+                      {getAvatarContent(player)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-semibold truncate ${
-                          isGoner ? "text-muted line-through" : "text-paper"
-                        }`}
-                      >
+                      <p className="text-sm font-semibold truncate text-paper">
                         {player.name}
                         {isMe && (
                           <span className="ml-1.5 text-[10px] text-muted font-normal">
@@ -412,7 +380,6 @@ function SpectatorResolutionView({
   allResolutions: StoredResolution[] | null;
 }) {
   const activePlayers = players.filter((p) => !p.eliminated);
-  const eliminatedPlayers = players.filter((p) => p.eliminated);
 
   // Build a map of playerId -> resolution
   const resolutionMap = useMemo(() => {
@@ -482,25 +449,6 @@ function SpectatorResolutionView({
               ))}
             </div>
 
-            {/* Eliminated players (if any besides self) */}
-            {eliminatedPlayers.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-sm font-bold text-muted uppercase tracking-widest">
-                  Eliminated
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {eliminatedPlayers.map((player) => (
-                    <PlayerResultCard
-                      key={player.id}
-                      player={player}
-                      resolution={resolutionMap.get(player.id) || null}
-                      isMe={player.name === myName}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Highlights */}
             <SpectatorHighlights
               allResolutions={allResolutions}
@@ -550,7 +498,7 @@ function PlayerResultCard({
           }`}
           style={{ backgroundColor: color }}
         >
-          {getInitials(player.name)}
+          {getAvatarContent(player)}
         </div>
         <div className="flex-1 min-w-0">
           <p
@@ -798,7 +746,7 @@ function ExamResultCard({ result }: { result: ExamResult }) {
         className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white mb-3"
         style={{ backgroundColor: color }}
       >
-        {getInitials(result.playerName)}
+        {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
       </div>
       <p className="text-sm font-semibold text-paper mb-1">
         {result.playerName}
@@ -860,7 +808,7 @@ function EliminatedExamCard({ result }: { result: ExamResult }) {
         className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-white mb-3 grayscale opacity-50"
         style={{ backgroundColor: color }}
       >
-        {getInitials(result.playerName)}
+        {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
       </div>
       <p className="text-lg font-semibold text-paper mb-1">
         {result.playerName}

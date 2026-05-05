@@ -81,7 +81,7 @@ export async function POST(
     const { data: players, error: playersError } = await supabase
       .from("players")
       .select(
-        "id, name, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated"
+        "id, name, avatar_emoji, major, pos_trait, neg_trait, academics, social, wellbeing, money, class_schedule, eliminated"
       )
       .eq("room_code", code);
 

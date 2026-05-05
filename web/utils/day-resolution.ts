@@ -41,7 +41,6 @@ export type SlotResolution = {
   wildcardCard?: {
     id: string;
     tier: WildcardCard["tier"];
-    type: WildcardCard["type"];
     title: string;
     emoji: string;
     description: string;
@@ -226,67 +225,23 @@ function getDailyDecayForTraits(
 ): Stats {
   const decay = { ...DAILY_DECAY };
 
-  if (posTrait === "Disciplined") {
-    decay.academics += 0.25;
-  }
+  if (posTrait === "Disciplined") decay.academics += 0.25;
+  if (posTrait === "Socialite") decay.social += 0.25;
+  if (posTrait === "Frugal") decay.money += 0.25;
+  if (posTrait === "Centered") decay.wellbeing += 0.25;
 
-  if (posTrait === "Influencer") {
-    decay.social += 0.25;
-  }
-
-  if (posTrait === "Trust Fund Kid" || posTrait === "Penny-Pincher") {
-    decay.money += 0.25;
-  }
-
-  if (posTrait === "Optimist") {
-    decay.wellbeing += 0.25;
-  }
-
-  if (negTrait === "Sickly") {
-    decay.wellbeing -= 0.5;
-  }
-
-  if (negTrait === "Spendthrift") {
-    decay.money -= 0.25;
-  }
+  if (negTrait === "Scattered") decay.academics -= 0.25;
+  if (negTrait === "Withdrawn") decay.social -= 0.25;
+  if (negTrait === "Spendthrift") decay.money -= 0.25;
+  if (negTrait === "Tense") decay.wellbeing -= 0.25;
 
   return roundStats(decay);
-}
-
-function applySpecialistFlatBonus(gain: Stats, actionId: string): Stats {
-  const adjusted = { ...gain };
-
-  switch (actionId) {
-    case "study":
-      adjusted.academics += 0.5;
-      break;
-    case "work":
-      adjusted.money += 0.5;
-      break;
-    case "exercise":
-      adjusted.wellbeing += 0.5;
-      break;
-    case "socialize":
-      adjusted.social += 0.5;
-      break;
-    case "rest":
-    case "sleep":
-      adjusted.wellbeing += 0.5;
-      break;
-    case "class":
-      adjusted.academics += 0.25;
-      adjusted.social += 0.25;
-      break;
-  }
-
-  return roundStats(adjusted);
 }
 
 function getSocializeBaseGain({
   spend,
   posTrait,
   negTrait,
-  matched,
 }: {
   spend: 0 | 1 | 2 | undefined;
   posTrait?: string | null;
@@ -306,26 +261,11 @@ function getSocializeBaseGain({
     moneyCost = 0.25;
   }
 
-  if (posTrait === "Coupon Clipper") {
-    if (spend === 0 || spend === undefined) {
-      socialGain = 1.25;
-      moneyCost = 0;
-    } else {
-      socialGain = 1.5;
-      moneyCost = 0.25;
-    }
+  if (posTrait === "Thrifty" && moneyCost > 0) {
+    moneyCost = Math.max(0, moneyCost - 0.25);
   }
 
-  if (posTrait === "Charmer" && matched && (spend === 0 || spend === undefined)) {
-    socialGain = Math.max(socialGain, 1.25);
-    moneyCost = 0;
-  }
-
-  if (negTrait === "Penny-Wise" && moneyCost > 0) {
-    socialGain = 1;
-  }
-
-  if (negTrait === "Broke Family" && moneyCost > 0) {
+  if (negTrait === "Pricey" && moneyCost > 0) {
     moneyCost += 0.25;
   }
 
@@ -337,39 +277,16 @@ function getSocializeBaseGain({
 
 function adjustOutcomeTierForPositiveTrait({
   tier,
-  posTrait,
-  actionId,
 }: {
   tier: "bad" | "normal" | "good";
   posTrait?: string | null;
   actionId: string;
 }) {
-  if (
-    tier === "bad" &&
-    posTrait === "Study Buddy" && actionId === "study"
-  ) {
-    return "normal" as const;
-  }
-
-  if (
-    tier === "bad" &&
-    posTrait === "Calm Sleeper" &&
-    (actionId === "rest" || actionId === "sleep")
-  ) {
-    return "normal" as const;
-  }
-
   return tier;
 }
 
 function adjustOutcomeTierForNegativeTrait({
   tier,
-  negTrait,
-  actionId,
-  seedValue,
-  baselineWellbeing,
-  weeklyStudyCountBeforeAction,
-  secondarySeed,
 }: {
   tier: "bad" | "normal" | "good";
   negTrait?: string | null;
@@ -379,29 +296,6 @@ function adjustOutcomeTierForNegativeTrait({
   weeklyStudyCountBeforeAction: number;
   secondarySeed: number;
 }) {
-  if (negTrait === "Pessimist" && tier === "good") {
-    return "normal" as const;
-  }
-
-  if (
-    negTrait === "Procrastinator" &&
-    actionId === "study" &&
-    weeklyStudyCountBeforeAction === 0
-  ) {
-    return "bad" as const;
-  }
-
-  if (negTrait === "Couch Potato" && actionId === "exercise" && secondarySeed < 50) {
-    return "bad" as const;
-  }
-
-  if (negTrait === "Hypochondriac" && baselineWellbeing <= 4) {
-    const adjustedBadChance = Math.min(50, getBadChanceFromWellbeing(baselineWellbeing) + 10);
-    if (seedValue < adjustedBadChance) {
-      return "bad" as const;
-    }
-  }
-
   return tier;
 }
 
@@ -409,9 +303,7 @@ function applyPositiveTraitAfterOutcome({
   gain,
   posTrait,
   actionId,
-  slot,
   matched,
-  outcomeTier,
 }: {
   gain: Stats;
   posTrait?: string | null;
@@ -420,54 +312,26 @@ function applyPositiveTraitAfterOutcome({
   matched: boolean;
   outcomeTier: "bad" | "normal" | "good";
 }) {
-  let adjusted = { ...gain };
+  const adjusted = { ...gain };
 
-  if (posTrait === "Night Owl" && slot === "night") {
-    adjusted = applySpecialistFlatBonus(adjusted, actionId);
-  }
-
-  if (posTrait === "Early Bird" && slot === "morning") {
-    adjusted = applySpecialistFlatBonus(adjusted, actionId);
-  }
-
-  if (posTrait === "Athletic" && actionId === "exercise") {
-    adjusted.wellbeing += 0.5;
-  }
-
-  if (posTrait === "Hustler" && actionId === "work") {
-    adjusted.money += 0.5;
-  }
-
-  if (posTrait === "Bookworm" && actionId === "study") {
-    adjusted.academics += 0.25;
-  }
-
-  if (posTrait === "Quick Study" && actionId === "study" && outcomeTier === "good") {
-    adjusted.academics += 0.25;
-  }
-
-  if (posTrait === "Gym Rat" && actionId === "exercise") {
-    adjusted.social += 0.25;
-  }
-
-  if (posTrait === "Self Care" && (actionId === "rest" || actionId === "sleep")) {
-    adjusted.wellbeing += 0.25;
-  }
-
-  if (
-    posTrait === "Professor's Favorite" &&
-    actionId === "class"
-  ) {
-    adjusted.social += 0.25;
-  }
-
-  if (posTrait === "Charismatic" && actionId === "socialize" && matched) {
-    adjusted.social += 0.25;
-  }
-
-  if (posTrait === "Networker" && actionId === "socialize" && matched) {
-    adjusted.social += 0.25;
-  }
+  if (posTrait === "Bookworm" && actionId === "study") adjusted.academics += 0.25;
+  if (posTrait === "Curious" && actionId === "study") adjusted.wellbeing += 0.25;
+  if (posTrait === "Prepared" && actionId === "class") adjusted.academics += 0.25;
+  if (posTrait === "Likeable" && actionId === "class") adjusted.social += 0.25;
+  if (posTrait === "Hustler" && actionId === "work") adjusted.money += 0.25;
+  if (posTrait === "Courteous" && actionId === "work") adjusted.social += 0.25;
+  if (posTrait === "Athletic" && actionId === "exercise") adjusted.wellbeing += 0.25;
+  if (posTrait === "Upbeat" && actionId === "exercise") adjusted.social += 0.25;
+  if (posTrait === "Rested" && actionId === "rest") adjusted.wellbeing += 0.25;
+  if (posTrait === "Sleeper" && actionId === "sleep") adjusted.wellbeing += 0.25;
+  if (posTrait === "Reflective" && actionId === "rest") adjusted.academics += 0.25;
+  if (posTrait === "Dreamer" && actionId === "sleep") adjusted.academics += 0.25;
+  if (posTrait === "Charismatic" && actionId === "socialize") adjusted.social += 0.25;
+  if (posTrait === "Warm" && actionId === "socialize") adjusted.wellbeing += 0.25;
+  if (posTrait === "Friendly" && actionId === "socialize" && matched) adjusted.social += 0.25;
+  if (posTrait === "Helpful" && actionId === "class") adjusted.wellbeing += 0.25;
+  if (posTrait === "Steady" && actionId === "work") adjusted.wellbeing += 0.25;
+  if (posTrait === "Clear-Headed" && actionId === "exercise") adjusted.academics += 0.25;
 
   return roundStats(adjusted);
 }
@@ -477,7 +341,6 @@ function applyNegativeTraitAfterOutcome({
   negTrait,
   actionId,
   matched,
-  ditched,
 }: {
   gain: Stats;
   negTrait?: string | null;
@@ -487,25 +350,24 @@ function applyNegativeTraitAfterOutcome({
 }) {
   const adjusted = { ...gain };
 
-  if (negTrait === "Distracted" && actionId === "class") {
-    adjusted.academics = 0.25;
-  }
-
-  if (negTrait === "Insomniac" && actionId === "sleep") {
-    adjusted.wellbeing = quantizeQuarter(adjusted.wellbeing * 0.5);
-  }
-
-  if (negTrait === "Allergic" && actionId === "exercise") {
-    adjusted.wellbeing = quantizeQuarter(adjusted.wellbeing * 0.5);
-  }
-
-  if (negTrait === "Loner" && actionId === "socialize" && matched) {
-    adjusted.social -= 0.25;
-  }
-
-  if (negTrait === "Anxious" && ditched) {
-    adjusted.wellbeing -= 0.5;
-  }
+  if (negTrait === "Distracted" && actionId === "study") adjusted.academics -= 0.25;
+  if (negTrait === "Drained" && actionId === "study") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Sleepy" && actionId === "class") adjusted.academics -= 0.25;
+  if (negTrait === "Quiet" && actionId === "class") adjusted.social -= 0.25;
+  if (negTrait === "Sloppy" && actionId === "work") adjusted.money -= 0.25;
+  if (negTrait === "Rude" && actionId === "work") adjusted.social -= 0.25;
+  if (negTrait === "Stiff" && actionId === "exercise") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Flat" && actionId === "exercise") adjusted.social -= 0.25;
+  if (negTrait === "Restless" && actionId === "rest") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Insomniac" && actionId === "sleep") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Ruminating" && actionId === "rest") adjusted.academics -= 0.25;
+  if (negTrait === "Groggy" && actionId === "sleep") adjusted.academics -= 0.25;
+  if (negTrait === "Shy" && actionId === "socialize") adjusted.social -= 0.25;
+  if (negTrait === "Hollow" && actionId === "socialize") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Loner" && actionId === "socialize" && matched) adjusted.social -= 0.25;
+  if (negTrait === "Frazzled" && actionId === "class") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Burned Out" && actionId === "work") adjusted.wellbeing -= 0.25;
+  if (negTrait === "Foggy" && actionId === "exercise") adjusted.academics -= 0.25;
 
   return roundStats(adjusted);
 }
@@ -609,6 +471,7 @@ export function resolveDayForRoom({
   weeklyActionHistory = [],
   relationshipRows = [],
   wildcardAssignments = [],
+  publicEvent,
 }: {
   roomCode: string;
   currentDay: number;
@@ -626,6 +489,10 @@ export function resolveDayForRoom({
     slot: DaySlot;
     card: WildcardCard;
   }>;
+  publicEvent?: {
+    effectType: string;
+    actionModifiers: Record<string, Record<string, number>>;
+  } | null;
 }) {
   const currentDayIndex = (currentDay - 1) % 7;
   const playerById = new Map(players.map((player) => [player.id, player]));
@@ -811,15 +678,15 @@ export function resolveDayForRoom({
       rawOldStats.social <= 1,
       rawOldStats.money <= 0,
     ].filter(Boolean).length;
-    const warningPenalty = activeWarnings * 1.5;
+    const warningAdjustment = posTrait === "Calm" ? -0.25 : negTrait === "Brittle" ? 0.25 : 0;
+    const warningPenalty = Math.max(0, activeWarnings * 1.5 + warningAdjustment);
 
     const oldStats = {
       ...rawOldStats,
       wellbeing: Math.max(0, rawOldStats.wellbeing - warningPenalty),
     };
 
-    let luckyUsed = false;
-    const actionCounts = new Map<string, number>();
+        const actionCounts = new Map<string, number>();
     let weeklyStudyCountSoFar = priorWeeklyStudiesByPlayer.get(player.id) || 0;
     let weeklyClassesAttendedSoFar = priorWeeklyClassesByPlayer.get(player.id) || 0;
 
@@ -884,7 +751,6 @@ export function resolveDayForRoom({
             ? {
                 id: wildcardCard.id,
                 tier: wildcardCard.tier,
-                type: wildcardCard.type,
                 title: wildcardCard.title,
                 emoji: wildcardCard.emoji,
                 description: wildcardCard.description,
@@ -929,11 +795,6 @@ export function resolveDayForRoom({
         secondarySeed,
       });
 
-      if (posTrait === "Lucky" && tier === "bad" && !luckyUsed) {
-        tier = "normal";
-        luckyUsed = true;
-      }
-
       const multiplier = getOutcomeMultiplier(tier);
       let baseGain =
         selection.actionId === "socialize"
@@ -944,6 +805,19 @@ export function resolveDayForRoom({
               matched,
             })
           : calculateSlotGain(selection.actionId, selection.spend ?? null, hasClass);
+
+      // Apply public event action modifiers
+      if (publicEvent?.actionModifiers && selection.actionId) {
+        const actionMod = publicEvent.actionModifiers[selection.actionId];
+        if (actionMod) {
+          baseGain = roundStats({
+            academics: baseGain.academics + (actionMod.academics ?? 0),
+            social: baseGain.social + (actionMod.social ?? 0),
+            wellbeing: baseGain.wellbeing + (actionMod.wellbeing ?? 0),
+            money: baseGain.money + (actionMod.money ?? 0),
+          });
+        }
+      }
 
       if (ditched) {
         baseGain = roundStats({
@@ -1018,7 +892,6 @@ export function resolveDayForRoom({
           ? {
               id: wildcardCard.id,
               tier: wildcardCard.tier,
-              type: wildcardCard.type,
               title: wildcardCard.title,
               emoji: wildcardCard.emoji,
               description: wildcardCard.description,
@@ -1055,8 +928,8 @@ export function resolveDayForRoom({
     );
 
     const giftSocial = socialGifts.get(player.id) || 0;
-    const fomoPenalty =
-      negTrait === "FOMO" && anyoneSocializedToday && !hadSocializeToday ? 0.5 : 0;
+    const fomoPenalty = negTrait === "FOMO" && anyoneSocializedToday && !hadSocializeToday ? 0.25 : 0;
+    const cheerfulBonus = posTrait === "Cheerful" && anyoneSocializedToday && hadSocializeToday ? 0.25 : 0;
     const isEndOfWeek = currentDayIndex === 6;
     const homeworkPenalty = isEndOfWeek ? getHomeworkPenalty(weeklyStudyCountSoFar) : 0;
     const classesScheduledThisWeek = classSchedule.length;
@@ -1070,7 +943,8 @@ export function resolveDayForRoom({
         oldStats.wellbeing +
         netChange.wellbeing -
         (hadRestOrSleep ? 0 : 1.5) -
-        fomoPenalty,
+        fomoPenalty +
+        cheerfulBonus,
       money: oldStats.money + netChange.money,
     });
 

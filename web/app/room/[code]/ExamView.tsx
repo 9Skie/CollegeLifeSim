@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ExamResult, ExamGrade } from "@/utils/exam-resolution";
+import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
 
 const GRADE_RANK: Record<ExamGrade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
 const GRADE_COLORS: Record<ExamGrade, string> = {
@@ -11,27 +12,6 @@ const GRADE_COLORS: Record<ExamGrade, string> = {
   D: "#d99f4f",
   F: "#d94f4f",
 };
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#d94f4f", "#f0a868", "#5b8c5a", "#4f8cd9",
-    "#d94fb8", "#a17b1a", "#8a8579", "#4fd9c9",
-    "#d96f4f",
-  ];
-  return colors[hashString(name) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
 
 export default function ExamView({
   currentDay,
@@ -123,7 +103,7 @@ export default function ExamView({
               className="rounded-full flex items-center justify-center font-bold text-white mb-3 w-16 h-16 text-lg"
               style={{ backgroundColor: color }}
             >
-              {getInitials(result.playerName)}
+              {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
             </div>
             <p className="font-semibold text-paper mb-1 text-lg">
               {result.playerName}
@@ -186,7 +166,7 @@ export default function ExamView({
               className="rounded-full flex items-center justify-center font-bold text-white shrink-0 w-10 h-10 text-xs"
               style={{ backgroundColor: color }}
             >
-              {getInitials(result.playerName)}
+              {result.avatarEmoji || getAvatarContent({ name: result.playerName })}
             </div>
             <div className="ml-3 flex-1 min-w-0">
               <p className="font-semibold text-paper text-sm truncate">

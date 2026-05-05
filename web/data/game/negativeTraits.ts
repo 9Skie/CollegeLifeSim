@@ -1,107 +1,132 @@
 export const NEGATIVE_TRAITS = [
-  "FOMO",
-  "Anxious",
-  "Couch Potato",
-  "Broke Family",
-  "Sickly",
-  "Procrastinator",
-  "Loose Lips",
-  "Penny-Wise",
-  "Loner",
-  "Insomniac",
-  "Hot-Headed",
-  "Distracted",
+  "Scattered",
+  "Withdrawn",
   "Spendthrift",
-  "Pessimist",
-  "Hypochondriac",
-  "Heartbreaker",
-  "Forgetful",
-  "Phone Addict",
-  "Burnout-Prone",
-  "Allergic",
+  "Tense",
+  "Distracted",
+  "Drained",
+  "Sleepy",
+  "Quiet",
+  "Sloppy",
+  "Rude",
+  "Stiff",
+  "Flat",
+  "Restless",
+  "Insomniac",
+  "Ruminating",
+  "Groggy",
+  "Shy",
+  "Hollow",
+  "Pricey",
+  "Loner",
+  "Brittle",
+  "FOMO",
+  "Frazzled",
+  "Burned Out",
+  "Foggy",
 ] as const;
 
 export type NegativeTraitName = (typeof NEGATIVE_TRAITS)[number];
 
 export const NEGATIVE_TRAIT_DATA: Record<string, { desc: string; effect: string }> = {
-  FOMO: {
-    desc: "The fear of missing out gnaws at you. Every party you skip feels personal.",
-    effect: "If anyone Socializes and you don't that day: Wellbeing −0.5",
+  Scattered: {
+    desc: "Your academic progress slips a little faster whenever you are not actively holding it together.",
+    effect: "Daily Academics decay worsened by 0.25",
   },
-  Anxious: {
-    desc: "Your brain runs worst-case scenarios on loop. Social plans feel like minefields.",
-    effect: "If your Socialize gets ditched, lose 0.5 Wellbeing",
-  },
-  "Couch Potato": {
-    desc: "The couch has accepted you as one of its own. Exercise feels like betrayal.",
-    effect: "Exercise rolls Bad 50% regardless of Wellbeing",
-  },
-  "Broke Family": {
-    desc: "Your family cannot really bail you out, so every paid plan hits harder than it should.",
-    effect: "Paid Socialize costs +0.25 extra Money",
-  },
-  Sickly: {
-    desc: "Your immune system is more suggestion than infrastructure. You catch everything.",
-    effect: "Daily Wellbeing decay worsened by 0.5",
-  },
-  Procrastinator: {
-    desc: "You work best under pressure. Unfortunately, pressure starts five minutes before the deadline.",
-    effect: "First Study each week is auto-Bad",
-  },
-  "Loose Lips": {
-    desc: "Secrets slip out of you like water through a sieve. You don't even mean to.",
-    effect: "Event codes you receive auto-leak to 1 random other player",
-  },
-  "Penny-Wise": {
-    desc: "You spend money to save money. The math never works, but you do it anyway.",
-    effect: "Coffee/Food Socialize give Free-tier effect (money still spent)",
-  },
-  Loner: {
-    desc: "Groups drain you. Even when things go well, you leave feeling half-empty.",
-    effect: "Matched Socialize gives 0.25 less Social",
-  },
-  Insomniac: {
-    desc: "Sleep is a negotiation you usually lose. Your bed is more battlefield than refuge.",
-    effect: "Sleep gives only half Wellbeing",
-  },
-  "Hot-Headed": {
-    desc: "Your temper arrives before you do. Mismatched plans feel like personal attacks.",
-    effect: "Mismatched shared actions cost 1 Relationship progress",
-  },
-  Distracted: {
-    desc: "Your attention span is a precious, fleeting resource. Lectures might as well be white noise.",
-    effect: "Class gives only Academics +0.25 (not +0.75)",
+  Withdrawn: {
+    desc: "Social momentum fades a little faster for you than it does for most people.",
+    effect: "Daily Social decay worsened by 0.25",
   },
   Spendthrift: {
-    desc: "Money burns a hole in your pocket. You buy things you don't need with money you don't have.",
+    desc: "Money seems to leak away from you in small, annoying ways.",
     effect: "Daily Money decay worsened by 0.25",
   },
-  Pessimist: {
-    desc: "You prepare for the worst, and the worst usually shows up. It's a self-fulfilling prophecy.",
-    effect: "Your Good rolls become Normal",
+  Tense: {
+    desc: "Stress settles into your body more easily than it should.",
+    effect: "Daily Wellbeing decay worsened by 0.25",
   },
-  Hypochondriac: {
-    desc: "Every sneeze is a symptom. Every headache is something worse. Stress compounds stress.",
-    effect: "At start-of-day Wellbeing 4 or lower, Bad chance is +10%",
+  Distracted: {
+    desc: "When you sit down to study, your attention slips too quickly.",
+    effect: "Study gives -0.25 Academics",
   },
-  Heartbreaker: {
-    desc: "Connections fray around you. You can get close, but never close enough.",
-    effect: "Cannot reach Relationship Lvl 3 with anyone",
+  Drained: {
+    desc: "Studying takes more out of you than it seems to take out of everybody else.",
+    effect: "Study gives -0.25 Wellbeing",
   },
-  Forgetful: {
-    desc: "Your calendar is a suggestion. Alarms are suggestions. Attendance is a coin flip.",
-    effect: "1 random class per week is auto-skipped",
+  Sleepy: {
+    desc: "Even when you make it to class, your brain arrives a little late.",
+    effect: "Class gives -0.25 Academics",
   },
-  "Phone Addict": {
-    desc: "Your screen time is a lifestyle. Wildcard moments get swallowed by doomscrolling.",
-    effect: "Wildcard never pulls a positive-tier card",
+  Quiet: {
+    desc: "You are physically there in class, but you do not connect with the room that much.",
+    effect: "Class gives -0.25 Social",
   },
-  "Burnout-Prone": {
-    desc: "You sprint until you collapse. Two study days in a row and your brain starts melting.",
-    effect: "Studying 2 days in a row → Wellbeing −1 the second day",
+  Sloppy: {
+    desc: "You lose little bits of efficiency on the job and it shows up in your pay.",
+    effect: "Work gives -0.25 Money",
   },
-  Allergic: {
-    desc: "Pollen, dust, exertion - your body finds reasons to complain. Exercise is a gamble.",
-    effect: "Exercise Wellbeing gain halved",
+  Rude: {
+    desc: "Your work interactions go a little rougher than you would like.",
+    effect: "Work gives -0.25 Social",
+  },
+  Stiff: {
+    desc: "Exercise helps less because your body never fully loosens up.",
+    effect: "Exercise gives -0.25 Wellbeing",
+  },
+  Flat: {
+    desc: "Even when you move your body, you do not get much emotional lift from it.",
+    effect: "Exercise gives -0.25 Social",
+  },
+  Restless: {
+    desc: "Rest does not land properly for you. You stop, but you do not really recover.",
+    effect: "Rest gives -0.25 Wellbeing",
+  },
+  Insomniac: {
+    desc: "Sleep helps, but never quite as much as it should.",
+    effect: "Sleep gives -0.25 Wellbeing",
+  },
+  Ruminating: {
+    desc: "When you stop moving, your mind starts spinning in circles.",
+    effect: "Rest gives -0.25 Academics",
+  },
+  Groggy: {
+    desc: "A full night's sleep still leaves your brain running half a step behind.",
+    effect: "Sleep gives -0.25 Academics",
+  },
+  Shy: {
+    desc: "You get less out of social plans because you hold yourself back too much.",
+    effect: "Socialize gives -0.25 Social",
+  },
+  Hollow: {
+    desc: "Even when you do choose people, social time does not refill you the way it should.",
+    effect: "Socialize gives -0.25 Wellbeing",
+  },
+  Pricey: {
+    desc: "Your social life somehow always costs a little more than expected.",
+    effect: "Paid Socialize costs 0.25 extra Money",
+  },
+  Loner: {
+    desc: "Even when plans line up, they still do not hit you as positively as they hit other people.",
+    effect: "Matched Socialize gives -0.25 Social",
+  },
+  Brittle: {
+    desc: "Low-stat pressure hits your nerves a little harder than it should.",
+    effect: "Warning-based Wellbeing penalty worsened by 0.25",
+  },
+  FOMO: {
+    desc: "If people go out without you, it gets under your skin fast.",
+    effect: "If anyone Socializes and you do not that day: Wellbeing -0.25",
+  },
+  Frazzled: {
+    desc: "Classroom spaces leave you more emotionally spent than they do for other people.",
+    effect: "Class gives -0.25 Wellbeing",
+  },
+  "Burned Out": {
+    desc: "Work drains more out of you than it seems to drain out of everybody else.",
+    effect: "Work gives -0.25 Wellbeing",
+  },
+  Foggy: {
+    desc: "Exercise clears your head less than it should, and sometimes it does the opposite.",
+    effect: "Exercise gives -0.25 Academics",
   },
 };

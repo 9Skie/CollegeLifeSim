@@ -7,7 +7,7 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const { name, eliminated, wellbeing, academics, social, money } = await request.json();
+    const { name, eliminated, wellbeing, academics, social, money, avatarEmoji } = await request.json();
 
     if (!name || typeof name !== "string" || name.length < 1 || name.length > 20) {
       return NextResponse.json({ error: "Name must be 1–20 characters" }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(
     const playerInsert: {
       room_code: string;
       name: string;
+      avatar_emoji?: string | null;
       eliminated?: boolean;
       academics?: number;
       social?: number;
@@ -55,6 +56,7 @@ export async function POST(
     } = {
       room_code: code,
       name,
+      avatar_emoji: typeof avatarEmoji === "string" && avatarEmoji.trim() ? avatarEmoji.trim() : null,
       academics: typeof academics === "number" ? academics : 2,
       social: typeof social === "number" ? social : 2,
       wellbeing: typeof wellbeing === "number" ? wellbeing : 5,

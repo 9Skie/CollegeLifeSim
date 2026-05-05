@@ -8,6 +8,8 @@ import ResolutionView from "./ResolutionView";
 import ExamView from "./ExamView";
 import WeekResolutionView from "./WeekResolutionView";
 import SpectatorView from "./SpectatorView";
+import EliminationScreen from "./EliminationScreen";
+import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
 
 import {
   createEmptySelectionRecord,
@@ -28,38 +30,12 @@ type Player = {
   wellbeing?: number;
   money?: number;
   class_schedule?: Array<{ day: number; slot: "morning" | "afternoon" }>;
+  avatar_emoji?: string | null;
   eliminated?: boolean;
   created_at?: string;
 };
 
 type GamePhase = "lobby" | "setup" | "day" | "resolution" | "week_resolution" | "exam" | "end";
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#d94f4f",
-    "#f0a868",
-    "#5b8c5a",
-    "#4f8cd9",
-    "#d94fb8",
-    "#a17b1a",
-    "#8a8579",
-    "#4fd9c9",
-    "#d96f4f",
-  ];
-  return colors[hashString(name) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
 
 export default function RoomPage() {
   const params = useParams();
@@ -87,6 +63,7 @@ export default function RoomPage() {
   const isSpectatorRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEliminationScreen, setShowEliminationScreen] = useState(false);
 
   // Derived player state (must be before the polling effect)
   const currentPlayer = myId
@@ -173,6 +150,33 @@ export default function RoomPage() {
       clearGameStorage();
     }
   }, [phase]);
+
+  // Detect first-time elimination and show the elimination screen
+  useEffect(() => {
+    if (!myId || !currentPlayer) return;
+    if (currentPlayer.eliminated) {
+      const key = `cls.eliminationSeen_${code}_${myId}`;
+      const alreadySeen = localStorage.getItem(key);
+      if (!alreadySeen) {
+        setShowEliminationScreen(true);
+      }
+    }
+  }, [currentPlayer?.eliminated, myId, code]);
+
+  // Clear elimination screen flag when a new game starts
+  useEffect(() => {
+    if ((phase === "lobby" || phase === "setup") && myId) {
+      localStorage.removeItem(`cls.eliminationSeen_${code}_${myId}`);
+      setShowEliminationScreen(false);
+    }
+  }, [phase, myId, code]);
+
+  const dismissEliminationScreen = () => {
+    if (myId) {
+      localStorage.setItem(`cls.eliminationSeen_${code}_${myId}`, "1");
+    }
+    setShowEliminationScreen(false);
+  };
 
   /* ------------------------------------------------------------------ */
   const isHost = myId === hostId;
@@ -333,12 +337,17 @@ export default function RoomPage() {
     }
   };
 
+  const eliminationSeenKey = myId ? `cls.eliminationSeen_${code}_${myId}` : null;
+
   const clearGameStorage = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("cls.playerId");
       localStorage.removeItem("cls.name");
       localStorage.removeItem("cls.role");
       localStorage.removeItem("cls.roomCode");
+      if (eliminationSeenKey) {
+        localStorage.removeItem(eliminationSeenKey);
+      }
     }
   };
 
@@ -499,6 +508,10 @@ export default function RoomPage() {
     );
   }
 
+  if (showEliminationScreen && currentPlayer) {
+    return <EliminationScreen onContinue={dismissEliminationScreen} />;
+  }
+
   if (isSpectator && phase !== "lobby") {
     return (
       <div className="flex-1 flex overflow-hidden">
@@ -640,7 +653,7 @@ export default function RoomPage() {
                       }`}
                       style={{ backgroundColor: color }}
                     >
-                      {getInitials(player.name)}
+                      {getAvatarContent(player)}
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold truncate ${isGoner ? "text-muted line-through" : "text-paper"}`}>
@@ -748,12 +761,8 @@ function PlayerStatsPopup({
   };
   const isGoner = player.eliminated;
 
-  const colors = [
-    "#d94f4f", "#f0a868", "#5b8c5a", "#4f8cd9",
-    "#d94fb8", "#a17b1a", "#8a8579", "#4fd9c9", "#d96f4f",
-  ];
-  const color = colors[[...player.name].reduce((h, c) => c.charCodeAt(0) + ((h << 5) - h), 0) % colors.length];
-  const initials = player.name.slice(0, 2).toUpperCase();
+  const color = getAvatarColor(player.name);
+  const avatarContent = getAvatarContent(player);
 
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
@@ -771,7 +780,7 @@ function PlayerStatsPopup({
             }`}
             style={{ backgroundColor: color }}
           >
-            {initials}
+            {avatarContent}
           </div>
           <div>
             <p className={`text-sm font-bold leading-tight ${isGoner ? "text-muted line-through" : "text-paper"}`}>

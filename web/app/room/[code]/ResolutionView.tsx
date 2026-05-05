@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Selection } from "./ActionPicker";
 import type { StoredResolution } from "@/utils/day-resolution";
+import { hashString } from "@/utils/player-avatar";
 
 type Player = { id: string; name: string; eliminated?: boolean };
 type CurrentPlayer = {
@@ -46,20 +47,11 @@ function tierToColor(tier: string): string {
 type WildcardDisplay = {
   id: string;
   tier: string;
-  type: string;
   title: string;
   emoji: string;
   description: string;
   effectSummary: string;
 };
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
 
 function quantizeQuarter(value: number) {
   const quantized = Math.round(Math.abs(value) * 4) / 4;

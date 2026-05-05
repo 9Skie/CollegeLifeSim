@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { StoredResolution } from "@/utils/day-resolution";
+import { getAvatarColor, getAvatarContent } from "@/utils/player-avatar";
 
-type Player = { id: string; name: string; eliminated?: boolean };
+type Player = { id: string; name: string; avatar_emoji?: string | null; eliminated?: boolean };
 
 type RelationshipRow = {
   player_a: string;
@@ -19,27 +20,6 @@ type DayActionRow = {
   action: string;
   target_id: string | null;
 };
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
-function getAvatarColor(name: string): string {
-  const colors = [
-    "#d94f4f", "#f0a868", "#5b8c5a", "#4f8cd9",
-    "#d94fb8", "#a17b1a", "#8a8579", "#4fd9c9",
-    "#d96f4f",
-  ];
-  return colors[hashString(name) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
 
 function getActionLabel(id: string): string {
   const map: Record<string, string> = {
@@ -176,14 +156,12 @@ export default function WeekResolutionView({
     };
   }, [resolutions]);
 
-  const actionsByDay = useMemo(() => {
-    const map = new Map<number, DayActionRow[]>();
+  const actionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const action of actions) {
-      const list = map.get(action.day) || [];
-      list.push(action);
-      map.set(action.day, list);
+      counts.set(action.action, (counts.get(action.action) || 0) + 1);
     }
-    return map;
+    return counts;
   }, [actions]);
 
   const myRelationships = useMemo(() => {
@@ -199,8 +177,6 @@ export default function WeekResolutionView({
         };
       });
   }, [relationships, playerId, players]);
-
-  const slotOrder = ["morning", "afternoon", "night"];
 
   if (loading) {
     return (
@@ -269,40 +245,27 @@ export default function WeekResolutionView({
           <p className="text-[10px] uppercase tracking-widest text-muted mb-3">
             Actions This Week
           </p>
-          <div className="flex flex-col gap-2">
-            {Array.from(actionsByDay.entries()).map(([day, dayActions]) => (
-              <div
-                key={day}
-                className="rounded-xl border border-card-border bg-card p-3"
-              >
-                <p className="text-[10px] uppercase tracking-wider text-muted mb-2">
-                  Day {day}
-                </p>
-                <div className="flex gap-2">
-                  {slotOrder.map((slot) => {
-                    const action = dayActions.find((a) => a.slot === slot);
-                    if (!action) return null;
-                    const target = action.target_id
-                      ? players.find((p) => p.id === action.target_id)?.name
-                      : null;
-                    return (
-                      <div
-                        key={slot}
-                        className="flex-1 min-w-0 rounded-lg border border-card-border bg-background/50 px-2 py-2 text-center"
-                      >
-                        <span className="text-lg">{getActionIcon(action.action)}</span>
-                        <p className="text-[10px] text-paper font-medium mt-0.5 truncate">
-                          {getActionLabel(action.action)}
-                        </p>
-                        {target && (
-                          <p className="text-[9px] text-muted truncate">{target}</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+          <div className="rounded-xl border border-card-border bg-card p-3">
+            {actionCounts.size === 0 ? (
+              <p className="text-sm text-muted text-center py-2">No actions this week</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {Array.from(actionCounts.entries()).map(([action, count]) => (
+                  <div
+                    key={action}
+                    className="flex items-center gap-2 rounded-lg border border-card-border bg-background/50 px-3 py-2"
+                  >
+                    <span className="text-lg">{getActionIcon(action)}</span>
+                    <div>
+                      <p className="text-[10px] text-paper font-medium">
+                        {getActionLabel(action)}
+                      </p>
+                      <p className="text-[9px] text-muted">× {count}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -393,7 +356,7 @@ export default function WeekResolutionView({
                       className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                       style={{ backgroundColor: color }}
                     >
-                      {getInitials(rel.name)}
+                      {getAvatarContent(rel)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-paper">{rel.name}</p>

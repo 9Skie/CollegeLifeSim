@@ -49,6 +49,8 @@ export type RoomEvent = {
   name: string;
   description: string;
   effect: string;
+  effectType?: string;
+  actionModifiers?: Record<string, Record<string, number>>;
   code?: string;
 };
 
@@ -203,7 +205,7 @@ export async function loadRoomDayState(
   if (publicEventRow) {
     const { data: pubDef } = await supabase
       .from("public_event_defs")
-      .select("id, title, description, effect_type, flat_stat_changes, multipliers")
+      .select("id, title, description, effect_type, action_modifiers")
       .eq("id", publicEventRow.public_event_id)
       .single();
     if (pubDef) {
@@ -213,9 +215,10 @@ export async function loadRoomDayState(
         description: pubDef.description as string,
         effect: formatPublicEffect(
           pubDef.effect_type as string,
-          pubDef.flat_stat_changes as Record<string, number> | null,
-          pubDef.multipliers as Record<string, number> | null
+          pubDef.action_modifiers as Record<string, Record<string, number>> | null
         ),
+        effectType: pubDef.effect_type as string,
+        actionModifiers: (pubDef.action_modifiers as Record<string, Record<string, number>>) || undefined,
       };
     }
   }
@@ -263,32 +266,23 @@ export async function loadRoomDayState(
 
 function formatPublicEffect(
   effectType: string,
-  flatChanges: Record<string, number> | null,
-  multipliers: Record<string, number> | null
+  actionModifiers: Record<string, Record<string, number>> | null
 ): string {
-  const parts: string[] = [];
-  if (flatChanges && Object.keys(flatChanges).length > 0) {
-    parts.push(
-      Object.entries(flatChanges)
-        .map(([stat, val]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} ${val >= 0 ? "+" : ""}${val}`)
-        .join(", ")
-    );
+  if (actionModifiers && Object.keys(actionModifiers).length > 0) {
+    return Object.entries(actionModifiers)
+      .map(([action, stats]) => {
+        const statParts = Object.entries(stats).map(
+          ([stat, val]) => `${stat.charAt(0).toUpperCase() + stat.slice(1)} ${val >= 0 ? "+" : ""}${val}`
+        );
+        return `${action.charAt(0).toUpperCase() + action.slice(1)}: ${statParts.join(", ")}`;
+      })
+      .join("; ");
   }
-  if (multipliers && Object.keys(multipliers).length > 0) {
-    parts.push(
-      Object.entries(multipliers)
-        .map(([action, val]) => `${action.charAt(0).toUpperCase() + action.slice(1)} ×${val}`)
-        .join(", ")
-    );
-  }
-  if (parts.length > 0) return parts.join("; ");
   switch (effectType) {
     case "flat_stats":
       return "Flat stat changes";
-    case "action_multiplier":
-      return "Action effectiveness modified";
-    case "slot_multiplier":
-      return "Slot effectiveness modified";
+    case "action_modifier":
+      return "Action rewards modified";
     case "daily_decay":
       return "Daily decay modified";
     default:

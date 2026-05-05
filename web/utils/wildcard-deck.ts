@@ -21,7 +21,7 @@ function shuffle<T>(items: T[]) {
 export async function loadWildcardDefs(supabase: SupabaseClient): Promise<WildcardCard[]> {
   const { data, error } = await supabase
     .from("wildcard_defs")
-    .select("id, tier, type, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata");
+    .select("id, tier, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata");
 
   if (error || !data) {
     throw error || new Error("Failed to load wildcard definitions");
@@ -34,7 +34,6 @@ export async function loadWildcardDefs(supabase: SupabaseClient): Promise<Wildca
   return data.map((row) => ({
     id: row.id as string,
     tier: row.tier as WildcardCard["tier"],
-    type: row.type as WildcardCard["type"],
     title: row.title as string,
     emoji: row.emoji as string,
     description: row.description as string,
@@ -54,7 +53,7 @@ export async function buildShuffledWildcardDeck(supabase: SupabaseClient) {
 export async function getWildcardCardById(supabase: SupabaseClient, cardId: string): Promise<WildcardCard | null> {
   const { data, error } = await supabase
     .from("wildcard_defs")
-    .select("id, tier, type, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata")
+    .select("id, tier, title, emoji, description, effect_summary, duration, target_stats, immediate, future, metadata")
     .eq("id", cardId)
     .single();
 
@@ -65,7 +64,6 @@ export async function getWildcardCardById(supabase: SupabaseClient, cardId: stri
   return {
     id: data.id as string,
     tier: data.tier as WildcardCard["tier"],
-    type: data.type as WildcardCard["type"],
     title: data.title as string,
     emoji: data.emoji as string,
     description: data.description as string,
