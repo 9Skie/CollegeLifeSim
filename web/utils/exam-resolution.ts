@@ -12,6 +12,42 @@ export type ExamResult = {
   newWellbeing: number;
 };
 
+const BASE_ACADEMICS = 2;
+const BASE_WELLBEING = 5;
+const ACADEMICS_WEIGHT = 2;
+const WELLBEING_WEIGHT = 1;
+const BASE_WEIGHTED = BASE_ACADEMICS * ACADEMICS_WEIGHT + BASE_WELLBEING * WELLBEING_WEIGHT;
+const GRADE_TARGETS: Record<ExamGrade, number> = { F: -2, D: -1, C: 0, B: 1, A: 2 };
+const SENSITIVITY = 0.05;
+
+const GRADE_RANKS: ExamGrade[] = ["F", "D", "C", "B", "A"];
+
+function rollGrade(academics: number, wellbeing: number): ExamGrade {
+  const weightedScore = academics * ACADEMICS_WEIGHT + wellbeing * WELLBEING_WEIGHT;
+  const delta = weightedScore - BASE_WEIGHTED;
+
+  const weights = new Map<ExamGrade, number>();
+  for (const grade of GRADE_RANKS) {
+    const target = GRADE_TARGETS[grade];
+    weights.set(grade, Math.max(0.001, 1 + SENSITIVITY * delta * target));
+  }
+
+  const totalWeight = Array.from(weights.values()).reduce((sum, w) => sum + w, 0);
+  const roll = Math.random() * totalWeight;
+
+  let cumulative = 0;
+  for (const grade of GRADE_RANKS) {
+    cumulative += weights.get(grade)!;
+    if (roll <= cumulative) {
+      return grade;
+    }
+  }
+
+  return "F";
+}
+
+const GRADE_ACAD_CHANGE: Record<ExamGrade, number> = { A: 1.5, B: 0.75, C: 0, D: -0.75, F: -1.5 };
+
 export function computeExamResult(
   academics: number,
   wellbeing: number,
@@ -21,23 +57,14 @@ export function computeExamResult(
   academicsChange: number;
   wellbeingChange: number;
 } {
-  const wellbeingBonus = Math.max(0, (wellbeing - 3) * 0.25);
-  const score = academics + wellbeingBonus;
-  const maxChange = isFinal ? 3 : 1.5;
+  const grade = rollGrade(academics, wellbeing);
+  const finalMultiplier = isFinal ? 2 : 1;
 
-  if (score >= 8) {
-    return { grade: "A", academicsChange: maxChange, wellbeingChange: 1 };
-  }
-  if (score >= 6) {
-    return { grade: "B", academicsChange: maxChange / 2, wellbeingChange: 1 };
-  }
-  if (score >= 4) {
-    return { grade: "C", academicsChange: 0, wellbeingChange: 1 };
-  }
-  if (score >= 2) {
-    return { grade: "D", academicsChange: -(maxChange / 2), wellbeingChange: 1 };
-  }
-  return { grade: "F", academicsChange: -maxChange, wellbeingChange: 1 };
+  return {
+    grade,
+    academicsChange: Math.round(GRADE_ACAD_CHANGE[grade] * finalMultiplier * 100) / 100,
+    wellbeingChange: 1,
+  };
 }
 
 export function resolveExamForRoom({

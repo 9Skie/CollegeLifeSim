@@ -101,6 +101,26 @@ BEGIN
   END IF;
 END $$;
 
+-- Migrate: fix effect_type check constraint if it has wrong values
+DO $$
+DECLARE
+  con_name TEXT;
+BEGIN
+  SELECT constraint_name INTO con_name
+  FROM information_schema.table_constraints
+  WHERE table_name = 'public_event_defs'
+    AND constraint_type = 'CHECK'
+    AND constraint_name LIKE '%effect_type%';
+
+  IF con_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public_event_defs DROP CONSTRAINT %I', con_name);
+  END IF;
+END $$;
+
+ALTER TABLE public_event_defs
+  ADD CONSTRAINT public_event_defs_effect_type_check
+  CHECK (effect_type IN ('flat_stats', 'action_modifier', 'daily_decay', 'mixed'));
+
 -- Private event definitions (permanent catalog)
 CREATE TABLE IF NOT EXISTS private_event_defs (
   id TEXT PRIMARY KEY,

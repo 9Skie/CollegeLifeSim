@@ -10,7 +10,6 @@
 
 ## 🟢 UI / POLISH — Frontend
 
-- [ ] **Exam mechanics wrong** — Design uses outcome roll with Effective Exam Wellbeing = (Academics + Wellbeing) / 2. Code uses simple threshold scoring with no roll.
 - [ ] **End-of-game screen** — `"end"` phase has no UI.
 
 ---
