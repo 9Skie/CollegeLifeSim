@@ -777,7 +777,6 @@ export function resolveDayForRoom({
     money_spent: number;
     outcome_tier: "bad" | "normal" | "good" | null;
   }> = [];
-  const consumedEffectIds = new Set<string>();
 
   for (const player of players) {
     if (player.eliminated) {
