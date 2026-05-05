@@ -395,7 +395,7 @@ export default function ResolutionView({
     const tShuffle = setTimeout(() => {
       setShowShuffling(false);
       setShowCardFace(true);
-    }, 900);
+    }, 500);
     return () => clearTimeout(tShuffle);
   }, [showWildcard]);
 
@@ -990,7 +990,7 @@ function ShufflingCards({ show }: { show: boolean }) {
           className="absolute w-20 h-28 rounded-xl border-2 border-card-border"
           style={{
             background: "linear-gradient(135deg, #1a1d24 0%, #0e1014 100%)",
-            animation: `shuffleCard 0.5s ease-in-out ${i * 0.12}s infinite alternate`,
+            animation: `shuffleCard 0.28s ease-in-out ${i * 0.08}s infinite alternate`,
             transformOrigin: "center bottom",
             zIndex: 3 - i,
           }}
